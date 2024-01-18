@@ -1,0 +1,3 @@
+[submodule "parameters"]
+	path = web
+	url = git@github.com:vaclavblazej/parameters.git
