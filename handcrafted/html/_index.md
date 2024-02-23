@@ -3,20 +3,17 @@ layout: "single"
 title: "Parameters hierarchy"
 ---
 
-**PDF Controls:**
-Zoom with Ctrl+wheel, Click nodes or edge-circles to open relevant page.
-
-Gray edges are waiting for the proof with a link to be added to this database.
-Edge style represents bound:Thick = linear, Thin = polynomial, and Dashed = exponential.
+# HOPS web view
 
 This page lists:
+
 * [parameters](#parameters)
 * [graph classes](#graph-classes)
 * [sources](#sources)
 
 ---
 
-# Parameters
+## Parameters
 
 [Parameter hierarchy PDF](parameters.pdf)
 
@@ -26,7 +23,7 @@ This page lists:
 
 ---
 
-# Graph classes
+## Graph classes
 
 Some parameters are derived from associated graph classes.
 Graph classes can be also used as witnesses of proper inclusions.
@@ -43,6 +40,6 @@ Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](h
 
 ---
 
-# Sources
+## Sources
 
 [[list sources]]

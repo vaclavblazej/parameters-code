@@ -28,11 +28,12 @@ To give your suggestions and fixes (with references) please open a [github issue
 ## Repository folders and files
 
 * main content
-    * `scripts` source data and codes that export the data into human-readable form to the `content` folder
+    * `code` source data and codes that export the data into human-readable form to the `web/content` folder
     * `handcrafted` are the non-generated parts of the website
 * extras
-    * `.git, .gitignore, .gitmodules` git versioning data
+    * `.git`, `.gitignore`, `.gitmodules` git versioning data
     * `README.md` documentation
+    * `web` git submodule that points to the repository with the website sources
 
 ## Inspired by
 
@@ -42,7 +43,10 @@ To give your suggestions and fixes (with references) please open a [github issue
 
 ## Generating content
 
-...todo
+* Install `rust`, `pdflatex`, and `graphviz`
+* Change to the project directory
+* Change to code subdirectory `cd code`
+* Compile and run the generating code `cargo run`
 
 ## License
 

@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use crate::{raw::{RawSet, RawRelation}, complexity::CpxInfo, data::{ShowedFact, RawData}};
 
 
+/// This structure keeps which parameters are directly above or below others.
 pub struct SimpleIndex {
     pub first_above_second: HashSet<(RawSet, RawSet)>,
     pub first_not_above_second: HashSet<(RawSet, RawSet)>,
@@ -29,6 +30,8 @@ impl SimpleIndex {
             CpxInfo::Inclusion { mn: _, mx: _ } => {
                 self.first_above_second.insert(element);
             },
+            CpxInfo::LowerBound { mn: _ } => {
+            },
             CpxInfo::Exclusion {} => {
                 self.first_not_above_second.insert(element);
             },
@@ -40,6 +43,22 @@ impl SimpleIndex {
             CpxInfo::Unknown => {},
         }
     }
+    // pub fn get_relation(&self, a: &RawSet, b: &RawSet) -> RawRelation {
+        // // todo this implementation is temporary and terrible
+        // let subsets = self.get_subsets(a);
+        // let antisubsets = self.get_antisubsets(a);
+        // let mut cpx = CpxInfo::Unknown;
+        // // if subsets.contains(b) {
+            // // cpx = CpxInfo::Inclusion{mn: crate::complexity::CpxTime::Constant, mx: crate::complexity::CpxTime::Exists};
+        // // } else if antisubsets.contains(b) {
+            // // cpx = CpxInfo::Exclusion;
+        // // }
+        // return RawRelation{
+            // subset: a.clone(),
+            // superset: b.clone(),
+            // cpx,
+        // };
+    // }
     pub fn get_subsets(&self, a: &RawSet) -> Vec<RawSet> {
         self.first_above_second.iter()
             .filter(|(_,sup)|sup==a)
@@ -64,8 +83,7 @@ impl SimpleIndex {
             .map(|(_,sup)|sup.clone())
             .collect()
     }
-    pub fn is_below(&self, a: &RawSet, b: &RawSet) -> bool {
+    pub fn first_above_second(&self, a: &RawSet, b: &RawSet) -> bool {
         self.first_above_second.contains(&(a.clone(), b.clone()))
     }
 }
-

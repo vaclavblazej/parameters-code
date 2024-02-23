@@ -53,7 +53,9 @@ impl Id for RawSet {
 /// Holds into on whether bounded `subset` implies bounded `superset`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RawRelation {
+    /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
     pub subset: RawSet,
+    /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
     pub superset: RawSet,
     pub cpx: CpxInfo,
 }

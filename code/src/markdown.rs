@@ -1,8 +1,9 @@
 //! Given the processed data generate markdown pages.
 
+
 use std::collections::{LinkedList, HashMap, HashSet, VecDeque};
 use std::{env, fmt};
-use std::fs::File;
+use std::fs::{File, copy};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
@@ -10,7 +11,7 @@ use std::process::Command;
 use regex::Regex;
 
 use crate::data::{Linkable, Data, Set, Source, SourceKey};
-use crate::draw::Graph;
+use crate::draw::{Edge, Graph};
 use crate::file;
 use crate::raw::{RawSet, RawSource};
 
@@ -64,62 +65,64 @@ impl Linkable for RawSource {
 }
 
 pub trait GeneratedPage {
-    fn get_page(&self, builder: &Markdown) -> String;
+    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String;
 }
 
-fn bfs_to_distance(set: &Set, data: &Data, distance: usize) -> HashSet<RawSet> {
-    let mut visited = HashSet::new();
-    let mut queue = VecDeque::new();
-    visited.insert(set.raw.clone());
-    queue.push_back((set.raw.clone(), 0));
-    while let Some((raw_set, current_distance)) = queue.pop_front() {
-        let set = data.get(raw_set);
-        if current_distance >= distance {
-            continue;
-        }
-        for subset in &set.subsets.maximal {
-            if visited.insert(subset.clone()) {
-                queue.push_back((subset.clone(), current_distance + 1));
-            }
-        }
-        for superset in &set.supersets.minimal {
-            if visited.insert(superset.clone()) {
-                queue.push_back((superset.clone(), current_distance + 1));
-            }
-        }
-    }
-    println!("{}", visited.len());
-    visited
-}
-
-fn make_focus_drawing(set: &Set, builder: &Markdown) -> anyhow::Result<PathBuf> {
+fn make_focus_drawing(set: &Set, builder: &Markdown, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     let mut graph = Graph::new();
-    let sets_to_draw = bfs_to_distance(set, &builder.data, 3);
-    for set in sets_to_draw {
-        graph.add_node(&builder.data.get(set).clone())
+    let sets_to_draw = crate::processing::bfs_limit_distance(set, &builder.data, distance);
+    for set in &sets_to_draw {
+        graph.add_node(&builder.data.get(set.clone()).clone())
+    }
+    for set in &sets_to_draw {
+        let above = &builder.data.get(set.clone());
+        for child in &above.subsets.all {
+            if sets_to_draw.contains(&child) {
+                let attributes = "color=gray decorate=true lblstyle=\"above, sloped\" weight=1".into();
+                let drawedge = Edge{
+                    from: above.id.clone(),
+                    to: child.id.clone(),
+                    // label: "o".into(),
+                    label: String::new(),
+                    attributes,
+                };
+                graph.add_edge(drawedge);
+            }
+        }
     }
     let dot_str = graph.to_dot();
-    let current = env::current_dir().unwrap().join("build");
-    let dot_target_file = current.join(format!("local_{}.dot", set.id));
+    let dot_target_file = target_dir.join(format!("local_{}.dot", set.id));
     file::write_file_content(&dot_target_file, &dot_str)?;
-    let pdf_target_file = current.join(format!("local_{}.pdf", set.id));
+    let pdf_target_file = target_dir.join(format!("local_{}.pdf", set.id));
     Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).spawn()?;
     Ok(pdf_target_file)
 }
 
 impl GeneratedPage for Set {
-    fn get_page(&self, builder: &Markdown) -> String {
+    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
-        res += &format!("## {} description\n\n", self.name);
+        res += &format!("# {}\n\n", self.name);
         res += "[[handcrafted]]\n\n";
         res += "## Relations\n\n";
-        if let Ok(result_pdf_file) = make_focus_drawing(self, builder) {
-            let mut keys: LinkedList<String> = LinkedList::new();
-            let res_str = result_pdf_file.into_os_string().to_str().unwrap().to_owned();
-            keys.push_back(res_str);
-            println!("ok pdf");
-            res += &builder.embed_pdf(&mut keys).unwrap();
-        }
+        let focus_drawing = make_focus_drawing(self, builder, 3, working_dir);
+        let drawing_content = match focus_drawing {
+            Ok(result_pdf_file) => {
+                let filename = result_pdf_file.file_name().expect("Result file has no name").to_owned();
+                let final_path = final_dir.join("html").join(&filename);
+                println!("resultpdf {:?}", result_pdf_file);
+                // println!("filename {:?}", filename);
+                // println!("final {:?}", final_path);
+                // copy(&result_pdf_file, &final_path).expect("Failed to copy result to final directory");
+                // let filestr = result_pdf_file.into_os_string().to_str().expect("Failed to convert to string").to_owned();
+                // println!("{}", filestr);
+                // format!("[[pdf /html/{}]]", filestr);
+                format!("")
+            },
+            Err(e) => {
+                format!("{:?}", e)
+            },
+        };
+        res += &drawing_content;
         res += "## Timeline\n\n";
         for source in &self.timeline {
             res += &format!("{}\n\n", builder.linkto(&source.raw));
@@ -140,8 +143,13 @@ impl GeneratedPage for Set {
 }
 
 impl GeneratedPage for Source {
-    fn get_page(&self, builder: &Markdown) -> String {
-        "generated source page".into()
+    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
+        let mut res: String = "".into();
+        res.push_str(&format!("{:?} {}", self.sourcekey, self.time));
+        for s in &self.showed {
+            res.push_str(&format!("{:?}", s));
+        }
+        res
     }
 }
 

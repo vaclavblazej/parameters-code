@@ -1,11 +1,10 @@
 //! Utilities for processing files and folders.
 
-
 use std::{path::PathBuf, fs::{File, self}, io::{Read, Write}};
 
 use anyhow::Result;
 
-pub fn iterate_folder(path: &PathBuf) -> Vec<PathBuf> {
+pub fn iterate_folder_recursively(path: &PathBuf) -> Vec<PathBuf> {
     let mut res = vec![];
     match fs::read_dir(path) {
         Ok(entries) => {
@@ -15,7 +14,7 @@ pub fn iterate_folder(path: &PathBuf) -> Vec<PathBuf> {
                         let path = entry.path();
                         if path.is_dir() {
                             res.push(path.clone());
-                            res.extend(iterate_folder(&path));
+                            res.extend(iterate_folder_recursively(&path));
                         }
                         if path.is_file() {
                             res.push(path);
@@ -41,13 +40,13 @@ pub fn read_file_content(source_path: &PathBuf) -> Result<String> {
     Ok(content)
 }
 
-pub fn append_file_content(target_path: &PathBuf, content: &String) -> Result<()> {
-    let mut target_file = fs::OpenOptions::new().write(true).append(true).create(true).open(target_path).unwrap();
+pub fn append_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
+    let mut target_file = fs::OpenOptions::new().write(true).append(true).create(true).open(target_path)?;
     target_file.write_all(content.as_bytes())?;
     Ok(())
 }
 
-pub fn write_file_content(target_path: &PathBuf, content: &String) -> Result<()> {
+pub fn write_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
     let mut target_file = File::create(target_path)?;
     target_file.write_all(content.as_bytes())?;
     Ok(())

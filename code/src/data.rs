@@ -1,6 +1,7 @@
 //! Collection of raw datapoints together with their mutual relations.
 //! More complex structures use Raw structures to refer to each other.
 
+use std::fmt;
 use std::collections::HashMap;
 
 use crate::{raw::{RawSet, RawTopic, RawRelation, RawSource, RawKind}, complexity::{CpxTime, CpxInfo}, processing::Sets};
@@ -17,6 +18,7 @@ pub trait HasId {
 impl HasId for Set { fn id(&self) -> String { self.id.clone() } }
 impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
 
+/// Refers to a page in a book or paper.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Page{
     Pp(u32),
@@ -29,11 +31,13 @@ pub struct DataSource<'a> {
     data: &'a mut RawData,
 }
 
+/// Enum that makes inputting complexities more convenient.
 pub enum Cpx {
     Bounds(CpxTime, CpxTime),
     UpperBound(CpxTime),
     Exactly(CpxTime),
     Equivalence,
+    Exclusion,
     Todo,
 }
 
@@ -45,16 +49,20 @@ impl Cpx {
             Cpx::UpperBound(b) => CpxInfo::Inclusion{mn: CpxTime::Constant, mx: b.clone()},
             Cpx::Todo => CpxInfo::Inclusion { mn: CpxTime::Constant, mx: CpxTime::Exists },
             Cpx::Equivalence => CpxInfo::Equivalence,
+            Cpx::Exclusion => CpxInfo::Exclusion,
         }
     }
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct Date {
-    // placeholder
+    pub year: Option<u32>,
+    pub month: Option<u32>,
+    pub day: Option<u32>,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+/// Points to the source of a citation.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum SourceKey {
     Bibtex {
         key: String,
@@ -66,7 +74,39 @@ pub enum SourceKey {
     Unknown,
 }
 
-#[derive(Clone)]
+impl fmt::Display for Date {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut result: String = "".to_string();
+        if let Some(y) = self.year {
+            result.push_str(&y.to_string());
+        } else {
+            return write!(f, "{}", result)
+        }
+        if let Some(m) = self.month {
+            result.push('-');
+            result.push_str(&m.to_string());
+        } else {
+            return write!(f, "{}", result)
+        }
+        if let Some(d) = self.day {
+            result.push('-');
+            result.push_str(&d.to_string());
+        } else {
+            return write!(f, "{}", result)
+        }
+        write!(f, "{}", result)
+    }
+}
+
+impl fmt::Debug for Date {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", format!("{}", &self))
+    }
+}
+
+/// More processed version of RawSource that also includes auxiliary information
+/// to show it but does not include everything. Meant to be presented as a link.
+#[derive(Clone, Debug)]
 pub struct SourceSubset {
     pub raw: RawSource,
     pub id: String,
@@ -75,7 +115,8 @@ pub struct SourceSubset {
     pub time: Date,
 }
 
-#[derive(Clone)]
+/// A general structure for parameters, graph classes, any other structures.
+#[derive(Clone, Debug)]
 pub struct Set {
     pub raw: RawSet,
     pub id: String,
@@ -192,7 +233,7 @@ pub struct RawData {
 
 // todo abbreviation
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TransferGroup {
     DistanceTo,
 }

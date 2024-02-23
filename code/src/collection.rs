@@ -1,8 +1,8 @@
 //! Collects the information we have about parameterized complexity classes, their inclusions,
 //! and related graph classes, topics, bibliographic sources, theorems, proofs, and so on.
 
-use crate::data::Page::{Unknown, Pp};
-use crate::{complexity::CpxTime::*, data::Cpx, build::Builder};
+use crate::data::Page::*;
+use crate::{complexity::CpxTime::*, data::Cpx::*, build::Builder};
 
 pub fn build_collection() -> crate::data::RawData {
     let mut create = Builder::new();
@@ -59,36 +59,36 @@ pub fn build_collection() -> crate::data::RawData {
         .defined("sAZHF4", Unknown, &cycles, "Every component is a cycle.")
         .defined("cBDurK", Unknown, &disjoint_cycles, "All cycles in the graph are disjoint. Can contain arbitrary trees attached to and between the cycles.")
         .defined("sp6LGE", Unknown, &grid, "Cartesian product of two paths.")
-        .showed("piRTZw", Unknown, &chordal, &perfect, Cpx::Todo, "")
-        .showed("stwHRi", Unknown, &cograph, &perfect, Cpx::Todo, "")
-        .showed("ogyvLp", Unknown, &bipartite, &perfect, Cpx::Todo, "")
-        .showed("FM1wVJ", Unknown, &cluster, &interval, Cpx::Todo, "")
-        .showed("rHotfs", Unknown, &linear_forest, &interval, Cpx::Todo, "")
-        // .showed("OT3dig", Unknown, &stars, &interval, Cpx::Todo, "")
-        .showed("fKpyMg", Unknown, &interval, &chordal, Cpx::Todo, "")
-        .showed("cZy5xs", Unknown, &co_cluster, &cograph, Cpx::Todo, "")
-        .showed("AbAK8n", Unknown, &forest, &bipartite, Cpx::Todo, "")
-        .showed("ZiCzGe", Unknown, &outerplanar, &planar, Cpx::Todo, "")
-        .showed("6TFVVG", Unknown, &complete, &co_cluster, Cpx::Todo, "")
-        .showed("2Jde0p", Unknown, &block, &chordal, Cpx::Todo, "")
-        .showed("DxYTTn", Unknown, &cluster, &block, Cpx::Todo, "")
-        .showed("lmKGuy", Unknown, &linear_forest, &forest, Cpx::Todo, "")
-        .showed("hIuPAJ", Unknown, &disjoint_cycles, &outerplanar, Cpx::Todo, "")
-        .showed("eruyce", Unknown, &forest, &disjoint_cycles, Cpx::Todo, "")
-        .showed("WJHhf0", Unknown, &forest, &block, Cpx::Todo, "")
-        .showed("VsrnoK", Unknown, &isolated, &linear_forest, Cpx::Todo, "")
-        .showed("E8B2Gj", Unknown, &stars, &forest, Cpx::Todo, "")
-        .showed("BWJDZs", Unknown, &isolated, &stars, Cpx::Todo, "")
-        .showed("yWSq1V", Unknown, &isolated, &const_components, Cpx::Todo, "")
-        .showed("HtdoRP", Unknown, &isolated, &co_cluster, Cpx::Todo, "")
-        .showed("1PLbSg", Unknown, &grid, &planar, Cpx::Todo, "")
-        .showed("RQcVkC", Unknown, &grid, &bipartite, Cpx::Todo, "")
-        .showed("KxMj5k", Unknown, &grid, &bounded_degree, Cpx::Todo, "")
-        .showed("VnTIL0", Unknown, &bounded_degree, &parameter_degree, Cpx::Todo, "")
-        .showed("rSYFkG", Unknown, &const_components, &bounded_degree, Cpx::Todo, "")
-        .showed("ZEEhCr", Unknown, &linear_forest, &bounded_degree, Cpx::Todo, "")
-        .showed("CJ76wg", Unknown, &cycles, &disjoint_cycles, Cpx::Todo, "")
-        .showed("a3JKzR", Unknown, &cycles, &bounded_degree, Cpx::Todo, "")
+        .showed("piRTZw", Unknown, &chordal, &perfect, Todo, "")
+        .showed("stwHRi", Unknown, &cograph, &perfect, Todo, "")
+        .showed("ogyvLp", Unknown, &bipartite, &perfect, Todo, "")
+        .showed("FM1wVJ", Unknown, &cluster, &interval, Todo, "")
+        .showed("rHotfs", Unknown, &linear_forest, &interval, Todo, "")
+        // .showed("OT3dig", Unknown, &stars, &interval, Todo, "")
+        .showed("fKpyMg", Unknown, &interval, &chordal, Todo, "")
+        .showed("cZy5xs", Unknown, &co_cluster, &cograph, Todo, "")
+        .showed("AbAK8n", Unknown, &forest, &bipartite, Todo, "")
+        .showed("ZiCzGe", Unknown, &outerplanar, &planar, Todo, "")
+        .showed("6TFVVG", Unknown, &complete, &co_cluster, Todo, "")
+        .showed("2Jde0p", Unknown, &block, &chordal, Todo, "")
+        .showed("DxYTTn", Unknown, &cluster, &block, Todo, "")
+        .showed("lmKGuy", Unknown, &linear_forest, &forest, Todo, "")
+        .showed("hIuPAJ", Unknown, &disjoint_cycles, &outerplanar, Todo, "")
+        .showed("eruyce", Unknown, &forest, &disjoint_cycles, Todo, "")
+        .showed("WJHhf0", Unknown, &forest, &block, Todo, "")
+        .showed("VsrnoK", Unknown, &isolated, &linear_forest, Todo, "")
+        .showed("E8B2Gj", Unknown, &stars, &forest, Todo, "")
+        .showed("BWJDZs", Unknown, &isolated, &stars, Todo, "")
+        .showed("yWSq1V", Unknown, &isolated, &const_components, Todo, "")
+        .showed("HtdoRP", Unknown, &isolated, &co_cluster, Todo, "")
+        .showed("1PLbSg", Unknown, &grid, &planar, Todo, "")
+        .showed("RQcVkC", Unknown, &grid, &bipartite, Todo, "")
+        .showed("KxMj5k", Unknown, &grid, &bounded_degree, Todo, "")
+        .showed("VnTIL0", Unknown, &bounded_degree, &parameter_degree, Todo, "")
+        .showed("rSYFkG", Unknown, &const_components, &bounded_degree, Todo, "")
+        .showed("ZEEhCr", Unknown, &linear_forest, &bounded_degree, Todo, "")
+        .showed("CJ76wg", Unknown, &cycles, &disjoint_cycles, Todo, "")
+        .showed("a3JKzR", Unknown, &cycles, &bounded_degree, Todo, "")
         ;
 
     let top_metric = create.topic("wpYsel", "metric", "Typically used in metric spaces.");
@@ -151,9 +151,11 @@ pub fn build_collection() -> crate::data::RawData {
     let block = create.parameter("g7K1jT", "block");
     let chordality = create.parameter("fTqo40", "chordality");
     let max_induced_matching = create.parameter("GzMYlT", "maximum induced matching");
-    let diameter = create.parameter("a7MpiT", "diameter");
+    let diameter = create.parameter("p4bTjp", "diameter");
     let average_distance = create.parameter("zH8PpT", "average distance");
     let girth = create.parameter("BCwUeT", "girth");
+    let domatic_num=create.parameter("KRV6tI", "domatic number");
+
 
     let dist_to_complete = create.distance_to(&complete);
     let dist_to_co_cluster = create.distance_to(&co_cluster);
@@ -165,6 +167,12 @@ pub fn build_collection() -> crate::data::RawData {
     let dist_to_edgeless = create.distance_to(&isolated);
     let dist_to_forest = create.distance_to(&forest);
     let dist_to_bipartite = create.distance_to(&bipartite);
+    let dist_to_planar = create.distance_to(&planar);
+    let dist_to_chordal = create.distance_to(&chordal);
+    let dist_to_stars = create.distance_to(&stars);
+    let dist_to_const_components = create.distance_to(&const_components);
+    let dist_to_perfect = create.distance_to(&perfect);
+    let dist_to_cycles = create.distance_to(&cycles);
 
     create.isgci(&vertex_cover, 2)
         .isgci(&max_matching, 13)
@@ -198,25 +206,149 @@ pub fn build_collection() -> crate::data::RawData {
         .isgci(&max_induced_matching, 14)
         .isgci(&diameter, 6);
 
+    let by_definition = "By definition";
+    let cliques_make_it_unbounded = "Parameter is unbounded for the grpah class of cliques.";
+
     create.source("", "unknown")
         .defined("XK5Xxy", Unknown, &linear_forest, "Disjoint union of paths.")
-        .showed("H1gQ6m", Unknown, &feedback_vertex_set, &dist_to_forest, Cpx::Equivalence, "")
-        .showed("hDNUsi", Unknown, &vertex_cover, &dist_to_edgeless, Cpx::Equivalence, "")
-        .showed("8Mm5qJ", Unknown, &vertex_cover, &max_matching, Cpx::Equivalence, "Kőnig's theorem")
+        .showed("H1gQ6m", Unknown, &feedback_vertex_set, &dist_to_forest, Equivalence, "")
+        .showed("hDNUsi", Unknown, &vertex_cover, &dist_to_edgeless, Equivalence, "")
+        .showed("8Mm5qJ", Unknown, &vertex_cover, &max_matching, Equivalence, "Kőnig's theorem")
         // Cite(id="gBA7dc", url="https://en.wikipedia.org/wiki/K%C5%91nig%27s_theorem_(graph_theory)", text="Kőnig's theorem"),
-        .showed("U14yX4", Unknown, &odd_cycle_transversal, &dist_to_bipartite, Cpx::Equivalence, "Bipartite graphs is the graph class without any odd cycles.")
+        .showed("U14yX4", Unknown, &odd_cycle_transversal, &dist_to_bipartite, Equivalence, "Bipartite graphs is the graph class without any odd cycles.")
         // Note(id="lqOY3G", text="Bipartite graphs is the graph class without any odd cycles."),
-        ;
+        .showed("5sq1SD", Unknown, &feedback_edge_set, &feedback_vertex_set, UpperBound(Linear), "Given solution to feedback edge set one can remove one vertex incident to the solution edges to obtain feedback vertex set.")
+        .showed("8dQ8Us", Unknown, &feedback_edge_set, &genus, UpperBound(Linear), "Removing $k$ edges creates a forest that is embeddable into the plane. We now add one handle for each of the $k$ edges to get embedding into $k$-handle genus.")
+        .showed("K0Bc61", Unknown, &chromatic_num, &max_clique, UpperBound(Linear), "Unbounded clique implies the number of needed colors is unbounded.")
+        .showed("uKFrrb", Unknown, &degeneracy, &chromatic_num, UpperBound(Linear), "Greedily color the vertices in order of the degeneracy ordering. As each vertex has at most $k$ colored predecesors we use at most $k+1$ colors.")
+        .showed("gLjejq", Unknown, &degeneracy, &average_degree, UpperBound(Linear), "Removing a vertex of degree $d$ increases the value added to the sum of all degrees by at most $2d$, hence, the average is no more than twice the degeneracy.")
+        .showed("q5QDXg", Unknown, &max_degree, &hindex, UpperBound(Linear), "As h-index seeks $k$ vertices of degree $k$ it is trivially upper bound by maximum degree.")
+        .showed("1MAoyr", Unknown, &min_degree, &edge_connectivity, UpperBound(Linear), "Removing edges incident to the minimum degree vertex disconnects the graph.")
+        .showed("UYpwYn", Unknown, &min_degree, &domatic_num, UpperBound(Linear), "The vertex of minimum degree needs to be dominated in each of the sets. As the sets cannot overlap there can be at most $k+1$ of them.")
+        .showed("d2ZJIh", Unknown, &dist_to_linear_forest, &pathwidth, UpperBound(Linear), "After removal of $k$ vertices the remaining class has a bounded width $w$. So by including the removed vertices in every bag, we can achieve decomposition of width $w+k$")
+        .showed("LyJWeW", Unknown, &topological_bandwidth, &bisection_bandwidth, UpperBound(Linear), "Order vertices by their bandwidth integer. We split the graph in the middle of this ordering. There are at most roughly $k^2/2$ edges over this split.")
+        .showed("waxvtz", Unknown, &bandwidth, &max_degree, UpperBound(Linear), "Each vertex has an integer $i$ and may be connected only to vertices whose difference from $i$ is at most $k$. There are at most $k$ bigger and $k$ smaller such neighbors.")
+        .showed("d2ZJIh", Unknown, &dist_to_linear_forest, &pathwidth, UpperBound(Linear), "After removal of $k$ vertices the remaining class has a bounded width $w$. So by including the removed vertices in every bag, we can achieve decomposition of width $w+k$")
+        .showed("d2ZJIh", Unknown, &dist_to_outerplanar, &treewidth, UpperBound(Linear), "After removal of $k$ vertices the remaining class has a bounded width $w$. So by including the removed vertices in every bag, we can achieve decomposition of width $w+k$")
+        .showed("VS44M7", Unknown, &vertex_integrity, &treedepth, UpperBound(Linear), "First, treedepth removes vertices of the modulator, then it iterates through remaining components one by one.")
+        .showed("D0wE7A", Unknown, &dist_to_const_components, &vertex_integrity, UpperBound(Linear), "The remaining components in vertex integrity are parameter-sized which can be always made bigger than constant-sized components.")
+        .showed("rmLeo2", Unknown, &dist_to_stars, &treedepth, UpperBound(Linear), "First, treedepth removes vertices of the modulator, remainder has treedepth $2$")
+        .showed("bYybsT", Unknown, &dist_to_complete, &clique_cover_num, UpperBound(Linear), "We cover the $k$ vertices of the modulator by cliques of size $1$ and cover the remaining clique by another one.")
+        .showed("h8nG9p", Unknown, &clique_cover_num, &max_independent_set, UpperBound(Linear), "Every clique of the clique cover partition may contain at most one vertex of the independent set.")
+        .showed("gGtTUf", Unknown, &max_independent_set, &domination_num, UpperBound(Linear), "Every maximal independent set is also a dominating set because any undominated vertex could be added to the independent set.")
+        .showed("J0jyXi", Unknown, &domination_num, &diameter, UpperBound(Linear), "An unbounded diameter implies a long path where no vertices that are more than $3$ apart may be dominated by the same dominating vertex, otherwise we could shorten the path. Hence, the number of dominating vertices is also unbounded.")
+        .showed("xrVJqb", Unknown, &dist_to_bipartite, &chromatic_num, UpperBound(Linear), "Removed vertices get one color each and we need only $2$ colors for the rest.")
+        .showed("5wc1ir", Unknown, &edge_clique_cover, &neighborhood_diversity, UpperBound(Exponential), "Label vertices by the cliques they are contained in, each label is its own group in the neighborhood diversity, connect accordingly.")
+        .showed("RnkWvT", Unknown, &dist_to_complete, &edge_clique_cover, UpperBound(Polynomial), "Cover the remaining clique, cover each modulator vertex and its neighborhood outside of it with another clique, cover each edge within the modulator by its own edge.")
+        .showed("FY0U1r", Unknown, &treewidth, &book_thickness, UpperBound(Exists), "")
+        .showed("rQBO3K", Unknown, &chromatic_num, &chordality, UpperBound(Exists), "")
+        .showed("GCGHcz", Unknown, &boxicity, &chordality, UpperBound(Exists), "")
+        .showed("ghgPz2", Unknown, &max_leaf_num, &cutwidth, UpperBound(Exists), "")
+        .showed("BKCgft", Unknown, &max_leaf_num, &dist_to_linear_forest, UpperBound(Exists), "")
+        .showed("ECnpoM", Unknown, &genus, &book_thickness, UpperBound(Exists), "")
+        .showed("CyAMhs", Unknown, &acyclic_chromatic_number, &boxicity, UpperBound(Exists), "")
+        .showed("rVEmFt", Unknown, &acyclic_chromatic_number, &degeneracy, UpperBound(Exists), "")
+        .showed("thTXGX", Unknown, &hindex, &acyclic_chromatic_number, UpperBound(Exists), "")
+        // .showed("pUfoGn", Unknown, &hindex, &dist_to_parameter_degree, UpperBound(Linear), "Remove the $h$ vertices of degree at least $h$ to get a graph that has maximum degree $h$.")
+        // .showed("8ZzI5w", Unknown, &dist_to_parameter_degree, &hindex, UpperBound(Linear), "Removal of $k$ vertices yielding a graph with maximum degree $c$ means that there were $k$ vertices of arbitrary degree and the remaining vertices had degree at most $k+c$. Hence, $h$-index is no more than $k+c$.")
+        .showed("16XW6a", Unknown, &dist_to_chordal, &chordality, UpperBound(Exists), "")
+        .showed("Bzw7GY", Unknown, &dist_to_cograph, &clique_width, UpperBound(Exists), "")
+        .showed("fedm1t", Unknown, &dist_to_cograph, &chordality, UpperBound(Exists), "")
+        .showed("rGMb0t", Unknown, &dist_to_cograph, &diameter, UpperBound(Exists), "")
+        .showed("Er0L5w", Unknown, &book_thickness, &acyclic_chromatic_number, UpperBound(Exists), "")
+        .showed("03kKbA", Unknown, &dist_to_planar, &acyclic_chromatic_number, UpperBound(Exists), "")
+        .showed("wJkzlI", Unknown, &average_distance, &girth, UpperBound(Exists), "")
+        .showed("JfSGx1", Unknown, &max_leaf_num, &feedback_edge_set, UpperBound(Exists), "")
+        .showed("LJQHKw", Unknown, &max_induced_matching, &diameter, UpperBound(Exists), "")
+        .showed("unkZhD", Unknown, &max_independent_set, &max_induced_matching, UpperBound(Exists), "")
+        .showed("", Unknown, &twin_cover_num, &neighborhood_diversity, UpperBound(Exists), "")
+        .showed("", Unknown, &linear_clique_width, &clique_width, UpperBound(Exists), "")
+        .showed("OUUh3y", Unknown, &clique_width, &boolean_width, UpperBound(Linear), "")
+        .showed("hgUvsR", Unknown, &boolean_width, &clique_width, UpperBound(Exponential), "")
+        .showed("V9Pisv", Unknown, &branch_width, &boolean_width, UpperBound(Linear), "")
+        .showed("0zGd6N", Unknown, &branch_width, &rank_width, UpperBound(Linear), "")
+        .showed("", Unknown, &treewidth, &boolean_width, UpperBound(Exists), "")
+        .showed("", Unknown, &cutwidth, &bandwidth, UpperBound(Exists), "")
+        .showed("", Unknown, &twin_cover_num, &modular_width, UpperBound(Exists), "")
+        .showed("", Unknown, &neighborhood_diversity, &modular_width, UpperBound(Exists), "")
+        .showed("", Unknown, &modular_width, &clique_width, UpperBound(Exists), "")
+        .showed("", Unknown, &modular_width, &diameter, UpperBound(Exists), "")
+        .showed("", Unknown, &neighborhood_diversity, &boxicity, UpperBound(Exists), "")
+        .showed("", Unknown, &genus, &twin_width, UpperBound(Exists), "")
+        .showed("", Unknown, &dist_to_planar, &twin_width, UpperBound(Exists), "")
+        .showed("", Unknown, &max_degree, &c_closure, UpperBound(Exists), "")
+        .showed("", Unknown, &feedback_edge_set, &c_closure, UpperBound(Exists), "")
+        // .showed("", Unknown, &vertex_integrity, &dist_to_parameter_degree, UpperBound(Exists), "")
+        .showed("", NotApplicable, &bandwidth, &topological_bandwidth, UpperBound(Linear), by_definition)
+        .showed("", NotApplicable, &twin_cover_num, &dist_to_cluster, UpperBound(Linear), by_definition)
+        .showed("", NotApplicable, &vertex_cover, &twin_cover_num, UpperBound(Linear), by_definition)
+        .showed("", NotApplicable, &average_degree, &min_degree, UpperBound(Linear), by_definition)
+        .showed("", NotApplicable, &diameter, &average_distance, UpperBound(Linear), by_definition)
+        .showed("", NotApplicable, &max_matching, &max_induced_matching, UpperBound(Linear), by_definition)
+        // .showed("", NotApplicable, &dist_to_interval, &boxicity, UpperBound(Linear), by_definition)
+        .showed("", NotApplicable, &bisection_bandwidth, &edge_connectivity, UpperBound(Linear), by_definition)
+// Bound(fr=vertex_cover, to=neighborhood_diversity, notes=[
+    // Cite(id="YgTRtT", url="https://link.springer.com/article/10.1007/s00453-011-9554-x", text="Construct $k$ singleton sets, one for each vertex in the vertex cover and at most $2^k$ additional sets, one for each subset of vertices of the vertex cover. ...", range=Range(EXPONENTIAL)),
+    // ])
+// Bound(fr=treewidth, to=branch_width, notes=[
+    // Cite(id="8ewSpI", url="https://en.wikipedia.org/wiki/Branch-decomposition", text="Relation to treewidth ... for a graph $G$ with tree-width $k$ and branchwidth $b > 1$, ... $k \\le \\lfloor \\frac 32 b \\rfloor - 1$", range=Range(LINEAR)),
+    // ])
+// Bound(fr=branch_width, to=treewidth, notes=[
+    // Cite(id="wrBAYk", url="https://en.wikipedia.org/wiki/Branch-decomposition", text="Relation to treewidth ... for a graph $G$ with tree-width $k$ and branchwidth $b > 1$, $b - 1 \\le k$ ...", range=Range(LINEAR)),
+    // ])
 
-    // create.source("", "hops")
-        // .defined("aQQnbF", NotApplicable, &vertex_integrity, "Minimum $k$ such that there exists $k$ vertices whose removal results in connected components of sizes at most $k$.")
-        // .defined("nTIDMU", NotApplicable, &twin_cover_num, "Distance to cluster where all vertices of each clique are siblings.")
-        // .defined("8tk4SI", NotApplicable, &max_degree, "maximum degree of graph's vertices")
-        // .defined("81zlqB", NotApplicable, &feedback_vertex_set, "can be thought of as a *distance to forest*")
-        // .defined("CKNuj2", NotApplicable, &min_degree, "minimum degree of graph's vertices")
-        // .showed("q3qJkr", NotApplicable, &treedepth, &pathwidth, Cpx::UpperBound(Exists), "Saving the set of open vertices in a DFS over the tree treedepth after every step yields bags of a nice path decomposition.")
-        // .showed("7tFsi6", NotApplicable, &treedepth, &diameter, Cpx::UpperBound(Exists), "An unbounded diameter implies the class contains paths as subgraphs. Minimum treedepth to embed a path of length $n$ in a treedepth tree is $\\log n$.")
+        .defined("aQQnbF", Unknown, &vertex_integrity, "Minimum $k$ such that there exists $k$ vertices whose removal results in connected components of sizes at most $k$.")
+        .defined("nTIDMU", Unknown, &twin_cover_num, "Distance to cluster where all vertices of each clique are siblings.")
+        .defined("8tk4SI", Unknown, &max_degree, "maximum degree of graph's vertices")
+        .defined("81zlqB", Unknown, &feedback_vertex_set, "can be thought of as a *distance to forest*")
+        .defined("CKNuj2", Unknown, &min_degree, "minimum degree of graph's vertices")
+        .showed("q3qJkr", Unknown, &treedepth, &pathwidth, UpperBound(Exists), "Saving the set of open vertices in a DFS over the tree treedepth after every step yields bags of a nice path decomposition.")
+        .showed("7tFsi6", Unknown, &treedepth, &diameter, UpperBound(Exists), "An unbounded diameter implies the class contains paths as subgraphs. Minimum treedepth to embed a path of length $n$ in a treedepth tree is $\\log n$.")
         // ;
+        .showed("H1gQ6m", Unknown, &feedback_vertex_set, &dist_to_forest, Equivalence, "")
+        .showed("hDNUsi", Unknown, &vertex_cover, &dist_to_edgeless, Equivalence, "")
+        .showed("U14yX4", Unknown, &odd_cycle_transversal, &dist_to_bipartite, Equivalence, "Bipartite graphs is the graph class without any odd cycles.")
+        .showed("Jyi5e3", NotApplicable, &complete, &max_clique, Exclusion, cliques_make_it_unbounded)
+        .showed("t9mJyF", NotApplicable, &complete, &domatic_num, Exclusion, cliques_make_it_unbounded)
+        .showed("KnGxdS", NotApplicable, &complete, &edge_connectivity, Exclusion, cliques_make_it_unbounded)
+        .showed("fQjK7z", Unknown, &co_cluster, &dist_to_chordal, Exclusion, "")
+        .showed("WFO7PL", Unknown, &cluster, &neighborhood_diversity, UpperBound(Constant), "")
+        .showed("cOXKlo", Unknown, &cluster, &twin_cover_num, UpperBound(Constant), "")
+        .showed("jIxF3A", Unknown, &cluster, &domination_num, Exclusion, "")
+        .showed("OjWb8I", Unknown, &bipartite, &girth, Exclusion, "")
+        .showed("d1qoN7", Unknown, &bipartite, &edge_connectivity, Exclusion, "")
+        .showed("Z335lf", Unknown, &forest, &feedback_edge_set, UpperBound(Constant), "")
+        .showed("5pJxbA", Unknown, &forest, &girth, Exclusion, "")
+        .showed("AdhtOR", Unknown, &forest, &pathwidth, Exclusion, "")
+// #  HasUnbounded(id="k18Pyk", graph_class=forest, parameter=dist_to_interval, notes=[])
+        .showed("2QZo3T", Unknown, &isolated, &vertex_cover, UpperBound(Constant), "")
+        .showed("cq2q83", Unknown, &isolated, &domination_num, Exclusion, "")
+        .showed("ipo6rm", Unknown, &grid, &clique_width, Exclusion, "")
+        .showed("TOJxXi", Unknown, &grid, &dist_to_chordal, Exclusion, "")
+        .showed("MRucBP", Unknown, &grid, &average_distance, Exclusion, "")
+        .showed("MYM6Ye", Unknown, &grid, &bisection_bandwidth, Exclusion, "")
+        .showed("gaJIvr", Unknown, &disjoint_cycles, &bisection_bandwidth, UpperBound(Constant), "")
+        .showed("VJwjbX", Unknown, &outerplanar, &bisection_bandwidth, UpperBound(Constant), "")
+        .showed("fQjK7z", Unknown, &grid, &max_degree, UpperBound(Constant), "")
+        .showed("HOULS0", Unknown, &disjoint_cycles, &girth, Exclusion, "")
+        .showed("OjWb8I", Unknown, &interval, &average_distance, Exclusion, "")
+        .showed("967lJ2", Unknown, &linear_forest, &treedepth, Exclusion, "")
+        .showed("ne07p3", Unknown, &linear_forest, &average_distance, Exclusion, "")
+        .showed("kkMeCO", Unknown, &planar, &genus, UpperBound(Constant), "")
+        .showed("EZdonY", Unknown, &planar, &girth, Exclusion, "")
+        .showed("cIAr80", Unknown, &planar, &max_degree, Exclusion, "")
+        .showed("DxmXhS", Unknown, &planar, &dist_to_perfect, Exclusion, "")
+        .showed("QeiwSR", Unknown, &const_components, &cutwidth, UpperBound(Constant), "")
+        .showed("EjGaM8", Unknown, &const_components, &dist_to_perfect, Exclusion, "")
+        .showed("bQLN2O", Unknown, &const_components, &dist_to_planar, Exclusion, "")
+        .showed("CoBOm0", Unknown, &stars, &hindex, Exclusion, "")
+        .showed("Ei8B1H", Unknown, &stars, &vertex_integrity, Exclusion, "")
+        .showed("r2VydG", Unknown, &outerplanar, &dist_to_cycles, Exclusion, "")
+        .showed("ORlCs0", Unknown, &disjoint_cycles, &dist_to_perfect, Exclusion, "")
+        .showed("tZrOta", Unknown, &cycle, &max_leaf_num, UpperBound(Constant), "")
+        .showed("cYF2KU", Unknown, &cycle, &girth, Exclusion, "")
+        .showed("5iynqA", Unknown, &cycles, &dist_to_cycles, Exclusion, "")
+        ;
 
     create.source("ez07Er", "https://en.wikipedia.org/wiki/Vertex_cover")
         .defined("", Unknown, &vertex_cover, "... set of vertices that includes at least one endpoint of every edge of the graph.");
@@ -298,33 +430,50 @@ pub fn build_collection() -> crate::data::RawData {
         .defined("", Unknown, &average_degree, "The average distance in a graph is defined as the average length of a shortest path between two vertices, taken over all pairs of vertices.");
     create.source("u13WN1", "https://en.wikipedia.org/wiki/Girth_(graph_theory)")
         .defined("", Unknown, &girth, "In graph theory, the girth of an undirected graph is the length of a shortest cycle contained in the graph.");
+    create.source("8eXjAy", "https://mathworld.wolfram.com/DomaticNumber.html")
+        .defined("", Unknown, &domatic_num, "The maximum number of disjoint dominating sets in a domatic partition of a graph $G$ is called its domatic number $d(G)$. ");
+    create.source("", "https://dl.acm.org/doi/10.1145/3486655")
+        .showed("08lETp", Unknown, &boolean_width, &twin_width, UpperBound(Exponential), "Theorem 3: Every graph with boolean-width $k$ has twin-width at most $2^{k+1}-1$.");
 
 
     // #  Chung1985=Source("DkY1Aq", "Chung1985", shows that for trees bandwidth and cutwidth linearly bound each other
     let bodlaender1993 = create.source("a3yKzk", "Bodlaender1993")
+        // .showed("iiE5jo", Unknown, ) Bound(fr=plus(pathwidth, max_degree), to=cutwidth, notes=[Cite(id="", source=Bodlaender1998, text="Theore 49.")])
+        .showed("iiE5jo", Unknown, &cutwidth, &pathwidth, UpperBound(Linear), "Theorem 47. For every graph $G$, the pathwidth of $G$ is at most the cutwidth of $G$.")
+        .showed("RQriva", Unknown, &topological_bandwidth, &pathwidth, UpperBound(Linear), "Theorem 45. For every graph $G$, the pathwidth of $G$ is at most the topological band-width of $G$.")
+        .showed("cIAr80", Unknown, &complete, &treewidth, Exclusion, "Lemma 3.1 (\"clique containment lemma\"). Let $(\\{X_i\\mid u\\in I\\},T=(I,F))$ be a tree-decomposition of $G=(V,E)$ and let $W \\subseteq V$ be a clique in $G$. Then there exists $i \\in I$ with $W \\subseteq X_i$.")
         .done();
     let bodlaender1998 = create.source("BOFCWg", "Bodlaender1998")
         .defined("", Unknown, &cutwidth, "Let $G=(V,E)$ be a graph, and let $f\\colon V\\to \\{1,2,\\dots,n\\}$ be a linear ordering of $G$. ... 2. The \\emph{cutwidth} of $f$ is $\\max_{1\\le i\\le n} |\\{(u,v)\\in E \\mid f(u) \\le i < f(v) \\}|$. ... [cutwidth] of a graph $G$ is the minimum [cutwidth] ... over all possible linear orderings of $G$.")
         .defined("hajrD0", Unknown, &bandwidth, "Let $G=(V,E)$ be a graph, and let $f\\colon V\\to \\{1,2,\\dots,n\\}$ be a linear ordering of $G$. 1. The \\emph{bandwidth} of $f$ is $\\max\\{|f(v)-f(w)| \\mid (v,w) \\in E\\}$. ... The bandwidth ... is the minimum bandwidth ... over all possible linear orderings of $G$.")
         .defined("H3lAh2", Unknown, &topological_bandwidth, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all graphs $G'$ which are obtained by addition of an arbitrary number of vertices along edges of $G$.")
-        .showed("uHJAUo", Unknown, &pathwidth, &treewidth, Cpx::UpperBound(Exists), "Lemma 3. (a) For all graphs $G$, $pathwidth(G) \\ge treewidth(G)$. ...")
+        .showed("uHJAUo", Unknown, &pathwidth, &treewidth, UpperBound(Exists), "Lemma 3. (a) For all graphs $G$, $pathwidth(G) \\ge treewidth(G)$. ...")
+        .showed("kiza4J", Unknown, &bandwidth, &pathwidth, UpperBound(Linear), "Theorem 44. For every graph $G$, the pathwidth of $G$ is at most the bandwidth of $G$, ... Proof. Let $f \\colon V\\to \\{1,\\dots,n\\}$ be a linear ordering of $G$ with bandwidth $k$. Then $(X_1,\\dots,X_{n-k})$ with $X_i=\\{f^{-1}(i), f^{-1}(i+1), \\dots, f^{-1}(i+k)\\} is a path decomposition of $G$ with pathwidth $k$. ...")
         .done();
     let corneil2005 = create.source("HCGunF", "Corneil2005")
-        .showed("sGBrPC", Unknown, &treewidth, &clique_width, Cpx::UpperBound(Exponential), "... the clique-width of $G$ is at most $3 \\cdot 2k - 1$ and, more importantly, that there is an exponential lower bound on this relationship. In particular, for any $k$, there is a graph $G$ with treewidth equal to $k$, where the clique-width of $G$ is at least $2\\lfloor k/2\\rfloor-1$.")
+        .showed("sGBrPC", Unknown, &treewidth, &clique_width, UpperBound(Exponential), "... the clique-width of $G$ is at most $3 \\cdot 2k - 1$ and, more importantly, that there is an exponential lower bound on this relationship. In particular, for any $k$, there is a graph $G$ with treewidth equal to $k$, where the clique-width of $G$ is at least $2\\lfloor k/2\\rfloor-1$.")
         .done();
     let oum2006 = create.source("1ZTWBd", "Oum2006")
+        .showed("yLdAHe", Unknown, &rank_width, &clique_width, Exactly(Exponential), "Proposition 6.3")
+        .showed("uEUXMq", Unknown, &clique_width, &rank_width, UpperBound(Linear), "Proposition 6.3")
         .done();
     let sasak2010 = create.source("XlBXyo", "Sasak2010")
+        .showed("WiiQn4", Pp(38), &cutwidth, &carving_width, UpperBound(Linear), "Theorem 4.3 (carw $\\prec$ cutw) Carving-width is bounded by cut-width.")
+        .showed("u5VPeX", Pp(49), &carving_width, &treewidth, UpperBound(Linear), "Theorem 5.5 (tw $\\prec$ carw) Tree-width is bounded by carving-width.")
+        .showed("BwIc79", Pp(28), &cutwidth, &max_degree, UpperBound(Linear), "Lemma 2.18. For any graph $G$ and any vertex $v \\in V(G), cutw(g) \\ge \\lceil \\frac{deg(v)}2 \\rceil$.")
         .done();
     let bui_xuan2011 = create.source("cNjhWx", "BuiXuan2011")
         .defined("L7aY6D", Unknown, &boolean_width, "\\textbf{Definition 1.} A decomposition tree of a graph $G$ is a pair $(T,\\delta)$ where $T$ is a tree having internal nodes of degree three and $\\delta$ a bijection between the leaf set of $T$ and the vertex set of $G$. Removing an edge from $T$ results in two subtrees, and in a cut $\\{A,\\comp{A}\\}$ of $G$ given by the two subsets of $V(G)$ in bijection $\\delta$ with the leaves of the two subtrees. Let $f\\colon w^V \\to \\mathbb{R}$ be a symmetric function that is also called a cut function: $f(A)=f(\\comp{A})$ for all $A\\subseteq V(G)$. The $f$-width of $(T,\\delta)$ is the maximum value of $f(A)$ over all cuts $\\{A,\\comp{A}\\}$ of $G$ given by the removal of an edge of $T$. ... \\textbf{Definition 2.} Let $G$ be a graph and $A \\subseteq V(G)$. Define the set of unions of neighborhoods of $A$ across the cut $\\{A,\\comp{A}\\}$ as $U(A) = \\{Y \\subseteq \\comp{A} \\mid \\exists X \\subseteq A \\land Y=N(X)\\cap \\comp{A}\\}. The \\emph{bool-dim}$\\colon 2^{V(G)} \\to \\mathbb{R}$ function of a graph $G$ is defined as $\\mathrm{bool-dim}(A)=\\log_2 |U(A)|$. Using Definition 1 with $f=\\mathrm{bool-dim}$ we define the boolean-width of a decomposition tree, denoted by $boolw(T,\\delta)$, and the boolean-width of a graph, denoted by $boolw(G)$.")
+        .showed("AdNkCy", Unknown, &boolean_width, &rank_width, UpperBound(Exponential), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $\\log_2 rw(G) \\le boolw(G)$ ...")
+        .showed("cIWQDn", Unknown, &rank_width, &boolean_width, UpperBound(Polynomial), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $boolw(G) \\le \\frac 14 rw^2(G)+O(rw(G))$.")
         .done();
     let belmonte2013 = create.source("sJ476m", "Belmonte2013")
+        .showed("ZHXKjC", Unknown, &carving_width, &max_degree, UpperBound(Linear), "Observation 1. Let $G$ be a graph. Then $cw(G) \\ge \\Delta(G)$.")
         .done();
     let jansen2013 = create.source("FLOjic", "Jansen2013")
         .defined("PV6tGG", Unknown, &topological_bandwidth, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all subdivisions of $G$")
         .done();
-    let parameterizedAlgorithms2015 = create.source("", "ParameterizedAlgorithms2015")
+    let parameterized_algorithms2015 = create.source("", "ParameterizedAlgorithms2015")
         .done();
     let diestel2017 = create.source("r2Lwky", "Diestel2017")
         .defined("hxpfbI", Pp(3), &complete, "If all the vertices of $G$ are pairwise adjacent, then $G$ is \\emph{complete}.")
@@ -340,13 +489,17 @@ pub fn build_collection() -> crate::data::RawData {
     let froemmrich2018 = create.source("45xW87", "Froemmrich2018")
         .done();
     let ganian2019 = create.source("Scw7zm", "Ganian2019")
+        .showed("TUftFh", Unknown, &shrub_depth, &linear_clique_width, UpperBound(Linear), "Proposition 3.4. Let $\\mathcal G$ be a graph class and $d$ an integer. Then: ... b) If $\\mathcal G$ is of bounded shrub-depth, then $\\mathcal G$ is of bounded linear clique-width.")
+        .showed("EG7vp6", Unknown, &neighborhood_diversity, &shrub_depth, UpperBound(Exists), "$\\mathcal{TM}_m(1)$ is exactly the class of graphs of neighborhood diversity at most $m$.")
+        .showed("sq0brL", Unknown, &treedepth, &shrub_depth, UpperBound(Linear), "Proposition 3.2. If $G$ is of tree-depth $d$, then $G \\in \\mathcal{TM}_{2^d}(d)$. ...")
         .done();
     let sorge2019 = create.source("VnTIL0", "Sorge2019")
         .done();
     let schroder_thesis = create.source("DYGiYb", "SchroderThesis")
         .cited("pJxHVS", Unknown, sorge2019, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
         .cited("", Unknown, froemmrich2018, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
-        .showed("R9eI61", Unknown, &treedepth, &diameter, Cpx::UpperBound(Linear), "Proposition 3.1")
+        .showed("R9eI61", Unknown, &treedepth, &diameter, UpperBound(Linear), "Proposition 3.1")
+        .showed("dohKmq", Unknown, &dist_to_linear_forest, &hindex, UpperBound(Linear), "Proposition 3.2")
         .done();
     let tran2022 = create.source("uXViPE", "Tran2022")
         .defined("J1sHj8", Unknown, &twin_cover_num, "An edge $\\{v,w\\}$ is a twin edge if vertices $v$ and $w$ have the same neighborhood excluding each other. The twin cover number $tcn(G)$ of a graph $G$ is the size of a smallest set $V' \\subseteq V(G)$ of vertices such that every edge in $E(G)$ is either a twin edge or incident to a vertex in $V'$")
@@ -359,9 +512,10 @@ pub fn build_collection() -> crate::data::RawData {
     let torunczyk2023 = create.source("KpkMZB", "Torunczyk2023")
         .defined("9VHraO", Unknown, &inf_flip_width, "See radius-r flip-width for $r=\\infty$.")
         .defined("gxeVOT", Unknown, &r_flip_width, "The radius-$r$ flip-width of a graph $G$, denoted $fwr (G)$, is the smallest number $k \\in \\mathbb{N}$ such that the cops have a winning strategy in the flipper game of radius $r$ and width $k$ on $G$")
+        .showed("9DTyeJ", Unknown, &inf_flip_width, &rank_width, UpperBound(Linear), "For every graph $G$, we have $\\mathrm{rankwidth}(G) \\le 3 \\mathrm{fw}_\\infty(G)+1 ...")
+        .showed("zYQZyB", Unknown, &rank_width, &inf_flip_width, UpperBound(Exponential), "For every graph $G$, we have ... $3 \\mathrm{fw}_\\infty(G)+1 \\le O(2^{\\mathrm{rankwidth(G)}}).")
+        .showed("OdbuZP", Unknown, &twin_width, &r_flip_width, UpperBound(Exponential), "Theorem 7.1. Fix $r \\in \\mathbb N$. For every graph $G$ of twin-width $d$ we have: $\\mathrm{fw}_r(G) \\le 2^d \\cdot d^{O(r)}.$")
+        .showed("", Unknown, &inf_flip_width, &r_flip_width, UpperBound(Linear), by_definition)
         .done();
-
-    // tran2022.defined("i3su9L", modular_width, "The modular-width $mw(G)$ of a graph $G$ is the smallest number $h$ such that a $k$-partition $(V_1,\\dots,V_k)$ of $G$ exists, where $k \\le h$ and each subset $V_i$, $i \\in [k]$ is a module and either contains a single vertex or for which the modular-subgraph $G[V_i]$ has a modular-width of $h$.");
-    return create.done();
+    return create.build();
 }
-
