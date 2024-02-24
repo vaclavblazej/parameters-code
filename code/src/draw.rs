@@ -28,7 +28,7 @@ impl IntoDot for Node {
 
 impl Into<Node> for &Set {
     fn into(self) -> Node {
-        let attributes = "color=\"#cccccc\" shape=box".into();
+        let attributes = "color=\"#dddddd\" shape=box".into();
         Node {
             id: self.id.clone(),
             label: self.name.clone(),

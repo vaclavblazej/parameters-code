@@ -2,24 +2,24 @@
 
 use std::collections::HashSet;
 
-use crate::{raw::{RawSet, RawRelation}, complexity::CpxInfo, data::{ShowedFact, RawData}};
+use crate::{raw::{RawData, RawRelation, RawSet}, complexity::CpxInfo, data::ShowedFact};
 
 
-/// This structure keeps which parameters are directly above or below others.
+/// This structure keeps which sets are with relations with other sets.
 pub struct SimpleIndex {
-    pub first_above_second: HashSet<(RawSet, RawSet)>,
-    pub first_not_above_second: HashSet<(RawSet, RawSet)>,
+    pub first_subset_of_second: HashSet<(RawSet, RawSet)>,
+    pub first_not_subset_of_second: HashSet<(RawSet, RawSet)>,
 }
 
 impl SimpleIndex {
     pub fn new(rawdata: &RawData) -> SimpleIndex {
         let mut res = SimpleIndex{
-            first_above_second: HashSet::new(),
-            first_not_above_second: HashSet::new(),
+            first_subset_of_second: HashSet::new(),
+            first_not_subset_of_second: HashSet::new(),
         };
         for (_, showed) in &rawdata.factoids {
             if let ShowedFact::Relation(rel) = &showed.fact {
-                res.add(rel);
+                res.add(&rel);
             }
         }
         res
@@ -28,17 +28,17 @@ impl SimpleIndex {
         let element = (relation.superset.clone(), relation.subset.clone());
         match &relation.cpx {
             CpxInfo::Inclusion { mn: _, mx: _ } => {
-                self.first_above_second.insert(element);
+                self.first_subset_of_second.insert(element);
             },
             CpxInfo::LowerBound { mn: _ } => {
             },
             CpxInfo::Exclusion {} => {
-                self.first_not_above_second.insert(element);
+                self.first_not_subset_of_second.insert(element);
             },
             CpxInfo::Equivalence => {
                 let (a, b) = element.clone();
-                self.first_above_second.insert(element);
-                self.first_above_second.insert((b, a));
+                self.first_subset_of_second.insert(element);
+                self.first_subset_of_second.insert((b, a));
             },
             CpxInfo::Unknown => {},
         }
@@ -60,30 +60,30 @@ impl SimpleIndex {
         // };
     // }
     pub fn get_subsets(&self, a: &RawSet) -> Vec<RawSet> {
-        self.first_above_second.iter()
+        self.first_subset_of_second.iter()
             .filter(|(_,sup)|sup==a)
             .map(|(sub,_)|sub.clone())
             .collect()
     }
     pub fn get_supersets(&self, a: &RawSet) -> Vec<RawSet> {
-        self.first_above_second.iter()
+        self.first_subset_of_second.iter()
             .filter(|(sub,_)|sub==a)
             .map(|(_,sup)|sup.clone())
             .collect()
     }
     pub fn get_antisubsets(&self, a: &RawSet) -> Vec<RawSet> {
-        self.first_not_above_second.iter()
+        self.first_not_subset_of_second.iter()
             .filter(|(_,sup)|sup==a)
             .map(|(sub,_)|sub.clone())
             .collect()
     }
     pub fn get_antisupersets(&self, a: &RawSet) -> Vec<RawSet> {
-        self.first_not_above_second.iter()
+        self.first_not_subset_of_second.iter()
             .filter(|(sub,_)|sub==a)
             .map(|(_,sup)|sup.clone())
             .collect()
     }
-    pub fn first_above_second(&self, a: &RawSet, b: &RawSet) -> bool {
-        self.first_above_second.contains(&(a.clone(), b.clone()))
+    pub fn first_subset_of_second(&self, a: &RawSet, b: &RawSet) -> bool {
+        self.first_subset_of_second.contains(&(a.clone(), b.clone()))
     }
 }

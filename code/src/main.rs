@@ -35,10 +35,10 @@ mod table;
 fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     println!("generating dot pdf");
     let mut graph = Graph::new();
-    for set in &data.parameters {
-        graph.add_node(&data.get(set.raw.clone()).clone())
+    for set in &data.sets {
+        graph.add_node(&set);
     }
-    for above in &data.parameters {
+    for above in &data.sets {
         for below in &above.subsets.minimal {
             let attributes = "color=gray decorate=true lblstyle=\"above, sloped\" weight=1".into();
             let drawedge = draw::Edge{
@@ -61,6 +61,9 @@ fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
 fn generate_pages(pages: &Vec<TargetPage>, markdown: &Markdown,
                   final_dir: &PathBuf, working_dir: &PathBuf,
                   map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
+    println!("clearing the final directory");
+    fs::remove_dir_all(&final_dir);
+    fs::create_dir(&final_dir);
     println!("generating pages");
     for page in pages {
         let content = match page.substitute {
@@ -115,7 +118,7 @@ fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappabl
 fn generate_relation_table(data: &Data, parent: &Path) {
     println!("generating relation table");
     let table_folder = parent.join("scripts").join("table_tikz");
-    render_table(&data.parameters, &table_folder).unwrap_or_else(|x|{
+    render_table(&data.sets, &table_folder).unwrap_or_else(|x|{
         println!("error producing relation table\n{}", x);
     });
 }
@@ -134,8 +137,7 @@ fn main() -> Result<()> {
     println!("fetching generated pages");
     let markdown = Markdown::new(&data);
     let mut generated_pages = HashMap::new();
-    add_content(&data.parameters, &final_dir, &mut generated_pages);
-    add_content(&data.graph_classes, &final_dir, &mut generated_pages);
+    add_content(&data.sets, &final_dir, &mut generated_pages);
     add_content(&data.sources, &final_dir, &mut generated_pages);
     println!("fetching handcrafted pages");
     let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
@@ -164,9 +166,6 @@ fn main() -> Result<()> {
     let mut map: HashMap<&str, Mappable> = HashMap::new();
     // todo
     map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
-    println!("clearing the final directory");
-    fs::remove_dir_all(&final_dir);
-    fs::create_dir(&final_dir);
     // generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
     // generate_relation_table(&data, parent);
     make_drawing(&data, &current.join("target"));

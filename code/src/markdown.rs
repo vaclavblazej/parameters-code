@@ -13,7 +13,7 @@ use regex::Regex;
 use crate::data::{Linkable, Data, Set, Source, SourceKey};
 use crate::draw::{Edge, Graph};
 use crate::file;
-use crate::raw::{RawSet, RawSource};
+use crate::raw::{RawKind, RawSet, RawSource};
 
 type Result<T> = std::result::Result<T, MarkdownError>;
 
@@ -72,17 +72,16 @@ fn make_focus_drawing(set: &Set, builder: &Markdown, distance: usize, target_dir
     let mut graph = Graph::new();
     let sets_to_draw = crate::processing::bfs_limit_distance(set, &builder.data, distance);
     for set in &sets_to_draw {
-        graph.add_node(&builder.data.get(set.clone()).clone())
+        graph.add_node(&builder.data.get_set(set))
     }
     for set in &sets_to_draw {
-        let above = &builder.data.get(set.clone());
+        let above = &builder.data.get_set(&set);
         for child in &above.subsets.all {
             if sets_to_draw.contains(&child) {
                 let attributes = "color=gray decorate=true lblstyle=\"above, sloped\" weight=1".into();
                 let drawedge = Edge{
                     from: above.id.clone(),
                     to: child.id.clone(),
-                    // label: "o".into(),
                     label: String::new(),
                     attributes,
                 };
@@ -207,7 +206,7 @@ impl<'a> Markdown<'a> {
     pub fn link_id(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let some_id = keys.pop_front();
         if let Some(id) = some_id {
-            if let Some(link) = self.data.links.get(&id) {
+            if let Some(link) = self.data.urls.get(&id) {
                 Ok(format!("[{}]({})", link.get_name(), link.get_url()))
             } else {
                 Err(MarkdownError::ErrSubstitutingId(id.into()))
@@ -222,13 +221,13 @@ impl<'a> Markdown<'a> {
         if let Some(key) = keys.pop_front() {
             match key.as_str() {
                 "parameters" => {
-                    for parameter in &self.data.parameters {
-                        content += &format!("* {}\n", self.linkto(&parameter.raw));
+                    for set in &self.data.sets.iter().filter(|&s| s.kind == RawKind::Parameter).collect::<Vec<&Set>>() {
+                        content += &format!("* {}\n", self.linkto(&set.raw));
                     }
                 }
                 "graphs" => {
-                    for graph_class in &self.data.graph_classes {
-                        content += &format!("* {}\n", self.linkto(&graph_class.raw));
+                    for set in self.data.sets.iter().filter(|&s| s.kind == RawKind::GraphClass).collect::<Vec<&Set>>() {
+                        content += &format!("* {}\n", self.linkto(&set.raw));
                     }
                 },
                 "sources" => {

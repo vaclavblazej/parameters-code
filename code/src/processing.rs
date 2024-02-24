@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::Bibliography;
 
-use crate::{raw::{RawSet, RawSource, RawSourceKey}, simpleindex::SimpleIndex, data::{Data, Source, Set, RawData, Date, ShowedFact, SourceSubset, Showed, SourceKey}, file};
+use crate::{raw::{RawData, RawRelation, RawSet, RawSource, RawSourceKey}, simpleindex::SimpleIndex, data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceKey, SourceSubset}, file};
 
 pub fn bfs<F>(start: &RawSet, get_neighbors: F, include_start: bool) -> Vec<RawSet>
 where
@@ -44,7 +44,7 @@ pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashSet<Ra
     visited.insert(set.raw.clone());
     queue.push_back((set.raw.clone(), 0));
     while let Some((raw_set, current_distance)) = queue.pop_front() {
-        let set = data.get(raw_set);
+        let set = data.get_set(&raw_set);
         if current_distance >= distance {
             continue;
         }
@@ -78,7 +78,9 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
     }
     let mut timeline: Vec<SourceSubset> = timeline_map.into_iter()
         .map(|(raw, showed_vec)| {
-            let source = sources.get(&raw).unwrap();
+            let source = sources.get(&raw).expect(
+                &format!("A raw source {} does not have a processed source. Use create.source() to add new sources.", raw.id)
+                );
             SourceSubset {
                 raw,
                 id: source.id.clone(),
@@ -89,12 +91,12 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
         })
     .collect();
     timeline.sort_by_key(|subset| subset.time.clone());
-    let supersets = bfs(&set, |x| help.get_supersets(x), false);
-    let subsets = bfs(&set, |x| help.get_subsets(x), false);
-    let super_exclusions = anti_bfs(&subsets, |x| help.get_antisupersets(&x));
-    let sub_exclusions = anti_bfs(&supersets, |x| help.get_antisubsets(&x));
+    let supersets = help.get_supersets(&set);
+    let subsets = help.get_subsets(&set);
+    let super_exclusions = help.get_antisupersets(&set);
+    let sub_exclusions = help.get_antisubsets(&set);
     let mut all_parameters = HashSet::new();
-    for par in &data.parameters {
+    for par in &data.sets {
         all_parameters.insert(par.clone());
     }
     for s in &supersets {
@@ -104,7 +106,6 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
         all_parameters.remove(&s);
     }
     let unknown: Vec<RawSet> = all_parameters.iter().cloned().collect();
-    ; // todo
     // let mut providers = vec![]; // todo
     // for (rawset, num) in &data.isgci {
         // if *rawset == *set {
@@ -181,10 +182,10 @@ pub fn prepare_extremes(raw_set: Vec<RawSet>, data: &SimpleIndex) -> Sets {
         for j in 0..raw_set.len() {
             if i != j {
                 let other_set = &raw_set[j];
-                if data.first_above_second(current_set, other_set) {
+                if data.first_subset_of_second(current_set, other_set) {
                     is_minimal = false;
                 }
-                if data.first_above_second(other_set, current_set) {
+                if data.first_subset_of_second(other_set, current_set) {
                     is_maximal = false;
                 }
             }
@@ -214,9 +215,25 @@ fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
     };
 }
 
+/// Get list of things we know about pairwise relations. Go through it and make
+/// sure each relation is represented only once and that that representation
+/// contains all the information one may need.
+fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
+    let mut relations = Vec::new();
+    let mut relation_idx: HashMap<(RawSet, RawSet), Relation> = HashMap::new();
+    for (idx, raw_relation) in raw_relations.iter().enumerate() {
+        let key = (raw_relation.subset.clone(), raw_relation.superset.clone());
+        if let Some(value) = relation_idx.get(&key) {
+            // todo merge relations
+        } else {
+            relation_idx.insert(key, Relation::new(raw_relation));
+        }
+    }
+    relations
+}
+
 pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data {
-    // todo, create links that markdowns can use; these are maps from id to address of the entity
-    let links = HashMap::new();
+    // todo, create urls that markdowns can use; these are maps from id to address of the entity
     let simpleindex = SimpleIndex::new(rawdata);
     let bibliography = load_bibliography(&bibliography_file);
     let mut sources = vec![];
@@ -226,22 +243,19 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
         source_keys.insert(rawsource.clone(), source.clone());
         sources.push(source);
     }
-    // sources.sort_by_key(|x|x.time.clone());
     sources.reverse();
-    let mut parameters = vec![];
-    for set in &rawdata.parameters {
-        parameters.push(process_set(&set, &simpleindex, &rawdata, &source_keys));
+    let mut sets = vec![];
+    for set in &rawdata.sets {
+        sets.push(process_set(&set, &simpleindex, &rawdata, &source_keys));
     }
-    // parameters.sort_by_key(|x|x.name.clone());
-    let mut graph_classes = vec![];
-    for set in &rawdata.graph_classes {
-        graph_classes.push(process_set(&set, &simpleindex, &rawdata, &source_keys));
+    let mut raw_relations = Vec::new();
+    for (raw_source, showed) in &rawdata.factoids {
+        match &showed.fact {
+            ShowedFact::Relation(rel) => raw_relations.push(rel.clone()),
+            ShowedFact::Citation(_) => (),
+            ShowedFact::Definition(_) => (),
+        }
     }
-    // graph_classes.sort_by_key(|x|x.name.clone());
-    Data {
-        links,
-        parameters,
-        graph_classes,
-        sources,
-    }
+    let relations = process_relations(raw_relations);
+    Data::new(sets, relations, HashMap::new(), sources)
 }

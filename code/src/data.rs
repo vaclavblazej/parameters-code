@@ -4,7 +4,7 @@
 use std::fmt;
 use std::collections::HashMap;
 
-use crate::{raw::{RawSet, RawTopic, RawRelation, RawSource, RawKind}, complexity::{CpxTime, CpxInfo}, processing::Sets};
+use crate::{raw::{RawData, RawKind, RawRelation, RawSet, RawSource, RawTopic}, complexity::{CpxTime, CpxInfo}, processing::Sets};
 
 
 pub trait Linkable {
@@ -207,31 +207,67 @@ pub struct Showed {
 }
 
 pub struct Data {
-    pub parameters: Vec<Set>,
-    pub graph_classes: Vec<Set>,
-    pub links: HashMap<String, Box<dyn Linkable>>,
+    pub sets: Vec<Set>,
+    pub relations: Vec<Relation>,
+    pub urls: HashMap<String, Box<dyn Linkable>>,
     pub sources: Vec<Source>,
+    pub set_idx: HashMap<RawSet, usize>,
+    pub relation_idx: HashMap<(RawSet, RawSet), usize>,
 }
 
 impl Data {
-    pub fn get(&self, set: RawSet) -> &Set {
-        for par in &self.parameters { if par.raw == set { return &par } }
-        for gc in &self.graph_classes { if gc.raw == set { return &gc } }
-        panic!("raw set not found {:?}", set);
+    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, urls: HashMap<String, Box<dyn Linkable>>, sources: Vec<Source>) -> Self {
+        let mut set_idx: HashMap<RawSet, usize> = HashMap::new();
+        for (idx, set) in sets.iter().enumerate() {
+            set_idx.insert(set.raw.clone(), idx);
+        }
+        let mut relation_idx: HashMap<(RawSet, RawSet), usize> = HashMap::new();
+        for (idx, relation) in relations.iter().enumerate() {
+            relation_idx.insert((relation.subset.clone(), relation.superset.clone()), idx);
+        }
+        Self {
+            sets,
+            relations,
+            urls,
+            sources,
+            set_idx,
+            relation_idx,
+        }
+    }
+
+    pub fn get_set(&self, key: &RawSet) -> &Set {
+        let idx: usize = *self.set_idx.get(&key).expect(&format!("raw set not found {:?}", key));
+        &self.sets[idx]
+    }
+
+    pub fn get_relation(&self, set_a: &RawSet, set_b: &RawSet) -> &Relation {
+        let key = (set_a.clone(), set_b.clone());
+        let idx: usize = *self.relation_idx.get(&key).expect(&format!("relation not found {:?}", key));
+        &self.relations[idx]
     }
 }
 
-pub struct RawData {
-    pub parameters: Vec<RawSet>,
-    pub factoids: Vec<(RawSource, Showed)>,
-    pub graph_classes: Vec<RawSet>,
-    pub sources: Vec<RawSource>,
-    pub isgci: Vec<(RawSet, u32)>,
-    pub topics: Vec<RawTopic>,
-    pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
+// todo abbreviation
+
+pub struct Relation {
+    pub raw: RawRelation,
+    /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
+    pub subset: RawSet,
+    /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
+    pub superset: RawSet,
+    pub cpx: CpxInfo,
 }
 
-// todo abbreviation
+impl Relation {
+    pub fn new(raw: &RawRelation) -> Self {
+        Self {
+            raw: raw.clone(),
+            subset: raw.subset.clone(),
+            superset: raw.superset.clone(),
+            cpx: raw.cpx.clone(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TransferGroup {

@@ -1,6 +1,8 @@
 //! Raw immutable datapoints
 
-use crate::complexity::CpxInfo;
+use std::collections::HashMap;
+
+use crate::{complexity::CpxInfo, data::{Showed, TransferGroup}};
 
 /// General identification of all database entities.
 pub trait Id{
@@ -11,6 +13,7 @@ pub trait Id{
 pub enum RawKind {
     Parameter,
     GraphClass,
+    Intersection(Vec<RawSet>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -95,3 +98,26 @@ pub struct RawTopic {
     pub name: String,
     pub description: String,
 }
+
+pub struct RawData {
+    pub sets: Vec<RawSet>,
+    pub factoids: Vec<(RawSource, Showed)>,
+    pub sources: Vec<RawSource>,
+    pub isgci: Vec<(RawSet, u32)>,
+    pub topics: Vec<RawTopic>,
+    pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
+}
+
+impl RawData {
+    pub fn new() -> Self {
+        Self {
+            sets: Vec::new(),
+            factoids: Vec::new(),
+            sources: Vec::new(),
+            isgci: Vec::new(),
+            topics: Vec::new(),
+            transfer: HashMap::new(),
+        }
+    }
+}
+

@@ -1,27 +1,26 @@
 //! Interface for a simplified input of connection information.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use crate::{data::{TransferGroup, DataSource, RawData}, raw::RawSourceKey};
+use crate::{data::{TransferGroup, DataSource}, raw::{RawData, RawSourceKey}};
+use crate::data::Cpx::UpperBound;
 use super::raw::{RawSet, RawKind, RawTopic, RawSource};
+use crate::data::Page::Unknown;
+use crate::complexity::CpxTime::Linear;
 
 pub struct Builder {
     data: RawData,
+    id_sanity_map: HashSet<String>,
+    name_sanity_map: HashSet<String>,
 }
 
 impl Builder {
 
     pub fn new() -> Builder {
-        Builder{
-            data: RawData {
-                parameters: Vec::new(),
-                factoids: Vec::new(),
-                graph_classes: Vec::new(),
-                sources: Vec::new(),
-                isgci: Vec::new(),
-                topics: Vec::new(),
-                transfer: HashMap::new(),
-            }
+        Self {
+            data: RawData::new(),
+            id_sanity_map: HashSet::new(),
+            name_sanity_map: HashSet::new(),
         }
     }
 
@@ -29,6 +28,21 @@ impl Builder {
     /// while making the builder unusable further.
     pub fn build(self) -> RawData {
         self.data
+    }
+
+    /// Adds set to the collection while making a few sanity checks.
+    fn add_set(&mut self, set: &RawSet) {
+        if self.id_sanity_map.contains(&set.id) {
+            panic!("id {} used multiple times", set.id);
+        }
+        if self.name_sanity_map.contains(&set.name) {
+            panic!("name {} used multiple times", set.name);
+        }
+        self.data.sets.push(set.clone());
+        if set.id != "" { // todo get rid of this exception
+            self.id_sanity_map.insert(set.id.clone());
+            self.name_sanity_map.insert(set.name.clone());
+        }
     }
 
     /// Represents that bounds on *from* instances transfer to *to* instances.
@@ -40,9 +54,9 @@ impl Builder {
 
     /// Add a new parameter.
     /// This typically represents a defined named parameter.
-    /// For ambiguous names we have no clear solution yet.
+    /// For ambiguous names we have no clear solution yet. (todo)
     /// For parameters with more names each can be defined as
-    /// a separate parameter and then united with Equality.
+    /// a separate parameter and then united with Equavilence.
     /// Equivalent parameters whose equivalence is to a degree surprising
     /// their definitions may be kept separate.
     pub fn parameter(&mut self, id: &str, name: &str) -> RawSet {
@@ -51,7 +65,7 @@ impl Builder {
             name: name.into(),
             kind: RawKind::Parameter
         };
-        self.data.parameters.push(res.clone());
+        self.add_set(&res);
         res
     }
 
@@ -63,8 +77,28 @@ impl Builder {
             name: format!("distance to {}", set.name.clone()),
             kind: RawKind::Parameter
         };
-        self.data.parameters.push(res.clone());
+        self.add_set(&res);
         self.transfers_bound_to(TransferGroup::DistanceTo, &set, &res);
+        res
+    }
+
+    /// Create a new set that represents intersection of sets.
+    /// From a view point of classical parameterized complexity
+    /// we may understand the intersection as a sum of parameters.
+    pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str) -> RawSet {
+        let sets = vec![set_a.clone(), set_b.clone()];
+        let res = RawSet {
+            id: id.into(),
+            name: name.into(),
+            kind: RawKind::Intersection(sets.clone())
+        };
+        self.add_set(&res);
+        // todo polish how these structures are created this; perhaps
+        // add a global source that holds all things that are known by definition
+        let mut tmp_source = self.source("", "unknown");
+        for s in &sets {
+            tmp_source = tmp_source.showed("", Unknown, &res, &s, UpperBound(Linear), "by definition");
+        }
         res
     }
 
@@ -77,27 +111,14 @@ impl Builder {
             name: name.into(),
             kind: RawKind::GraphClass
         };
-        self.data.graph_classes.push(res.clone());
-        res
-    }
-
-    /// Given a set, define a new graph class that requries that the
-    /// graph is additionally connected. E.g. one can define a graph
-    /// class of forests and then define trees as forest that is
-    /// additionally connected.
-    pub fn connected(&mut self, set: &RawSet, name: &str) -> RawSet {
-        let res = RawSet {
-            id: format!("connected_{}", set.id),
-            name: name.into(),
-            kind: RawKind::GraphClass
-        };
-        self.data.graph_classes.push(res.clone());
+        self.add_set(&res);
         res
     }
 
     /// Define a source of information. This includes online sources
     /// or reserach paper sources.
     pub fn source(&mut self, id: &str, sourcekey: &str) -> DataSource {
+        // todo improve this
         let rawsourcekey = if sourcekey.contains("://") {
             RawSourceKey::Online{ url: sourcekey.into() }
         } else if sourcekey == "unknown" {
