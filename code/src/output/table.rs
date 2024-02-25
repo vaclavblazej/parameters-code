@@ -3,11 +3,10 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::complexity::time::CpxTime;
 use crate::data::data::{Data, Set};
 use crate::input::raw::{Id, RawRelation, RawSet};
 use crate::data::simpleindex::SimpleIndex;
-use crate::complexity::info::CpxInfo::*;
+use crate::general::enums::{CpxTime, CpxInfo::*};
 
 
 fn table_format_par(i: usize, a: &RawSet) -> String {

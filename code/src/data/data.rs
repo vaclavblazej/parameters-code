@@ -4,7 +4,7 @@
 use std::fmt;
 use std::collections::HashMap;
 
-use crate::{complexity::{info::CpxInfo, time::CpxTime}, processing::processing::Sets, input::raw::{RawData, RawKind, RawRelation, RawSet, RawSource, RawTopic}};
+use crate::{general::enums::{Cpx, CpxInfo, CpxTime}, input::{raw::{RawKind, RawRelation, RawSet, RawSource}, source::Showed}, processing::processing::Sets};
 
 
 pub trait Linkable {
@@ -17,42 +17,6 @@ pub trait HasId {
 }
 impl HasId for Set { fn id(&self) -> String { self.id.clone() } }
 impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
-
-/// Refers to a page in a book or paper.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Page{
-    Pp(u32),
-    Unknown,
-    NotApplicable,
-}
-
-pub struct DataSource<'a> {
-    source: RawSource,
-    data: &'a mut RawData,
-}
-
-/// Enum that makes inputting complexities more convenient.
-pub enum Cpx {
-    Bounds(CpxTime, CpxTime),
-    UpperBound(CpxTime),
-    Exactly(CpxTime),
-    Equivalence,
-    Exclusion,
-    Todo,
-}
-
-impl Cpx {
-    fn expand(self) -> CpxInfo {
-        match self {
-            Cpx::Bounds(a, b) => CpxInfo::Inclusion{mn: a.clone(), mx: b.clone()},
-            Cpx::Exactly(a) => CpxInfo::Inclusion{mn: a.clone(), mx: a.clone()},
-            Cpx::UpperBound(b) => CpxInfo::Inclusion{mn: CpxTime::Constant, mx: b.clone()},
-            Cpx::Todo => CpxInfo::Inclusion { mn: CpxTime::Constant, mx: CpxTime::Exists },
-            Cpx::Equivalence => CpxInfo::Equivalence,
-            Cpx::Exclusion => CpxInfo::Exclusion,
-        }
-    }
-}
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct Date {
@@ -91,8 +55,8 @@ impl fmt::Display for Date {
         if let Some(d) = self.day {
             result.push('-');
             result.push_str(&d.to_string());
-        } else {
-            return write!(f, "{}", result)
+        // } else {
+            // return write!(f, "{}", result);
         }
         write!(f, "{}", result)
     }
@@ -139,71 +103,6 @@ pub struct Source {
     pub sourcekey: SourceKey,
     pub showed: Vec<Showed>,
     pub time: Date,
-}
-
-impl<'a> DataSource<'a> {
-
-    pub fn new(source: &RawSource, data: &'a mut RawData) -> Self {
-        DataSource { source: source.clone(), data }
-    }
-
-    pub fn defined(self, id: &str, page: Page, set: &RawSet, text: &str) -> Self {
-        let showed = Showed {
-            id: id.into(),
-            text: text.into(),
-            fact: ShowedFact::Definition(set.clone()),
-            page,
-        };
-        self.data.factoids.push((self.source.clone(), showed));
-        self
-    }
-
-    pub fn showed(self, id: &str, page: Page, subset: &RawSet, superset: &RawSet, cpx: Cpx, text: &str) -> Self {
-        let relation = RawRelation {
-            subset: subset.clone(),
-            superset: superset.clone(),
-            cpx: cpx.expand(),
-        };
-        let showed = Showed {
-            id: id.into(),
-            text: text.into(),
-            fact: ShowedFact::Relation(relation),
-            page,
-        };
-        self.data.factoids.push((self.source.clone(), showed));
-        self
-    }
-
-    pub fn cited(self, id: &str, page: Page, who: RawSource, text: &str) -> Self {
-        let showed = Showed {
-            id: id.into(),
-            text: text.into(),
-            fact: ShowedFact::Citation(who),
-            page,
-        };
-        self.data.factoids.push((self.source.clone(), showed));
-        self
-    }
-
-    pub fn done(self) -> RawSource {
-        self.source
-    }
-
-}
-
-#[derive(Debug, Clone)]
-pub enum ShowedFact {
-    Relation(RawRelation),
-    Definition(RawSet),
-    Citation(RawSource),
-}
-
-#[derive(Debug, Clone)]
-pub struct Showed {
-    pub id: String,
-    pub text: String,
-    pub fact: ShowedFact,
-    pub page: Page,
 }
 
 pub struct Data {
@@ -269,7 +168,15 @@ impl Relation {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum TransferGroup {
-    DistanceTo,
+impl Cpx {
+    pub fn expand(self) -> CpxInfo {
+        match self {
+            Cpx::Bounds(a, b) => CpxInfo::Inclusion{mn: a.clone(), mx: b.clone()},
+            Cpx::Exactly(a) => CpxInfo::Inclusion{mn: a.clone(), mx: a.clone()},
+            Cpx::UpperBound(b) => CpxInfo::Inclusion{mn: CpxTime::Constant, mx: b.clone()},
+            Cpx::Todo => CpxInfo::Inclusion { mn: CpxTime::Constant, mx: CpxTime::Exists },
+            Cpx::Equivalence => CpxInfo::Equivalence,
+            Cpx::Exclusion => CpxInfo::Exclusion,
+        }
+    }
 }

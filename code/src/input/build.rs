@@ -2,11 +2,11 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::{data::data::{TransferGroup, DataSource}, input::raw::{RawData, RawSourceKey}};
-use crate::data::data::Cpx::UpperBound;
+use crate::general::enums::{Page, TransferGroup};
+use crate::input::raw::{RawData, RawSourceKey};
 use super::raw::{RawSet, RawKind, RawTopic, RawSource};
-use crate::data::data::Page::Unknown;
-use crate::complexity::time::CpxTime::Linear;
+use super::source::DataSource;
+use crate::general::enums::{CpxTime::Linear, Cpx::UpperBound};
 
 pub struct Builder {
     data: RawData,
@@ -97,7 +97,7 @@ impl Builder {
         // add a global source that holds all things that are known by definition
         let mut tmp_source = self.source("", "unknown");
         for s in &sets {
-            tmp_source = tmp_source.showed("", Unknown, &res, &s, UpperBound(Linear), "by definition");
+            tmp_source = tmp_source.showed("", Page::Unknown, &res, &s, UpperBound(Linear), "by definition");
         }
         res
     }

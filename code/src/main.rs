@@ -20,21 +20,25 @@ use crate::output::pages::add_content;
 use crate::data::simpleindex::SimpleIndex;
 use crate::output::table::render_table;
 use crate::processing::processing::process_raw_data;
+use crate::general::file;
 
-mod complexity {
-    pub mod info;
-    pub mod time;
-}
 mod data {
     pub mod data;
+    pub mod preview;
     pub mod simpleindex;
+}
+mod general {
+    pub mod enums;
+    pub mod file;
 }
 mod processing {
     pub mod processing;
+    pub mod combine;
 }
 mod input {
     pub mod build;
     pub mod raw;
+    pub mod source;
 }
 mod output {
     pub mod draw;
@@ -43,7 +47,6 @@ mod output {
     pub mod table;
 }
 mod collection;
-mod file;
 
 fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     println!("generating dot pdf");

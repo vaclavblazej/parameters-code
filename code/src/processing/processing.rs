@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::Bibliography;
 
-use crate::{input::raw::{RawData, RawRelation, RawSet, RawSource, RawSourceKey}, data::simpleindex::SimpleIndex, data::data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceKey, SourceSubset}, file};
+use crate::{data::{data::{Data, Date, Relation, Set, Source, SourceKey, SourceSubset}, simpleindex::SimpleIndex}, file, input::{raw::{RawData, RawRelation, RawSet, RawSource, RawSourceKey}, source::{Showed, ShowedFact}}};
 
 pub fn bfs<F>(start: &RawSet, get_neighbors: F, include_start: bool) -> Vec<RawSet>
 where

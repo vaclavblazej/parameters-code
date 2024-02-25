@@ -2,7 +2,10 @@
 
 use std::collections::HashMap;
 
-use crate::{complexity::info::CpxInfo, data::data::{Showed, TransferGroup}};
+use crate::general::enums::{CpxInfo, TransferGroup};
+
+use super::source::Showed;
+
 
 /// General identification of all database entities.
 pub trait Id{

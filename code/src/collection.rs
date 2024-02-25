@@ -1,9 +1,8 @@
 //! Collects the information we have about parameterized complexity classes, their inclusions,
 //! and related graph classes, topics, bibliographic sources, theorems, proofs, and so on.
 
-use crate::data::data::Page::*;
-use crate::input::raw::RawData;
-use crate::{complexity::time::CpxTime::*, data::data::Cpx::*, input::build::Builder};
+use crate::general::enums::{Page::*, CpxTime::*, Cpx::*};
+use crate::input::{raw::RawData, build::Builder};
 
 pub fn build_collection() -> RawData {
     let mut create = Builder::new();
@@ -440,7 +439,7 @@ pub fn build_collection() -> RawData {
         .showed("pRjX8u", Unknown, &cutwidth_on_trees, &bandwidth_on_trees, UpperBound(Linear), "")
         .done();
     let bodlaender1993 = create.source("a3yKzk", "Bodlaender1993")
-        .showed("RgLQ2P", Unknown, &pathwidth_maxdeg, &cutwidth, Todo, "Theore 49.")
+        .showed("RgLQ2P", Unknown, &pathwidth_maxdeg, &cutwidth, Todo, "Theorem 49.")
         .showed("iiE5jo", Unknown, &cutwidth, &pathwidth, UpperBound(Linear), "Theorem 47. For every graph $G$, the pathwidth of $G$ is at most the cutwidth of $G$.")
         .showed("RQriva", Unknown, &topological_bandwidth, &pathwidth, UpperBound(Linear), "Theorem 45. For every graph $G$, the pathwidth of $G$ is at most the topological band-width of $G$.")
         .showed("cIAr80", Unknown, &complete, &treewidth, Exclusion, "Lemma 3.1 (\"clique containment lemma\"). Let $(\\{X_i\\mid u\\in I\\},T=(I,F))$ be a tree-decomposition of $G=(V,E)$ and let $W \\subseteq V$ be a clique in $G$. Then there exists $i \\in I$ with $W \\subseteq X_i$.")
