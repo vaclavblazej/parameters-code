@@ -8,29 +8,42 @@ use std::path::{PathBuf,Path};
 use std::process::Command;
 
 use anyhow::Result;
-use data::Data;
-use draw::Graph;
-use markdown::Mappable;
+use data::data::Data;
+use output::draw::Graph;
+use output::markdown::Mappable;
 
-use crate::markdown::Address;
-use crate::markdown::Markdown;
-use crate::pages::TargetPage;
-use crate::pages::add_content;
-use crate::simpleindex::SimpleIndex;
-use crate::table::render_table;
+use crate::output::draw::Edge;
+use crate::output::markdown::Address;
+use crate::output::markdown::Markdown;
+use crate::output::pages::TargetPage;
+use crate::output::pages::add_content;
+use crate::data::simpleindex::SimpleIndex;
+use crate::output::table::render_table;
+use crate::processing::processing::process_raw_data;
 
-mod build;
+mod complexity {
+    pub mod info;
+    pub mod time;
+}
+mod data {
+    pub mod data;
+    pub mod simpleindex;
+}
+mod processing {
+    pub mod processing;
+}
+mod input {
+    pub mod build;
+    pub mod raw;
+}
+mod output {
+    pub mod draw;
+    pub mod markdown;
+    pub mod pages;
+    pub mod table;
+}
 mod collection;
-mod complexity;
-mod data;
-mod draw;
 mod file;
-mod markdown;
-mod pages;
-mod processing;
-mod raw;
-mod simpleindex;
-mod table;
 
 fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     println!("generating dot pdf");
@@ -41,7 +54,7 @@ fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     for above in &data.sets {
         for below in &above.subsets.minimal {
             let attributes = "color=gray decorate=true lblstyle=\"above, sloped\" weight=1".into();
-            let drawedge = draw::Edge{
+            let drawedge = Edge {
                 from: above.id.clone(),
                 to: below.id.clone(),
                 label: String::new(),
@@ -131,7 +144,7 @@ fn main() -> Result<()> {
     let parent = current.parent().unwrap();
     let handcrafted_dir = parent.join("handcrafted");
     let bibliography_file = handcrafted_dir.join("main.bib");
-    let data = processing::process_raw_data(&rawdata, &bibliography_file);
+    let data = process_raw_data(&rawdata, &bibliography_file);
     let final_dir = parent.join("web").join("content");
     let working_dir = current.join("target");
     println!("fetching generated pages");

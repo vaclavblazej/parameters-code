@@ -1,9 +1,9 @@
 //! Collects the information we have about parameterized complexity classes, their inclusions,
 //! and related graph classes, topics, bibliographic sources, theorems, proofs, and so on.
 
-use crate::data::Page::*;
-use crate::raw::RawData;
-use crate::{complexity::CpxTime::*, data::Cpx::*, build::Builder};
+use crate::data::data::Page::*;
+use crate::input::raw::RawData;
+use crate::{complexity::time::CpxTime::*, data::data::Cpx::*, input::build::Builder};
 
 pub fn build_collection() -> RawData {
     let mut create = Builder::new();

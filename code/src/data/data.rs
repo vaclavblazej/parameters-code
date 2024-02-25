@@ -4,7 +4,7 @@
 use std::fmt;
 use std::collections::HashMap;
 
-use crate::{raw::{RawData, RawKind, RawRelation, RawSet, RawSource, RawTopic}, complexity::{CpxTime, CpxInfo}, processing::Sets};
+use crate::{complexity::{info::CpxInfo, time::CpxTime}, processing::processing::Sets, input::raw::{RawData, RawKind, RawRelation, RawSet, RawSource, RawTopic}};
 
 
 pub trait Linkable {

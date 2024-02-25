@@ -2,11 +2,11 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::{data::{TransferGroup, DataSource}, raw::{RawData, RawSourceKey}};
-use crate::data::Cpx::UpperBound;
+use crate::{data::data::{TransferGroup, DataSource}, input::raw::{RawData, RawSourceKey}};
+use crate::data::data::Cpx::UpperBound;
 use super::raw::{RawSet, RawKind, RawTopic, RawSource};
-use crate::data::Page::Unknown;
-use crate::complexity::CpxTime::Linear;
+use crate::data::data::Page::Unknown;
+use crate::complexity::time::CpxTime::Linear;
 
 pub struct Builder {
     data: RawData,

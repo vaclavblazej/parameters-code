@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::Bibliography;
 
-use crate::{raw::{RawData, RawRelation, RawSet, RawSource, RawSourceKey}, simpleindex::SimpleIndex, data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceKey, SourceSubset}, file};
+use crate::{input::raw::{RawData, RawRelation, RawSet, RawSource, RawSourceKey}, data::simpleindex::SimpleIndex, data::data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceKey, SourceSubset}, file};
 
 pub fn bfs<F>(start: &RawSet, get_neighbors: F, include_start: bool) -> Vec<RawSet>
 where
@@ -203,7 +203,7 @@ pub fn prepare_extremes(raw_set: Vec<RawSet>, data: &SimpleIndex) -> Sets {
 
 fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
     let bibliography_res = file::read_file_content(&bibliography_file);
-    return match bibliography_res {
+    match bibliography_res {
         Ok(bibliography_str) => {
             Some(Bibliography::parse(&bibliography_str).unwrap())
         },
@@ -212,7 +212,7 @@ fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
             println!("{:?}", error);
             None
         }
-    };
+    }
 }
 
 /// Get list of things we know about pairwise relations. Go through it and make

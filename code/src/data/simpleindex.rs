@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::{raw::{RawData, RawRelation, RawSet}, complexity::CpxInfo, data::ShowedFact};
+use crate::{input::raw::{RawData, RawRelation, RawSet}, complexity::info::CpxInfo, data::data::ShowedFact};
 
 
 /// This structure keeps which sets are with relations with other sets.

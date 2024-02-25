@@ -3,7 +3,8 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::{markdown::GeneratedPage, data::HasId};
+use super::markdown::GeneratedPage;
+use crate::data::data::HasId;
 
 // pub enum PageAction {
     // CreateDirectory { path: PathBuf },

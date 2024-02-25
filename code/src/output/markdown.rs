@@ -10,10 +10,11 @@ use std::process::Command;
 
 use regex::Regex;
 
-use crate::data::{Linkable, Data, Set, Source, SourceKey};
-use crate::draw::{Edge, Graph};
+use crate::data::data::{Linkable, Data, Set, Source, SourceKey};
+use crate::output::draw::{Edge, Graph};
 use crate::file;
-use crate::raw::{RawKind, RawSet, RawSource};
+use crate::input::raw::{RawKind, RawSet, RawSource, RawSourceKey};
+use crate::processing::processing::bfs_limit_distance;
 
 type Result<T> = std::result::Result<T, MarkdownError>;
 
@@ -50,16 +51,16 @@ impl Linkable for RawSet {
 impl Linkable for RawSource {
     fn get_url(&self) -> String {
         match &self.rawsourcekey {
-            crate::raw::RawSourceKey::Bibtex { key: _ } => self.id.clone(),
-            crate::raw::RawSourceKey::Online { url } => url.clone(),
-            crate::raw::RawSourceKey::Unknown => "#".into(),
+            RawSourceKey::Bibtex { key: _ } => self.id.clone(),
+            RawSourceKey::Online { url } => url.clone(),
+            RawSourceKey::Unknown => "#".into(),
         }
     }
     fn get_name(&self) -> String {
         match &self.rawsourcekey {
-            crate::raw::RawSourceKey::Bibtex { key } => key.clone(),
-            crate::raw::RawSourceKey::Online { url } => url.clone(),
-            crate::raw::RawSourceKey::Unknown => "unknown".into(),
+            RawSourceKey::Bibtex { key } => key.clone(),
+            RawSourceKey::Online { url } => url.clone(),
+            RawSourceKey::Unknown => "unknown".into(),
         }
     }
 }
@@ -70,7 +71,7 @@ pub trait GeneratedPage {
 
 fn make_focus_drawing(set: &Set, builder: &Markdown, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     let mut graph = Graph::new();
-    let sets_to_draw = crate::processing::bfs_limit_distance(set, &builder.data, distance);
+    let sets_to_draw = bfs_limit_distance(set, &builder.data, distance);
     for set in &sets_to_draw {
         graph.add_node(&builder.data.get_set(set))
     }

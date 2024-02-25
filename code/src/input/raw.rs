@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::{complexity::CpxInfo, data::{Showed, TransferGroup}};
+use crate::{complexity::info::CpxInfo, data::data::{Showed, TransferGroup}};
 
 /// General identification of all database entities.
 pub trait Id{
@@ -48,7 +48,7 @@ pub struct RawSet {
 
 impl Id for RawSet {
     fn get_id(&self) -> String{
-        return self.id.clone();
+        self.id.clone()
     }
 }
 
@@ -65,7 +65,7 @@ pub struct RawRelation {
 
 impl Id for RawRelation {
     fn get_id(&self) -> String{
-        return format!("relation_{}_to_{}", self.subset.id, self.superset.id);
+        format!("relation_{}_to_{}", self.subset.id, self.superset.id)
     }
 }
 

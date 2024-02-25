@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{data::Set, raw::RawRelation};
+use crate::{data::data::Set, input::raw::RawRelation};
 
 trait IntoDot {
     fn to_dot(&self) -> String;
