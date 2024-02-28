@@ -1,25 +1,23 @@
 use crate::general::enums::{Cpx, Page};
 
-use super::raw::{RawData, RawRelation, RawSet, RawSource};
+use super::raw::{RawData, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource};
 
-
-
-pub struct DataSource<'a> {
+pub struct RawDataSource<'a> {
     source: RawSource,
     data: &'a mut RawData,
 }
 
-impl<'a> DataSource<'a> {
+impl<'a> RawDataSource<'a> {
 
     pub fn new(source: &RawSource, data: &'a mut RawData) -> Self {
-        DataSource { source: source.clone(), data }
+        RawDataSource { source: source.clone(), data }
     }
 
     pub fn defined(self, id: &str, page: Page, set: &RawSet, text: &str) -> Self {
-        let showed = Showed {
+        let showed = RawShowed {
             id: id.into(),
             text: text.into(),
-            fact: ShowedFact::Definition(set.clone()),
+            fact: RawShowedFact::Definition(set.clone()),
             page,
         };
         self.data.factoids.push((self.source.clone(), showed));
@@ -32,10 +30,10 @@ impl<'a> DataSource<'a> {
             superset: superset.clone(),
             cpx: cpx.expand(),
         };
-        let showed = Showed {
+        let showed = RawShowed {
             id: id.into(),
             text: text.into(),
-            fact: ShowedFact::Relation(relation),
+            fact: RawShowedFact::Relation(relation),
             page,
         };
         self.data.factoids.push((self.source.clone(), showed));
@@ -43,10 +41,10 @@ impl<'a> DataSource<'a> {
     }
 
     pub fn cited(self, id: &str, page: Page, who: RawSource, text: &str) -> Self {
-        let showed = Showed {
+        let showed = RawShowed {
             id: id.into(),
             text: text.into(),
-            fact: ShowedFact::Citation(who),
+            fact: RawShowedFact::Citation(who),
             page,
         };
         self.data.factoids.push((self.source.clone(), showed));
@@ -57,19 +55,4 @@ impl<'a> DataSource<'a> {
         self.source
     }
 
-}
-
-#[derive(Debug, Clone)]
-pub struct Showed {
-    pub id: String,
-    pub text: String,
-    pub fact: ShowedFact,
-    pub page: Page,
-}
-
-#[derive(Debug, Clone)]
-pub enum ShowedFact {
-    Relation(RawRelation),
-    Definition(RawSet),
-    Citation(RawSource),
 }

@@ -1,10 +1,10 @@
-//! Collection of raw datapoints together with their mutual relations.
-//! More complex structures use Raw structures to refer to each other.
+//! Collection of preview datapoints together with their mutual relations.
+//! More complex structures use Preview structures to refer to each other.
 
 use std::fmt;
 use std::collections::HashMap;
 
-use crate::{general::enums::{Cpx, CpxInfo, CpxTime}, input::{raw::{RawKind, RawRelation, RawSet, RawSource}, source::Showed}, processing::processing::Sets};
+use crate::{data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource}, general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey}, processing::processing::Sets};
 
 
 pub trait Linkable {
@@ -25,17 +25,14 @@ pub struct Date {
     pub day: Option<u32>,
 }
 
-/// Points to the source of a citation.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum SourceKey {
-    Bibtex {
-        key: String,
-        formatted_citation: String,
-    },
-    Online {
-        url: String,
-    },
-    Unknown,
+impl Date {
+    pub fn empty() -> Date {
+        Date {
+            year: None,
+            month: None,
+            day: None,
+        }
+    }
 }
 
 impl fmt::Display for Date {
@@ -68,11 +65,9 @@ impl fmt::Debug for Date {
     }
 }
 
-/// More processed version of RawSource that also includes auxiliary information
-/// to show it but does not include everything. Meant to be presented as a link.
 #[derive(Clone, Debug)]
 pub struct SourceSubset {
-    pub raw: RawSource,
+    pub preview: PreviewSource,
     pub id: String,
     pub sourcekey: SourceKey,
     pub showed: Vec<Showed>,
@@ -82,10 +77,10 @@ pub struct SourceSubset {
 /// A general structure for parameters, graph classes, any other structures.
 #[derive(Clone, Debug)]
 pub struct Set {
-    pub raw: RawSet,
+    pub preview: PreviewSet,
     pub id: String,
     pub name: String,
-    pub kind: RawKind,
+    pub kind: PreviewKind,
     // pub providers: Vec<Provider>, // todo isgci, (and others?)
     pub timeline: Vec<SourceSubset>,
     pub supersets: Sets,
@@ -93,12 +88,12 @@ pub struct Set {
     pub super_exclusions: Sets,
     pub sub_exclusions: Sets,
     pub unknown: Sets,
-    // pub transfers: HashMap<TransferGroup, Vec<RawSet>>,
+    // pub transfers: HashMap<TransferGroup, Vec<PreviewSet>>,
 }
 
 #[derive(Clone)]
 pub struct Source {
-    pub raw: RawSource,
+    pub preview: PreviewSource,
     pub id: String,
     pub sourcekey: SourceKey,
     pub showed: Vec<Showed>,
@@ -110,17 +105,17 @@ pub struct Data {
     pub relations: Vec<Relation>,
     pub urls: HashMap<String, Box<dyn Linkable>>,
     pub sources: Vec<Source>,
-    pub set_idx: HashMap<RawSet, usize>,
-    pub relation_idx: HashMap<(RawSet, RawSet), usize>,
+    pub set_idx: HashMap<PreviewSet, usize>,
+    pub relation_idx: HashMap<(PreviewSet, PreviewSet), usize>,
 }
 
 impl Data {
     pub fn new(sets: Vec<Set>, relations: Vec<Relation>, urls: HashMap<String, Box<dyn Linkable>>, sources: Vec<Source>) -> Self {
-        let mut set_idx: HashMap<RawSet, usize> = HashMap::new();
+        let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
         for (idx, set) in sets.iter().enumerate() {
-            set_idx.insert(set.raw.clone(), idx);
+            set_idx.insert(set.preview.clone(), idx);
         }
-        let mut relation_idx: HashMap<(RawSet, RawSet), usize> = HashMap::new();
+        let mut relation_idx: HashMap<(PreviewSet, PreviewSet), usize> = HashMap::new();
         for (idx, relation) in relations.iter().enumerate() {
             relation_idx.insert((relation.subset.clone(), relation.superset.clone()), idx);
         }
@@ -134,12 +129,12 @@ impl Data {
         }
     }
 
-    pub fn get_set(&self, key: &RawSet) -> &Set {
-        let idx: usize = *self.set_idx.get(&key).expect(&format!("raw set not found {:?}", key));
+    pub fn get_set(&self, key: &PreviewSet) -> &Set {
+        let idx: usize = *self.set_idx.get(&key).expect(&format!("preview set not found {:?}", key));
         &self.sets[idx]
     }
 
-    pub fn get_relation(&self, set_a: &RawSet, set_b: &RawSet) -> &Relation {
+    pub fn get_relation(&self, set_a: &PreviewSet, set_b: &PreviewSet) -> &Relation {
         let key = (set_a.clone(), set_b.clone());
         let idx: usize = *self.relation_idx.get(&key).expect(&format!("relation not found {:?}", key));
         &self.relations[idx]
@@ -149,23 +144,12 @@ impl Data {
 // todo abbreviation
 
 pub struct Relation {
-    pub raw: RawRelation,
+    pub preview: PreviewRelation,
     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
-    pub subset: RawSet,
+    pub subset: PreviewSet,
     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
-    pub superset: RawSet,
+    pub superset: PreviewSet,
     pub cpx: CpxInfo,
-}
-
-impl Relation {
-    pub fn new(raw: &RawRelation) -> Self {
-        Self {
-            raw: raw.clone(),
-            subset: raw.subset.clone(),
-            superset: raw.superset.clone(),
-            cpx: raw.cpx.clone(),
-        }
-    }
 }
 
 impl Cpx {
@@ -179,4 +163,19 @@ impl Cpx {
             Cpx::Exclusion => CpxInfo::Exclusion,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Showed {
+    pub id: String,
+    pub text: String,
+    pub fact: ShowedFact,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone)]
+pub enum ShowedFact {
+    Relation(PreviewRelation),
+    Definition(PreviewSet),
+    Citation(PreviewSource),
 }

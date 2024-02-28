@@ -2,11 +2,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::general::enums::{Page, TransferGroup};
-use crate::input::raw::{RawData, RawSourceKey};
-use super::raw::{RawSet, RawKind, RawTopic, RawSource};
-use super::source::DataSource;
-use crate::general::enums::{CpxTime::Linear, Cpx::UpperBound};
+use crate::general::enums::{Page, TransferGroup, CpxTime::Linear, Cpx::UpperBound};
+use super::raw::{RawData, RawSourceKey, RawSet, RawKind, RawTopic, RawSource};
+use super::source::RawDataSource;
 
 pub struct Builder {
     data: RawData,
@@ -117,7 +115,7 @@ impl Builder {
 
     /// Define a source of information. This includes online sources
     /// or reserach paper sources.
-    pub fn source(&mut self, id: &str, sourcekey: &str) -> DataSource {
+    pub fn source(&mut self, id: &str, sourcekey: &str) -> RawDataSource {
         // todo improve this
         let rawsourcekey = if sourcekey.contains("://") {
             RawSourceKey::Online{ url: sourcekey.into() }
@@ -128,7 +126,7 @@ impl Builder {
         };
         let res = RawSource { id: id.into(), rawsourcekey, };
         self.data.sources.push(res.clone());
-        DataSource::new(&res, &mut self.data)
+        RawDataSource::new(&res, &mut self.data)
     }
 
     /// Tie an identifier from the "Information System on Graph Classes

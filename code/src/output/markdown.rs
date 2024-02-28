@@ -10,10 +10,11 @@ use std::process::Command;
 
 use regex::Regex;
 
-use crate::data::data::{Linkable, Data, Set, Source, SourceKey};
+use crate::data::data::{Linkable, Data, Set, Source};
+use crate::data::preview::{PreviewKind, PreviewSet, PreviewSource, PreviewSourceKey};
+use crate::general::enums::SourceKey;
 use crate::output::draw::{Edge, Graph};
 use crate::file;
-use crate::input::raw::{RawKind, RawSet, RawSource, RawSourceKey};
 use crate::processing::processing::bfs_limit_distance;
 
 type Result<T> = std::result::Result<T, MarkdownError>;
@@ -39,7 +40,7 @@ impl fmt::Display for MarkdownError {
     }
 }
 
-impl Linkable for RawSet {
+impl Linkable for PreviewSet {
     fn get_url(&self) -> String {
         self.id.clone()
     }
@@ -48,19 +49,19 @@ impl Linkable for RawSet {
     }
 }
 
-impl Linkable for RawSource {
+impl Linkable for PreviewSource {
     fn get_url(&self) -> String {
-        match &self.rawsourcekey {
-            RawSourceKey::Bibtex { key: _ } => self.id.clone(),
-            RawSourceKey::Online { url } => url.clone(),
-            RawSourceKey::Unknown => "#".into(),
+        match &self.sourcekey {
+            PreviewSourceKey::Bibtex { key: _ } => self.id.clone(),
+            PreviewSourceKey::Online { url } => url.clone(),
+            PreviewSourceKey::Unknown => "#".into(),
         }
     }
     fn get_name(&self) -> String {
-        match &self.rawsourcekey {
-            RawSourceKey::Bibtex { key } => key.clone(),
-            RawSourceKey::Online { url } => url.clone(),
-            RawSourceKey::Unknown => "unknown".into(),
+        match &self.sourcekey {
+            PreviewSourceKey::Bibtex { key } => key.clone(),
+            PreviewSourceKey::Online { url } => url.clone(),
+            PreviewSourceKey::Unknown => "unknown".into(),
         }
     }
 }
@@ -125,7 +126,7 @@ impl GeneratedPage for Set {
         res += &drawing_content;
         res += "## Timeline\n\n";
         for source in &self.timeline {
-            res += &format!("{}\n\n", builder.linkto(&source.raw));
+            res += &format!("{}\n\n", builder.linkto(&source.preview));
             for showed in &source.showed {
                 res += &format!("{}\n\n", showed.text);
             }
@@ -222,19 +223,19 @@ impl<'a> Markdown<'a> {
         if let Some(key) = keys.pop_front() {
             match key.as_str() {
                 "parameters" => {
-                    for set in &self.data.sets.iter().filter(|&s| s.kind == RawKind::Parameter).collect::<Vec<&Set>>() {
-                        content += &format!("* {}\n", self.linkto(&set.raw));
+                    for set in &self.data.sets.iter().filter(|&s| s.kind == PreviewKind::Parameter).collect::<Vec<&Set>>() {
+                        content += &format!("* {}\n", self.linkto(&set.preview));
                     }
                 }
                 "graphs" => {
-                    for set in self.data.sets.iter().filter(|&s| s.kind == RawKind::GraphClass).collect::<Vec<&Set>>() {
-                        content += &format!("* {}\n", self.linkto(&set.raw));
+                    for set in self.data.sets.iter().filter(|&s| s.kind == PreviewKind::GraphClass).collect::<Vec<&Set>>() {
+                        content += &format!("* {}\n", self.linkto(&set.preview));
                     }
                 },
                 "sources" => {
                     for source in &self.data.sources {
                         if let SourceKey::Bibtex { key, formatted_citation } = &source.sourcekey {
-                            content += &format!("* {}\n", self.linkto(&source.raw));
+                            content += &format!("* {}\n", self.linkto(&source.preview));
                         }
                     }
                 },
@@ -292,7 +293,7 @@ impl<'a> Markdown<'a> {
             ))
     }
 
-    pub fn format_set(&self, set: &RawSet) -> String {
+    pub fn format_set(&self, set: &PreviewSet) -> String {
         let mut content = String::new();
         content += &format!("## {}", set.name);
         content += "\n";

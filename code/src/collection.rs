@@ -116,7 +116,7 @@ pub fn build_collection() -> RawData {
     let topological_bandwidth = create.parameter("SnA7Eq", "topological bandwidth");
     let bisection_bandwidth = create.parameter("wUdmUb", "bisection bandwidth");
     let max_degree = create.parameter("UyQ5yM", "maximum degree");
-    let c_closure = create.parameter("ou9VU1", "c-closure");
+    // let c_closure = create.parameter("ou9VU1", "c-closure");
     let feedback_vertex_set = create.parameter("GNOiyB", "feedback vertex set");
     let shrub_depth = create.parameter("NTgNzT", "shrub-depth");
     let linear_clique_width = create.parameter("fQj3wU", "linear clique-width");
@@ -271,8 +271,8 @@ pub fn build_collection() -> RawData {
         .showed("cEEX99", Unknown, &neighborhood_diversity, &boxicity, UpperBound(Exists), "")
         .showed("3iR4qs", Unknown, &genus, &twin_width, UpperBound(Exists), "")
         .showed("TA2EZd", Unknown, &dist_to_planar, &twin_width, UpperBound(Exists), "")
-        .showed("qB1OMb", Unknown, &max_degree, &c_closure, UpperBound(Exists), "")
-        .showed("fmiQlU", Unknown, &feedback_edge_set, &c_closure, UpperBound(Exists), "")
+        // .showed("qB1OMb", Unknown, &max_degree, &c_closure, UpperBound(Exists), "")
+        // .showed("fmiQlU", Unknown, &feedback_edge_set, &c_closure, UpperBound(Exists), "")
         .showed("LTyhoG", Unknown, &vertex_integrity, &dist_to_connected_component_size, UpperBound(Exists), "")
         .showed("SyGwqT", NotApplicable, &bandwidth, &topological_bandwidth, UpperBound(Linear), by_definition)
         .showed("ebAUEu", NotApplicable, &twin_cover_num, &dist_to_cluster, UpperBound(Linear), by_definition)

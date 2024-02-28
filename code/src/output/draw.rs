@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{data::data::Set, input::raw::RawRelation};
+use crate::data::{data::Set, preview::PreviewRelation};
 
 trait IntoDot {
     fn to_dot(&self) -> String;
@@ -55,7 +55,7 @@ impl IntoDot for Edge {
     }
 }
 
-impl Into<Edge> for &RawRelation {
+impl Into<Edge> for &PreviewRelation {
     fn into(self) -> Edge {
         let attributes = String::new();
         // attributes.append() ... todo

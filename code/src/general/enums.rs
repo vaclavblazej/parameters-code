@@ -15,6 +15,19 @@ pub enum TransferGroup {
     DistanceTo,
 }
 
+/// Points to the source of a citation.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum SourceKey {
+    Bibtex {
+        key: String,
+        formatted_citation: String,
+    },
+    Online {
+        url: String,
+    },
+    Unknown,
+}
+
 /// Enum that makes inputting complexities more convenient.
 pub enum Cpx {
     Bounds(CpxTime, CpxTime),

@@ -4,12 +4,12 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::data::data::{Data, Set};
-use crate::input::raw::{Id, RawRelation, RawSet};
+use crate::data::preview::PreviewSet;
 use crate::data::simpleindex::SimpleIndex;
 use crate::general::enums::{CpxTime, CpxInfo::*};
 
 
-fn table_format_par(i: usize, a: &RawSet) -> String {
+fn table_format_par(i: usize, a: &PreviewSet) -> String {
     format!("\\parname{{{}}}{{{}}}{{../{}}}", i + 1, a.name, a.id)
 }
 
@@ -23,7 +23,7 @@ pub fn render_table(parameters: &Vec<Set>, table_folder: &PathBuf) -> io::Result
 
     let mut content = Vec::new();
     for (i, a) in draw_pars.iter().enumerate() {
-        content.push(table_format_par(i, &a.raw));
+        content.push(table_format_par(i, &a.preview));
     }
 
     for (ai, a) in draw_pars.iter().enumerate() {
@@ -32,13 +32,13 @@ pub fn render_table(parameters: &Vec<Set>, table_folder: &PathBuf) -> io::Result
             let status = if a.id == b.id {
                 "diagonal"
             } else {
-                if a.subsets.maximal.contains(&b.raw) {
+                if a.subsets.maximal.contains(&b.preview) {
                     "bounded"
-                } else if a.subsets.all.contains(&b.raw) {
+                } else if a.subsets.all.contains(&b.preview) {
                     "bounded_derived"
-                }else if a.sub_exclusions.maximal.contains(&b.raw) {
+                }else if a.sub_exclusions.maximal.contains(&b.preview) {
                     "unbounded"
-                }else if a.sub_exclusions.all.contains(&b.raw) {
+                }else if a.sub_exclusions.all.contains(&b.preview) {
                     "unbounded_derived"
                 }else{
                     "unknown"

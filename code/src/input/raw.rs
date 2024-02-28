@@ -2,9 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::general::enums::{CpxInfo, TransferGroup};
-
-use super::source::Showed;
+use crate::general::enums::{CpxInfo, Page, TransferGroup};
 
 
 /// General identification of all database entities.
@@ -104,7 +102,7 @@ pub struct RawTopic {
 
 pub struct RawData {
     pub sets: Vec<RawSet>,
-    pub factoids: Vec<(RawSource, Showed)>,
+    pub factoids: Vec<(RawSource, RawShowed)>,
     pub sources: Vec<RawSource>,
     pub isgci: Vec<(RawSet, u32)>,
     pub topics: Vec<RawTopic>,
@@ -124,3 +122,17 @@ impl RawData {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct RawShowed {
+    pub id: String,
+    pub text: String,
+    pub fact: RawShowedFact,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone)]
+pub enum RawShowedFact {
+    Relation(RawRelation),
+    Definition(RawSet),
+    Citation(RawSource),
+}
