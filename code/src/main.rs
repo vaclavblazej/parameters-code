@@ -9,6 +9,9 @@ use std::process::Command;
 
 use anyhow::Result;
 use data::data::Data;
+use data::data::Relation;
+use general::enums::CpxInfo;
+use general::enums::CpxTime;
 use output::draw::Graph;
 use output::markdown::Mappable;
 
@@ -48,6 +51,26 @@ mod output {
 }
 mod collection;
 
+fn relation_style(relation: &Relation) -> String {
+    let mut res: String = "decorate=true lblstyle=\"above, sloped\"".into();
+    res = match &relation.cpx {
+        CpxInfo::Inclusion {mn, mx} => {
+            res + match mx {
+                CpxTime::Constant | CpxTime::Linear => &" weight=\"100\" penwidth=\"2.0\"",
+                CpxTime::Polynomial => &" weight=\"20\" penwidth=\"0.8\"",
+                CpxTime::Exponential => &" style=\"dotted\" weight=\"1\" penwidth=\"1.0\"",
+                CpxTime::Tower(_) => &" style=\"dotted\" weight=\"1\" penwidth=\"0.8\"",
+                CpxTime::Exists => &" color=\"gray\" weight=\"1\"",
+            }
+        },
+        CpxInfo::Exclusion => panic!(),
+        CpxInfo::Unknown => panic!(),
+        CpxInfo::LowerBound { mn: _ } => "".into(),
+        CpxInfo::Equivalence => res + "",
+    };
+    res
+}
+
 fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     println!("generating dot pdf");
     let mut graph = Graph::new();
@@ -56,7 +79,8 @@ fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     }
     for above in &data.sets {
         for below in &above.subsets.minimal {
-            let attributes = "color=gray decorate=true lblstyle=\"above, sloped\" weight=1".into();
+            let relation = data.get_relation(&above.preview, &below);
+            let attributes = relation_style(relation).into();
             let drawedge = Edge {
                 from: above.id.clone(),
                 to: below.id.clone(),

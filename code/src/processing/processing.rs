@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Entry};
 
-use crate::{data::{data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::file};
+use crate::{data::{data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::CpxInfo, file}};
 use crate::general::enums::SourceKey;
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -327,17 +327,40 @@ fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
 /// sure each relation is represented only once and that that representation
 /// contains all the information one may need.
 fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
-    let mut relations = Vec::new();
-    let mut relation_idx: HashMap<(RawSet, RawSet), Relation> = HashMap::new();
-    for (idx, raw_relation) in raw_relations.iter().enumerate() {
-        let key = (raw_relation.subset.clone(), raw_relation.superset.clone());
-        if let Some(value) = relation_idx.get(&key) {
-            // todo merge relations
+    let add_to_relation_idx = |relation_idx: &mut HashMap<(RawSet, RawSet), Relation>, key, raw_relation: &RawRelation| {
+        if let Some(mut value) = relation_idx.get_mut(&key) {
+            value.combine_parallel(&Relation::new(&raw_relation));
         } else {
             relation_idx.insert(key, Relation::new(&raw_relation));
         }
+    };
+    let mut relation_idx: HashMap<(RawSet, RawSet), Relation> = HashMap::new();
+    for raw_relation in raw_relations {
+        let key = (raw_relation.subset.clone(), raw_relation.superset.clone());
+        add_to_relation_idx(&mut relation_idx, key.clone(), &raw_relation);
+        if raw_relation.cpx == CpxInfo::Equivalence {
+            let (a, b) = key;
+            let flipped = RawRelation {
+                subset: raw_relation.superset,
+                superset: raw_relation.subset,
+                cpx: raw_relation.cpx,
+            };
+            add_to_relation_idx(&mut relation_idx, (b, a), &flipped);
+        }
     }
-    relations
+    relation_idx.into_values().collect()
+}
+
+impl Relation {
+    pub fn combine_parallel(&mut self, other: &Relation) {
+        assert_eq!(self.superset, other.superset);
+        assert_eq!(self.subset, other.subset);
+        match self.cpx.combine_parallel(&other.cpx){
+            Ok(res) => self.cpx = res,
+            Err(err) => eprintln!("{}\n{:?}\n{:?}", err, self.preview, other.preview),
+        }
+        // todo insert backtrace of inferences
+    }
 }
 
 pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data {

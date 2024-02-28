@@ -1,4 +1,21 @@
+use core::fmt;
+
 use crate::general::enums::{CpxInfo, CpxTime};
+
+#[derive(Debug)]
+pub enum CombinationError {
+    ExclusionInclusion(CpxInfo, CpxInfo),
+    IncompatibleWithEquivalence(CpxInfo, CpxInfo),
+}
+
+impl fmt::Display for CombinationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CombinationError::ExclusionInclusion(a, b) => write!(f, "Tried to combine Exclusion with Inclusion relation in parallel:\n{:?}\n{:?}", a, b),
+            CombinationError::IncompatibleWithEquivalence(a, b) => write!(f, "Tried to combine equivalence with an incompatible relation in parallel:\n{:?}\n{:?}", a, b),
+        }
+    }
+}
 
 impl CpxTime {
 
@@ -63,8 +80,8 @@ impl CpxInfo {
     }
 
     /// Combine the two complexities' best results.
-    pub fn combine_parallel(&self, b: &Self) -> Self {
-        match (self, b) {
+    pub fn combine_parallel(&self, b: &Self) -> Result<Self, CombinationError> {
+        Ok(match (self, b) {
             // Prefer anything before taking Unknown.
             (Self::Unknown, a) | (a, Self::Unknown) => a.clone(),
             // Check equivalence is compatible with the other bound and if so, keep it.
@@ -72,7 +89,7 @@ impl CpxInfo {
             (Self::Equivalence, Self::LowerBound { mn }) | (Self::LowerBound { mn }, Self::Equivalence) => {
                 match mn {
                     CpxTime::Constant | CpxTime::Linear => Self::Equivalence,
-                    _ => panic!("impossible"),
+                    _ => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), b.clone())),
                 }
             },
             (Self::Equivalence, Self::Inclusion { mn, mx }) | (Self::Inclusion { mn, mx }, Self::Equivalence) => {
@@ -80,7 +97,7 @@ impl CpxInfo {
                     (CpxTime::Constant | CpxTime::Linear,
                      CpxTime::Linear | CpxTime::Polynomial | CpxTime::Exponential | CpxTime::Tower(_) | CpxTime::Exists)
                         => Self::Equivalence,
-                        (_, _) => panic!("impossible"),
+                        (_, _) => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), b.clone())),
                 }
             },
             (Self::Exclusion, Self::Equivalence) | (Self::Equivalence, Self::Exclusion) => panic!("impossible"),
@@ -108,8 +125,8 @@ impl CpxInfo {
             // We cannot combine exclusion and inclusion as they are disjoint cases.
             (Self::Exclusion, Self::Inclusion { .. })
                 | (Self::Inclusion { .. }, Self::Exclusion)
-                => panic!("impossible"),
-        }
+                => return Err(CombinationError::ExclusionInclusion(self.clone(), b.clone())),
+        })
     }
 
 }

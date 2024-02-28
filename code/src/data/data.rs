@@ -4,7 +4,9 @@
 use std::fmt;
 use std::collections::HashMap;
 
-use crate::{data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource}, general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey}, processing::processing::Sets};
+use crate::data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource};
+use crate::general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey};
+use crate::processing::processing::Sets;
 
 
 pub trait Linkable {
@@ -134,8 +136,8 @@ impl Data {
         &self.sets[idx]
     }
 
-    pub fn get_relation(&self, set_a: &PreviewSet, set_b: &PreviewSet) -> &Relation {
-        let key = (set_a.clone(), set_b.clone());
+    pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> &Relation {
+        let key = (subset.clone(), superset.clone());
         let idx: usize = *self.relation_idx.get(&key).expect(&format!("relation not found {:?}", key));
         &self.relations[idx]
     }
@@ -143,6 +145,7 @@ impl Data {
 
 // todo abbreviation
 
+#[derive(Debug, Clone)]
 pub struct Relation {
     pub preview: PreviewRelation,
     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.

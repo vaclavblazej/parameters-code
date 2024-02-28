@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::general::enums::{Page, TransferGroup, CpxTime::Linear, Cpx::UpperBound};
+use crate::general::enums::{Page, TransferGroup, CpxTime::{Linear, Constant}, Cpx::UpperBound};
 use super::raw::{RawData, RawSourceKey, RawSet, RawKind, RawTopic, RawSource};
 use super::source::RawDataSource;
 
@@ -76,6 +76,8 @@ impl Builder {
             kind: RawKind::Parameter
         };
         self.add_set(&res);
+        let mut tmp_source = self.source("", "unknown");
+        tmp_source = tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
         self.transfers_bound_to(TransferGroup::DistanceTo, &set, &res);
         res
     }
@@ -95,7 +97,7 @@ impl Builder {
         // add a global source that holds all things that are known by definition
         let mut tmp_source = self.source("", "unknown");
         for s in &sets {
-            tmp_source = tmp_source.showed("", Page::Unknown, &res, &s, UpperBound(Linear), "by definition");
+            tmp_source = tmp_source.showed("", Page::NotApplicable, &res, &s, UpperBound(Linear), "by definition");
         }
         res
     }

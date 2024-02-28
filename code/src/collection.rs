@@ -342,7 +342,7 @@ pub fn build_collection() -> RawData {
         .showed("ORlCs0", Unknown, &disjoint_cycles, &dist_to_perfect, Exclusion, "")
         .showed("tZrOta", Unknown, &cycle, &max_leaf_num, UpperBound(Constant), "")
         .showed("cYF2KU", Unknown, &cycle, &girth, Exclusion, "")
-        .showed("5iynqA", Unknown, &cycles, &dist_to_cycles, Exclusion, "")
+        // .showed("5iynqA", Unknown, &cycles, &dist_to_cycles, Exclusion, "") // probably nonsense
         ;
 
     create.source("ez07Er", "https://en.wikipedia.org/wiki/Vertex_cover")

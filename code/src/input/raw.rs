@@ -70,29 +70,6 @@ impl Id for RawRelation {
     }
 }
 
-impl RawRelation {
-
-    fn combine_parallel(&self, bound: &RawRelation) -> RawRelation {
-        assert_eq!(self.subset, bound.subset);
-        assert_eq!(self.superset, bound.superset);
-        RawRelation{
-            subset: self.subset.clone(),
-            superset: bound.superset.clone(),
-            cpx: self.cpx.combine_parallel(&bound.cpx),
-        }
-    }
-
-    fn combine_serial(&self, bound: &RawRelation) -> RawRelation {
-        assert_eq!(self.superset, bound.subset);
-        RawRelation {
-            subset: self.subset.clone(),
-            superset: bound.superset.clone(),
-            cpx: self.cpx.combine_serial(&bound.cpx),
-        }
-    }
-
-}
-
 #[derive(Debug, Clone)]
 pub struct RawTopic {
     pub id: String,
