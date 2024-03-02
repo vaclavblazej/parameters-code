@@ -3,8 +3,8 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Entry};
 
-use crate::{data::{data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::CpxInfo, file}};
-use crate::general::enums::SourceKey;
+use crate::data::{data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex};
+use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
 
@@ -42,24 +42,26 @@ where
     unique.into_iter().collect()
 }
 
-pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashSet<PreviewSet> {
+pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashSet<(PreviewSet, usize)> {
     let mut visited = HashSet::new();
     let mut queue = VecDeque::new();
-    visited.insert(set.preview.clone());
+    visited.insert((set.preview.clone(), 0));
     queue.push_back((set.preview.clone(), 0));
     while let Some((raw_set, current_distance)) = queue.pop_front() {
         let set = data.get_set(&raw_set);
         if current_distance >= distance {
             continue;
         }
-        for subset in &set.subsets.maximal {
-            if visited.insert(subset.clone()) {
-                queue.push_back((subset.clone(), current_distance + 1));
+        for subset in &set.subsets.all {
+            let pair = (subset.clone(), current_distance + 1);
+            if visited.insert(pair.clone()) {
+                queue.push_back(pair);
             }
         }
-        for superset in &set.supersets.minimal {
-            if visited.insert(superset.clone()) {
-                queue.push_back((superset.clone(), current_distance + 1));
+        for superset in &set.supersets.all {
+            let pair = (superset.clone(), current_distance + 1);
+            if visited.insert(pair.clone()) {
+                queue.push_back(pair);
             }
         }
     }
@@ -133,35 +135,51 @@ pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources:
     }
 }
 
-/// Enrich the source key with additional information
-pub fn process_sourcekey(sourcekey: &RawSourceKey, bibliography: &Option<Bibliography>) -> SourceKey {
-    match sourcekey {
+// pub fn extract_entry_date(entry: Result<Entry) -> Date {
+    // println!("{:?}", entry.date());
+    // match entry {
+        // Ok(entry) => {
+            // Date::empty()
+        // },
+        // Err(err) => Date::empty()
+    // }
+// }
+
+pub fn process_source(source: &RawSource, help: &SimpleIndex, bibliography: &Option<Bibliography>) -> Source {
+    let mut showed = vec![]; // todo
+    let mut sourcekey: SourceKey;
+    let mut time: Date;
+    match &source.rawsourcekey {
         RawSourceKey::Bibtex { key } => {
             let formatted_citation = match bibliography {
                 Some(bib) => {
                     let entry = bib.get(&key).unwrap();
-                    format!("{:?}", entry) // fixme
+                    // time = extract_entry_date(&entry); // todo
+                    time = Date::empty();
+                    format!("{:?}", entry) // todo
                 },
                 None => {
+                    time = Date::empty();
                     "missing".into()
                 },
             };
-            SourceKey::Bibtex { key: key.clone(), formatted_citation }
+            sourcekey = SourceKey::Bibtex { key: key.clone(), formatted_citation };
         },
-        RawSourceKey::Online { url } => { SourceKey::Online { url: url.clone() } },
-        RawSourceKey::Unknown => { SourceKey::Unknown }
+        RawSourceKey::Online { url } => {
+            sourcekey = SourceKey::Online { url: url.clone() };
+            time = Date::empty(); // todo
+        },
+        RawSourceKey::Unknown => {
+            sourcekey = SourceKey::Unknown;
+            time = Date::empty();
+        },
     }
-}
-
-pub fn process_source(source: &RawSource, help: &SimpleIndex, bibliography: &Option<Bibliography>) -> Source {
-    let mut showed = vec![]; // todo
-    let sourcekey = process_sourcekey(&source.rawsourcekey, bibliography);
     let mut res = Source {
         preview: source.clone().preprocess(),
         id: source.id.clone(),
         sourcekey,
         showed,
-        time: Date::empty(), // todo
+        time,
     };
     res
 }
@@ -185,99 +203,6 @@ pub struct Sets {
         // }
     // }
 // }
-
-impl Into<PreviewSourceKey> for RawSourceKey {
-    fn into(self) -> PreviewSourceKey {
-        match self {
-            Self::Bibtex { key } => PreviewSourceKey::Bibtex { key },
-            Self::Online { url } => PreviewSourceKey::Online { url },
-            Self::Unknown => PreviewSourceKey::Unknown,
-        }
-    }
-}
-
-impl Into<PreviewKind> for RawKind {
-    fn into(self) -> PreviewKind {
-        match self {
-            Self::Parameter => PreviewKind::Parameter,
-            Self::GraphClass => PreviewKind::GraphClass,
-            Self::Intersection(a) => PreviewKind::Intersection(a.into_iter().map(|x|x.into()).collect()),
-        }
-    }
-}
-
-impl Into<PreviewSet> for RawSet {
-    fn into(self) -> PreviewSet {
-        PreviewSet {
-            id: self.id,
-            name: self.name,
-            kind: self.kind.into(),
-        }
-    }
-}
-
-impl Into<Showed> for RawShowed {
-    fn into(self) -> Showed {
-        Showed {
-            id: self.id,
-            text: self.text,
-            fact: self.fact.into(),
-            page: self.page,
-        }
-    }
-}
-
-impl Into<ShowedFact> for RawShowedFact {
-    fn into(self) -> ShowedFact {
-        match self {
-            Self::Relation(x) => ShowedFact::Relation(x.into()),
-            Self::Citation(x) => ShowedFact::Citation(x.preprocess()),
-            Self::Definition(x) => ShowedFact::Definition(x.into()),
-        }
-    }
-}
-
-impl Into<PreviewRelation> for RawRelation {
-    fn into(self) -> PreviewRelation {
-        PreviewRelation {
-            subset: self.subset.into(),
-            superset: self.superset.into(),
-            cpx: self.cpx,
-        }
-    }
-}
-
-impl Into<Date> for Option<Entry> {
-    fn into(self) -> Date {
-        match self {
-            Some(x) => {
-                Date::empty() // todo
-            },
-            None => Date::empty(),
-        }
-    }
-}
-
-impl RawSource {
-    pub fn preprocess(self) -> PreviewSource {
-        PreviewSource {
-            id: self.id,
-            sourcekey: self.rawsourcekey.into(),
-            time: Date::empty(),
-        }
-    }
-}
-
-impl Relation {
-    pub fn new(preview: &RawRelation) -> Self {
-        Self {
-            preview: preview.clone().into(),
-            subset: preview.subset.clone().into(),
-            superset: preview.superset.clone().into(),
-            cpx: preview.cpx.clone(),
-        }
-    }
-}
 
 pub fn prepare_extremes(preview_set: Vec<PreviewSet>, data: &SimpleIndex) -> Sets {
     let mut minimal = Vec::new();
@@ -329,9 +254,9 @@ fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
 fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
     let add_to_relation_idx = |relation_idx: &mut HashMap<(RawSet, RawSet), Relation>, key, raw_relation: &RawRelation| {
         if let Some(mut value) = relation_idx.get_mut(&key) {
-            value.combine_parallel(&Relation::new(&raw_relation));
+            value.combine_parallel(&raw_relation.clone().into());
         } else {
-            relation_idx.insert(key, Relation::new(&raw_relation));
+            relation_idx.insert(key, raw_relation.clone().into());
         }
     };
     let mut relation_idx: HashMap<(RawSet, RawSet), Relation> = HashMap::new();
@@ -386,6 +311,26 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
             RawShowedFact::Citation(_) => (),
             RawShowedFact::Definition(_) => (),
         }
+    }
+    let mut transfered_relations = Vec::new();
+    for relation in &raw_relations {
+        for (transfer_group, map) in rawdata.transfer.iter() {
+            let some_top = map.get(&relation.subset);
+            let some_bot = map.get(&relation.superset);
+            if let Some(top) = some_top {
+                if let Some(bot) = some_bot {
+                    let rel = RawRelation {
+                        cpx: relation.cpx.clone(),
+                        subset: top.clone(),
+                        superset: bot.clone(),
+                    };
+                    transfered_relations.push(rel);
+                }
+            }
+        }
+    }
+    for tr in transfered_relations {
+        raw_relations.push(tr);
     }
     let relations = process_relations(raw_relations);
     Data::new(sets, relations, HashMap::new(), sources)

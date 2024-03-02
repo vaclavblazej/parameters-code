@@ -4,8 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::data::data::{Data, Set};
-use crate::data::preview::PreviewSet;
-use crate::data::simpleindex::SimpleIndex;
+use crate::data::preview::{PreviewKind, PreviewSet};
 use crate::general::enums::{CpxTime, CpxInfo::*};
 
 
@@ -17,8 +16,8 @@ fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
     format!("\\cpxlink{{{}}}{{{}}}{{{}}}{{../{}}}", ai, bi, status, link)
 }
 
-pub fn render_table(parameters: &Vec<Set>, table_folder: &PathBuf) -> io::Result<()> {
-    let draw_pars = parameters;
+pub fn render_table(data: &Data, table_folder: &PathBuf) -> io::Result<PathBuf> {
+    let draw_pars: Vec<&Set> = data.sets.iter().filter(|x|x.kind==PreviewKind::Parameter).collect();
     let size_str = format!("\\def\\parlen{{{}}}\n", draw_pars.len());
 
     let mut content = Vec::new();
@@ -28,28 +27,19 @@ pub fn render_table(parameters: &Vec<Set>, table_folder: &PathBuf) -> io::Result
 
     for (ai, a) in draw_pars.iter().enumerate() {
         for (bi, b) in draw_pars.iter().enumerate() {
-            // let bound = simpleindex.get_relation(&a, &b);
             let status = if a.id == b.id {
                 "diagonal"
             } else {
-                if a.subsets.maximal.contains(&b.preview) {
-                    "bounded"
-                } else if a.subsets.all.contains(&b.preview) {
-                    "bounded_derived"
-                }else if a.sub_exclusions.maximal.contains(&b.preview) {
-                    "unbounded"
-                }else if a.sub_exclusions.all.contains(&b.preview) {
-                    "unbounded_derived"
-                }else{
+                if let Some(relation) = data.get_relation(&a.preview, &b.preview) {
+                    match &relation.cpx {
+                        Inclusion { mx: _, mn: _ } | Equivalence => "bounded",
+                        Exclusion => "unbounded",
+                        _ => "unknown",
+                    }
+                    // todo bounded_derived and unbounded_derived
+                } else {
                     "unknown"
                 }
-                // match bound.cpx {
-                    // Inclusion { mn: _, mx: _ } => "bounded",
-                    // Exclusion => "unbounded",
-                    // Equivalence => "bounded",
-                    // LowerBound { mn: _ } => "unknown",
-                    // Unknown => "unknown",
-                // }
             };
             content.push(table_format_link(ai, bi, &status, "todo"));
         }
@@ -79,5 +69,5 @@ pub fn render_table(parameters: &Vec<Set>, table_folder: &PathBuf) -> io::Result
         eprintln!("Error executing pdflatex command: {:?}", output.stderr);
     }
 
-    Ok(())
+    Ok(table_folder.join("main.pdf"))
 }

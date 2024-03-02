@@ -14,6 +14,10 @@ pub trait Id{
 pub enum RawKind {
     Parameter,
     GraphClass,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum Composition {
     Intersection(Vec<RawSet>),
 }
 
@@ -45,6 +49,7 @@ pub struct RawSet {
     pub id: String,
     pub name: String,
     pub kind: RawKind,
+    pub composed: Option<Composition>,
 }
 
 impl Id for RawSet {
@@ -83,7 +88,7 @@ pub struct RawData {
     pub sources: Vec<RawSource>,
     pub isgci: Vec<(RawSet, u32)>,
     pub topics: Vec<RawTopic>,
-    pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
+    pub transfer: HashMap<TransferGroup, HashMap<RawSet, RawSet>>,
 }
 
 impl RawData {

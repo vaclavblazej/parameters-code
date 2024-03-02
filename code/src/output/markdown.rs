@@ -3,19 +3,21 @@
 
 use std::collections::{LinkedList, HashMap, HashSet, VecDeque};
 use std::{env, fmt};
-use std::fs::{File, copy};
+use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use regex::Regex;
 
-use crate::data::data::{Linkable, Data, Set, Source};
+use crate::data::data::{Data, Linkable, Set, Showed, ShowedFact, Source};
 use crate::data::preview::{PreviewKind, PreviewSet, PreviewSource, PreviewSourceKey};
-use crate::general::enums::SourceKey;
-use crate::output::draw::{Edge, Graph};
+use crate::general::enums::{Page, SourceKey};
 use crate::file;
 use crate::processing::processing::bfs_limit_distance;
+
+use super::diagram::make_focus_drawing;
+use super::to_markdown::ToMarkdown;
 
 type Result<T> = std::result::Result<T, MarkdownError>;
 
@@ -70,85 +72,44 @@ pub trait GeneratedPage {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String;
 }
 
-fn make_focus_drawing(set: &Set, builder: &Markdown, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
-    let mut graph = Graph::new();
-    let sets_to_draw = bfs_limit_distance(set, &builder.data, distance);
-    for set in &sets_to_draw {
-        graph.add_node(&builder.data.get_set(set))
-    }
-    for set in &sets_to_draw {
-        let above = &builder.data.get_set(&set);
-        for child in &above.subsets.all {
-            if sets_to_draw.contains(&child) {
-                let attributes = "color=gray decorate=true lblstyle=\"above, sloped\" weight=1".into();
-                let drawedge = Edge{
-                    from: above.id.clone(),
-                    to: child.id.clone(),
-                    label: String::new(),
-                    attributes,
-                };
-                graph.add_edge(drawedge);
-            }
-        }
-    }
-    let dot_str = graph.to_dot();
-    let dot_target_file = target_dir.join(format!("local_{}.dot", set.id));
-    file::write_file_content(&dot_target_file, &dot_str)?;
-    let pdf_target_file = target_dir.join(format!("local_{}.pdf", set.id));
-    Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).spawn()?;
-    Ok(pdf_target_file)
-}
-
 impl GeneratedPage for Set {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
         res += &format!("# {}\n\n", self.name);
         res += "[[handcrafted]]\n\n";
-        res += "## Relations\n\n";
-        let focus_drawing = make_focus_drawing(self, builder, 3, working_dir);
-        let drawing_content = match focus_drawing {
+        res += &match make_focus_drawing(&builder.data, self, builder, 2, working_dir) {
             Ok(result_pdf_file) => {
                 let filename = result_pdf_file.file_name().expect("Result file has no name").to_owned();
-                let final_path = final_dir.join("html").join(&filename);
-                println!("resultpdf {:?}", result_pdf_file);
-                // println!("filename {:?}", filename);
-                // println!("final {:?}", final_path);
-                // copy(&result_pdf_file, &final_path).expect("Failed to copy result to final directory");
-                // let filestr = result_pdf_file.into_os_string().to_str().expect("Failed to convert to string").to_owned();
-                // println!("{}", filestr);
-                // format!("[[pdf /html/{}]]", filestr);
-                format!("")
+                let html_dir = final_dir.join("html");
+                fs::create_dir_all(&html_dir);
+                let final_path = html_dir.join(&filename);
+                fs::copy(&result_pdf_file, &final_path).expect("Failed to copy result to final directory");
+                // result_pdf_file.clone().into_os_string().to_str().expect("Failed to convert to string").to_owned();
+                // let result_pdf_relative = Path::new("/").to_path_buf().join(final_path.strip_prefix(&final_dir).unwrap());
+                format!("[[pdf ../{}]]", filename.to_string_lossy())
             },
             Err(e) => {
+                eprintln!("{:?}", e);
                 format!("{:?}", e)
             },
         };
-        res += &drawing_content;
-        res += "## Timeline\n\n";
         for source in &self.timeline {
-            res += &format!("{}\n\n", builder.linkto(&source.preview));
-            for showed in &source.showed {
-                res += &format!("{}\n\n", showed.text);
+            if let Some(val) = source.to_markdown(builder){
+                res += &val;
             }
         }
-        // todo
-        // if !set.notes.is_empty() {
-        // for note in &set.notes {
-        // content += &format_note(note);
-        // }
-        // }
-        // content += &embed_pdf(&format!("../local_{}", set.id), 480);
-        // content += &embed_pdf(&format!("../{}", set.id), 480);
         res
     }
 }
 
 impl GeneratedPage for Source {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
-        let mut res: String = "".into();
-        res.push_str(&format!("{:?} {}", self.sourcekey, self.time));
+        let mut res = String::new();
+        res += &format!("{:?} {}", self.sourcekey, self.time);
         for s in &self.showed {
-            res.push_str(&format!("{:?}", s));
+            if let Some(val) = s.to_markdown(builder) {
+                res += &val;
+            }
         }
         res
     }
@@ -165,7 +126,7 @@ impl Linkable for Address {
 }
 
 pub struct Markdown<'a> {
-    data: &'a Data,
+    pub data: &'a Data,
 }
 
 #[derive(Clone, Debug)]
@@ -223,12 +184,16 @@ impl<'a> Markdown<'a> {
         if let Some(key) = keys.pop_front() {
             match key.as_str() {
                 "parameters" => {
-                    for set in &self.data.sets.iter().filter(|&s| s.kind == PreviewKind::Parameter).collect::<Vec<&Set>>() {
+                    let mut pars = self.data.sets.iter().filter(|&s| s.kind == PreviewKind::Parameter).collect::<Vec<&Set>>();
+                    pars.sort_by_key(|x|&x.name);
+                    for set in &pars {
                         content += &format!("* {}\n", self.linkto(&set.preview));
                     }
                 }
                 "graphs" => {
-                    for set in self.data.sets.iter().filter(|&s| s.kind == PreviewKind::GraphClass).collect::<Vec<&Set>>() {
+                    let mut graphs = self.data.sets.iter().filter(|&s| s.kind == PreviewKind::GraphClass).collect::<Vec<&Set>>();
+                    graphs.sort_by_key(|x|&x.name);
+                    for set in graphs {
                         content += &format!("* {}\n", self.linkto(&set.preview));
                     }
                 },
@@ -284,9 +249,9 @@ impl<'a> Markdown<'a> {
         let default = 480;
         let height: u32 = keys.pop_front().and_then(|x| x.parse::<u32>().ok()).unwrap_or(default);
         Ok(format!(
-            "\n<object data=\"{}.pdf\" type=\"application/pdf\" width=\"100%\" height=\"{}px\">\
-            <embed src=\"{}.pdf\">\
-            <p>This browser does not support PDFs. Please download the PDF to view it: <a href=\"{}.pdf\">Download PDF</a>.</p>\
+            "\n<object data=\"{}\" type=\"application/pdf\" width=\"100%\" height=\"{}px\">\
+            <embed src=\"{}\">\
+            <p>This browser does not support PDFs. Please download the PDF to view it: <a href=\"{}\">Download PDF</a>.</p>\
             </embed>\
             </object>\n\n",
             name, height, name, name
@@ -317,7 +282,7 @@ impl<'a> Markdown<'a> {
         final_markdown += "<!--this is a generated file-->\n\n";
         final_markdown += &content;
         let filename = format!("./build/{}", pagename);
-        let mut file = File::create(&filename).expect("Unable to create file");
+        let mut file = fs::File::create(&filename).expect("Unable to create file");
         file.write_all(final_markdown.as_bytes())
             .expect("Unable to write data to file");
         // println!("Saved website into {}", filename);

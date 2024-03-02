@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::general::enums::{Page, TransferGroup, CpxTime::{Linear, Constant}, Cpx::UpperBound};
-use super::raw::{RawData, RawSourceKey, RawSet, RawKind, RawTopic, RawSource};
+use super::raw::{Composition, RawData, RawKind, RawSet, RawSource, RawSourceKey, RawTopic};
 use super::source::RawDataSource;
 
 pub struct Builder {
@@ -37,7 +37,8 @@ impl Builder {
             panic!("name {} used multiple times", set.name);
         }
         self.data.sets.push(set.clone());
-        if set.id != "" { // todo get rid of this exception
+        if set.id != "" { // todo get rid of this exception; maybe recommend what ID could be used
+                          // for this structure in eprintln
             self.id_sanity_map.insert(set.id.clone());
             self.name_sanity_map.insert(set.name.clone());
         }
@@ -46,8 +47,8 @@ impl Builder {
     /// Represents that bounds on *from* instances transfer to *to* instances.
     /// For the bound to transfer both its endpoints must be from the same TranferGroup.
     pub fn transfers_bound_to(&mut self, group: TransferGroup, from: &RawSet, to: &RawSet) {
-        let r = self.data.transfer.entry(group).or_insert_with(Vec::new);
-        r.push((from.clone(), to.clone()));
+        let r = self.data.transfer.entry(group).or_insert_with(HashMap::new);
+        r.insert(from.clone(), to.clone());
     }
 
     /// Add a new parameter.
@@ -61,7 +62,8 @@ impl Builder {
         let res = RawSet {
             id: id.into(),
             name: name.into(),
-            kind: RawKind::Parameter
+            kind: RawKind::Parameter,
+            composed: None,
         };
         self.add_set(&res);
         res
@@ -73,7 +75,8 @@ impl Builder {
         let res = RawSet {
             id: format!("distance_to_{}", set.id.clone()),
             name: format!("distance to {}", set.name.clone()),
-            kind: RawKind::Parameter
+            kind: RawKind::Parameter,
+            composed: None,
         };
         self.add_set(&res);
         let mut tmp_source = self.source("", "unknown");
@@ -87,10 +90,16 @@ impl Builder {
     /// we may understand the intersection as a sum of parameters.
     pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str) -> RawSet {
         let sets = vec![set_a.clone(), set_b.clone()];
+        let kind = if sets.iter().all(|x|x.kind == RawKind::GraphClass) {
+            RawKind::GraphClass
+        } else {
+            RawKind::Parameter
+        };
         let res = RawSet {
             id: id.into(),
             name: name.into(),
-            kind: RawKind::Intersection(sets.clone())
+            kind,
+            composed: Some(Composition::Intersection(sets.clone())),
         };
         self.add_set(&res);
         // todo polish how these structures are created this; perhaps
@@ -109,7 +118,8 @@ impl Builder {
         let res = RawSet {
             id: id.into(),
             name: name.into(),
-            kind: RawKind::GraphClass
+            kind: RawKind::GraphClass,
+            composed: None,
         };
         self.add_set(&res);
         res

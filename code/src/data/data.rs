@@ -131,15 +131,24 @@ impl Data {
         }
     }
 
+    pub fn get_sets<I>(&self, key: I) -> Vec<&Set>
+        where I: IntoIterator<Item = PreviewSet>, {
+        key.into_iter().map(|x|self.get_set(&x)).collect()
+    }
+
     pub fn get_set(&self, key: &PreviewSet) -> &Set {
         let idx: usize = *self.set_idx.get(&key).expect(&format!("preview set not found {:?}", key));
         &self.sets[idx]
     }
 
-    pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> &Relation {
+    pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> Option<&Relation> {
         let key = (subset.clone(), superset.clone());
-        let idx: usize = *self.relation_idx.get(&key).expect(&format!("relation not found {:?}", key));
-        &self.relations[idx]
+        match self.relation_idx.get(&key) {
+            Some(&idx) => Some(&self.relations[idx]),
+            None => None,
+        }
+        // let idx: usize = *self.relation_idx.get(&key).expect(&format!("relation not found {:?}", key));
+        // Some(&self.relations[idx])
     }
 }
 
@@ -147,6 +156,7 @@ impl Data {
 
 #[derive(Debug, Clone)]
 pub struct Relation {
+    pub id: String,
     pub preview: PreviewRelation,
     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
     pub subset: PreviewSet,

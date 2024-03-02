@@ -45,6 +45,7 @@ pub struct PreviewSet {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PreviewRelation {
+    pub id: String,
     pub subset: PreviewSet,
     pub superset: PreviewSet,
     pub cpx: CpxInfo,

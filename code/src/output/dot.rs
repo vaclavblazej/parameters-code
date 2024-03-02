@@ -42,6 +42,7 @@ pub struct Edge {
     pub to: String,
     pub label: String,
     pub attributes: String,
+    pub url: String,
 }
 
 impl IntoDot for Edge {
@@ -64,6 +65,7 @@ impl Into<Edge> for &PreviewRelation {
             to: self.superset.id.clone(),
             label: "O".to_string(),
             attributes,
+            url: self.id.clone(),
         }
     }
 }
@@ -122,6 +124,7 @@ fn main() {
         nodes,
         edges: vec![
             Edge {
+                url: "qq".to_string(),
                 from: "GNOiyB".to_string(),
                 to: "AGnF5Z_dist".to_string(),
                 label: "●".to_string(),

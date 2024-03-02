@@ -10,12 +10,14 @@ use std::process::Command;
 use anyhow::Result;
 use data::data::Data;
 use data::data::Relation;
+use data::data::Set;
 use general::enums::CpxInfo;
 use general::enums::CpxTime;
-use output::draw::Graph;
 use output::markdown::Mappable;
 
-use crate::output::draw::Edge;
+use crate::data::preview::PreviewKind;
+use crate::data::preview::PreviewSet;
+use crate::output::diagram::make_drawing;
 use crate::output::markdown::Address;
 use crate::output::markdown::Markdown;
 use crate::output::pages::TargetPage;
@@ -35,8 +37,9 @@ mod general {
     pub mod file;
 }
 mod processing {
-    pub mod processing;
     pub mod combine;
+    pub mod convert;
+    pub mod processing;
 }
 mod input {
     pub mod build;
@@ -44,66 +47,18 @@ mod input {
     pub mod source;
 }
 mod output {
-    pub mod draw;
+    pub mod diagram;
+    pub mod dot;
     pub mod markdown;
     pub mod pages;
     pub mod table;
+    pub mod to_markdown;
 }
 mod collection;
-
-fn relation_style(relation: &Relation) -> String {
-    let mut res: String = "decorate=true lblstyle=\"above, sloped\"".into();
-    res = match &relation.cpx {
-        CpxInfo::Inclusion {mn, mx} => {
-            res + match mx {
-                CpxTime::Constant | CpxTime::Linear => &" weight=\"100\" penwidth=\"2.0\"",
-                CpxTime::Polynomial => &" weight=\"20\" penwidth=\"0.8\"",
-                CpxTime::Exponential => &" style=\"dotted\" weight=\"1\" penwidth=\"1.0\"",
-                CpxTime::Tower(_) => &" style=\"dotted\" weight=\"1\" penwidth=\"0.8\"",
-                CpxTime::Exists => &" color=\"gray\" weight=\"1\"",
-            }
-        },
-        CpxInfo::Exclusion => panic!(),
-        CpxInfo::Unknown => panic!(),
-        CpxInfo::LowerBound { mn: _ } => "".into(),
-        CpxInfo::Equivalence => res + "",
-    };
-    res
-}
-
-fn make_drawing(data: &Data, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
-    println!("generating dot pdf");
-    let mut graph = Graph::new();
-    for set in &data.sets {
-        graph.add_node(&set);
-    }
-    for above in &data.sets {
-        for below in &above.subsets.minimal {
-            let relation = data.get_relation(&above.preview, &below);
-            let attributes = relation_style(relation).into();
-            let drawedge = Edge {
-                from: above.id.clone(),
-                to: below.id.clone(),
-                label: String::new(),
-                attributes,
-            };
-            graph.add_edge(drawedge);
-        }
-    }
-    let dot_str = graph.to_dot();
-    let dot_target_file = target_dir.join("parameters.dot");
-    file::write_file_content(&dot_target_file, &dot_str)?;
-    let pdf_target_file = target_dir.join("parameters.pdf");
-    Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).spawn()?;
-    Ok(pdf_target_file)
-}
 
 fn generate_pages(pages: &Vec<TargetPage>, markdown: &Markdown,
                   final_dir: &PathBuf, working_dir: &PathBuf,
                   map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
-    println!("clearing the final directory");
-    fs::remove_dir_all(&final_dir);
-    fs::create_dir(&final_dir);
     println!("generating pages");
     for page in pages {
         let content = match page.substitute {
@@ -155,15 +110,14 @@ fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappabl
     altered_content
 }
 
-fn generate_relation_table(data: &Data, parent: &Path) {
+fn generate_relation_table(data: &Data, parent: &Path) -> anyhow::Result<PathBuf> {
     println!("generating relation table");
     let table_folder = parent.join("scripts").join("table_tikz");
-    render_table(&data.sets, &table_folder).unwrap_or_else(|x|{
-        println!("error producing relation table\n{}", x);
-    });
+    let table_file = render_table(&data, &table_folder).unwrap();
+    Ok(table_file)
 }
 
-fn main() -> Result<()> {
+fn main() {
     println!("retrieving data collection");
     let rawdata = collection::build_collection();
     println!("processing data");
@@ -182,7 +136,7 @@ fn main() -> Result<()> {
     println!("fetching handcrafted pages");
     let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
     for source in file::iterate_folder_recursively(&handcrafted_dir) {
-        let relative = source.strip_prefix(&handcrafted_dir)?;
+        let relative = source.strip_prefix(&handcrafted_dir).unwrap();
         let target_file = final_dir.join(relative);
         if source.is_file() {
             handcrafted_pages.insert(target_file.clone(), source.clone());
@@ -206,9 +160,26 @@ fn main() -> Result<()> {
     let mut map: HashMap<&str, Mappable> = HashMap::new();
     // todo
     map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
-    // generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
-    // generate_relation_table(&data, parent);
-    make_drawing(&data, &current.join("target"));
+    // println!("clearing the final directory");
+    // fs::remove_dir_all(&final_dir);
+    // fs::create_dir(&final_dir);
+    generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
+    // if let Ok(done_pdf) = generate_relation_table(&data, parent) { // todo generalize
+        // let final_pdf = final_dir.join("html").join("table.pdf");
+        // println!("copy the pdf to {:?}", &final_pdf);
+        // fs::copy(&done_pdf, &final_pdf);
+    // }
+    let parameters: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::Parameter).collect();
+    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "parameters", &parameters){
+        let final_pdf = final_dir.join("html").join("parameters.pdf");
+        println!("copy the pdf to {:?}", &final_pdf);
+        fs::copy(&done_pdf, &final_pdf);
+    }
+    let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::GraphClass).collect();
+    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "graphs", &graphs){
+        let final_pdf = final_dir.join("html").join("graphs.pdf");
+        println!("copy the pdf to {:?}", &final_pdf);
+        fs::copy(&done_pdf, &final_pdf);
+    }
     println!("done");
-    Ok(())
 }
