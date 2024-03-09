@@ -15,6 +15,7 @@ pub struct SimpleIndex {
 }
 
 impl SimpleIndex {
+
     pub fn new(rawdata: &RawData) -> SimpleIndex {
         let mut res = SimpleIndex{
             first_subset_of_second: HashSet::new(),
@@ -27,6 +28,7 @@ impl SimpleIndex {
         }
         res
     }
+
     fn add(&mut self, relation: PreviewRelation) {
         let element = (relation.superset.clone(), relation.subset.clone());
         match &relation.cpx {
@@ -46,6 +48,7 @@ impl SimpleIndex {
             CpxInfo::Unknown => {},
         }
     }
+
     // pub fn get_relation(&self, a: &PreviewSet, b: &PreviewSet) -> PreviewRelation {
         // // todo this implementation is temporary and terrible
         // let subsets = self.get_subsets(a);
@@ -62,31 +65,37 @@ impl SimpleIndex {
             // cpx,
         // };
     // }
+
     pub fn get_subsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         self.first_subset_of_second.iter()
             .filter(|(_,sup)|sup==a)
             .map(|(sub,_)|sub.clone())
             .collect()
     }
+
     pub fn get_supersets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         self.first_subset_of_second.iter()
             .filter(|(sub,_)|sub==a)
             .map(|(_,sup)|sup.clone())
             .collect()
     }
+
     pub fn get_antisubsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         self.first_not_subset_of_second.iter()
             .filter(|(_,sup)|sup==a)
             .map(|(sub,_)|sub.clone())
             .collect()
     }
+
     pub fn get_antisupersets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         self.first_not_subset_of_second.iter()
             .filter(|(sub,_)|sub==a)
             .map(|(_,sup)|sup.clone())
             .collect()
     }
+
     pub fn first_subset_of_second(&self, a: &PreviewSet, b: &PreviewSet) -> bool {
         self.first_subset_of_second.contains(&(a.clone(), b.clone()))
     }
+
 }

@@ -9,6 +9,7 @@ trait IntoDot {
 pub struct Node {
     id: String,
     label: String,
+    color: String,
     attributes: String,
 }
 
@@ -16,10 +17,11 @@ impl IntoDot for Node {
     fn to_dot(&self) -> String{
         let mut res: String = String::new();
         res.push_str(&format!(
-                "\t\"n_{}\" [label=\"{}\" URL=\"{}\" {}]\n",
+                "\t\"n_{}\" [label=\"{}\" URL=\"{}\" color=\"{}\" {}]\n",
                 self.id,
                 self.label,
                 self.id,
+                self.color,
                 self.attributes,
                 ));
         res
@@ -28,10 +30,11 @@ impl IntoDot for Node {
 
 impl Into<Node> for &Set {
     fn into(self) -> Node {
-        let attributes = "color=\"#dddddd\" shape=box".into();
+        let attributes = "shape=box".into();
         Node {
             id: self.id.clone(),
             label: self.name.clone(),
+            color: "#dddddd".into(),
             attributes,
         }
     }
@@ -71,21 +74,27 @@ impl Into<Edge> for &PreviewRelation {
 }
 
 pub struct Graph {
+    pub color_fn: Option<Box<dyn Fn(&Set) -> String>>,
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
 }
 
 impl Graph {
 
-    pub fn new() -> Graph {
+    pub fn new(color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> Graph {
         Graph {
+            color_fn,
             nodes: Vec::new(),
             edges: Vec::new(),
         }
     }
 
     pub fn add_node(&mut self, set: &Set) {
-        self.nodes.push(set.into());
+        let mut node: Node = set.into();
+        if let Some(f) = &self.color_fn {
+            node.color = f(set);
+        }
+        self.nodes.push(node);
     }
 
     pub fn add_edge(&mut self, edge: Edge) {
@@ -117,10 +126,15 @@ fn main() {
         Node {
             id: "dS6OgO".to_string(),
             label: "carving-width".to_string(),
+            color: "#dddddd".into(),
             attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box".to_string(),
         },
     );
+    fn color_fn(set: &Set) -> String {
+        "gray".into()
+    };
     let graph = Graph {
+        color_fn: Some(Box::new(color_fn)),
         nodes,
         edges: vec![
             Edge {

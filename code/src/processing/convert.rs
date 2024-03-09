@@ -21,7 +21,6 @@ impl Into<PreviewKind> for RawKind {
         match self {
             Self::Parameter => PreviewKind::Parameter,
             Self::GraphClass => PreviewKind::GraphClass,
-            // Self::Intersection(a) => PreviewKind::Intersection(a.into_iter().map(|x|x.into()).collect()),
         }
     }
 }
@@ -65,6 +64,7 @@ impl Into<Relation> for RawRelation {
             subset: self.subset.clone().into(),
             superset: self.superset.clone().into(),
             cpx: self.cpx.clone(),
+            combined_from: None,
         }
     }
 }
@@ -76,17 +76,6 @@ impl Into<PreviewRelation> for RawRelation {
             subset: self.subset.into(),
             superset: self.superset.into(),
             cpx: self.cpx,
-        }
-    }
-}
-
-impl Into<Date> for Option<Entry> {
-    fn into(self) -> Date {
-        match self {
-            Some(x) => {
-                Date::empty() // todo
-            },
-            None => Date::empty(),
         }
     }
 }

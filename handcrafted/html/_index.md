@@ -17,7 +17,7 @@ This page lists:
 
 [Parameter hierarchy PDF](parameters.pdf)
 
-[[pdf parameters]]
+[[pdf parameters.pdf]]
 
 [[list parameters]]
 
@@ -34,7 +34,7 @@ Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](h
 
 [Graph hierarchy PDF](graphs)
 
-[[pdf graphs]]
+[[pdf graphs.pdf]]
 
 [[list graphs]]
 

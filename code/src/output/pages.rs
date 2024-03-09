@@ -38,7 +38,7 @@ pub struct TargetPage<'a, 'b, 'c> {
 }
 
 pub fn add_content<T>(collection: &Vec<T>, final_dir: &PathBuf, generated_pages: &mut HashMap<PathBuf, Substitute>)
-    where T: GeneratedPage + HasId + Clone + 'static,
+    where T: GeneratedPage + Clone + HasId + 'static,
 {
     for element in collection {
         let filename = format!("{}.md", &element.id());

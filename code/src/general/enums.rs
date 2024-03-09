@@ -1,6 +1,8 @@
 //! Trivial enums that do not contain complex structure
 //! and so can be used from input till output.
 
+use biblatex::Entry;
+
 
 /// Refers to a page in a book or paper.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -19,11 +21,11 @@ pub enum TransferGroup {
 }
 
 /// Points to the source of a citation.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SourceKey {
     Bibtex {
         key: String,
-        formatted_citation: String,
+        entry: Option<Entry>,
     },
     Online {
         url: String,

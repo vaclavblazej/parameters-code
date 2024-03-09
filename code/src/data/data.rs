@@ -22,9 +22,9 @@ impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct Date {
-    pub year: Option<u32>,
-    pub month: Option<u32>,
-    pub day: Option<u32>,
+    pub year: Option<i32>,
+    pub month: Option<u8>,
+    pub day: Option<u8>,
 }
 
 impl Date {
@@ -46,14 +46,14 @@ impl fmt::Display for Date {
             return write!(f, "{}", result)
         }
         if let Some(m) = self.month {
-            result.push('-');
-            result.push_str(&m.to_string());
+            result.push('/');
+            result.push_str(&format!("{:0>2}", m.to_string()));
         } else {
             return write!(f, "{}", result)
         }
         if let Some(d) = self.day {
-            result.push('-');
-            result.push_str(&d.to_string());
+            result.push('/');
+            result.push_str(&format!("{:0>2}", d.to_string()));
         // } else {
             // return write!(f, "{}", result);
         }
@@ -77,7 +77,8 @@ pub struct SourceSubset {
 }
 
 /// A general structure for parameters, graph classes, any other structures.
-#[derive(Clone, Debug)]
+// todo remove clone
+#[derive(Debug, Clone)]
 pub struct Set {
     pub preview: PreviewSet,
     pub id: String,
@@ -119,7 +120,9 @@ impl Data {
         }
         let mut relation_idx: HashMap<(PreviewSet, PreviewSet), usize> = HashMap::new();
         for (idx, relation) in relations.iter().enumerate() {
-            relation_idx.insert((relation.subset.clone(), relation.superset.clone()), idx);
+            let pair = (relation.subset.clone(), relation.superset.clone());
+            assert!(!relation_idx.contains_key(&pair));
+            relation_idx.insert(pair, idx);
         }
         Self {
             sets,
@@ -154,7 +157,7 @@ impl Data {
 
 // todo abbreviation
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Relation {
     pub id: String,
     pub preview: PreviewRelation,
@@ -163,6 +166,7 @@ pub struct Relation {
     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
     pub superset: PreviewSet,
     pub cpx: CpxInfo,
+    pub combined_from: Option<(PreviewRelation, PreviewRelation)>,
 }
 
 impl Cpx {

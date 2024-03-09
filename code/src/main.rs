@@ -39,6 +39,7 @@ mod general {
 mod processing {
     pub mod combine;
     pub mod convert;
+    pub mod date;
     pub mod processing;
 }
 mod input {
@@ -47,6 +48,7 @@ mod input {
     pub mod source;
 }
 mod output {
+    pub mod color;
     pub mod diagram;
     pub mod dot;
     pub mod markdown;
@@ -128,6 +130,19 @@ fn main() {
     let data = process_raw_data(&rawdata, &bibliography_file);
     let final_dir = parent.join("web").join("content");
     let working_dir = current.join("target");
+    println!("creating main page pdfs");
+    let parameters: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::Parameter).collect();
+    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "parameters", &parameters, None){
+        let final_pdf = final_dir.join("html").join("parameters.pdf");
+        println!("copy the pdf to {:?}", &final_pdf);
+        fs::copy(&done_pdf, &final_pdf);
+    }
+    let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::GraphClass).collect();
+    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "graphs", &graphs, None){
+        let final_pdf = final_dir.join("html").join("graphs.pdf");
+        println!("copy the pdf to {:?}", &final_pdf);
+        fs::copy(&done_pdf, &final_pdf);
+    }
     println!("fetching generated pages");
     let markdown = Markdown::new(&data);
     let mut generated_pages = HashMap::new();
@@ -163,23 +178,11 @@ fn main() {
     // println!("clearing the final directory");
     // fs::remove_dir_all(&final_dir);
     // fs::create_dir(&final_dir);
-    generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
+    // generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
     // if let Ok(done_pdf) = generate_relation_table(&data, parent) { // todo generalize
         // let final_pdf = final_dir.join("html").join("table.pdf");
         // println!("copy the pdf to {:?}", &final_pdf);
         // fs::copy(&done_pdf, &final_pdf);
     // }
-    let parameters: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::Parameter).collect();
-    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "parameters", &parameters){
-        let final_pdf = final_dir.join("html").join("parameters.pdf");
-        println!("copy the pdf to {:?}", &final_pdf);
-        fs::copy(&done_pdf, &final_pdf);
-    }
-    let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::GraphClass).collect();
-    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "graphs", &graphs){
-        let final_pdf = final_dir.join("html").join("graphs.pdf");
-        println!("copy the pdf to {:?}", &final_pdf);
-        fs::copy(&done_pdf, &final_pdf);
-    }
     println!("done");
 }

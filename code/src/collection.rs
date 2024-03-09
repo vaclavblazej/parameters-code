@@ -202,7 +202,7 @@ pub fn build_collection() -> RawData {
         .isgci(&diameter, 6);
 
     let by_definition = "By definition";
-    let cliques_make_it_unbounded = "Parameter is unbounded for the grpah class of cliques.";
+    let cliques_make_it_unbounded = "Parameter is unbounded for the graph class of cliques.";
 
     create.source("pQlQN7", "unknown")
         .defined("XK5Xxy", Unknown, &linear_forest, "Disjoint union of paths.")
@@ -470,7 +470,7 @@ pub fn build_collection() -> RawData {
         .showed("cIWQDn", Unknown, &rank_width, &boolean_width, UpperBound(Polynomial), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $boolw(G) \\le \\frac 14 rw^2(G)+O(rw(G))$.")
         .done();
     let ganian_twin_cover2012 = create.source("", "GanianTwinCover2012")
-        .defined("", Pp(262), &twin_cover_num, "Definition 3.1. $X \\subseteq V(G) is a twin-cover of $G$ if for every edge $e=\\{a,b\\} \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are twins, i.e. all other vertices are either adjacent to both $a$ and $b$ or none. We then say that $G$ has twin-cover number $k$ if $k$ is the minimum possible size of a twin-cover of $G$.")
+        .defined("", Pp(262), &twin_cover_num, "Definition 3.1. $X \\subseteq V(G)$ is a twin-cover of $G$ if for every edge $e=\\{a,b\\} \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are twins, i.e. all other vertices are either adjacent to both $a$ and $b$ or none. We then say that $G$ has twin-cover number $k$ if $k$ is the minimum possible size of a twin-cover of $G$.")
         .defined("", Pp(262), &twin_cover_num, "Definition 3.2. $X \\subseteq V(G)$ is a twin-cover of $G$ if there exists a subgraph $G'$ of $G$ such that 1. $X \\subseteq V(G')$ and $X$ is a vertex cover of $G'$. 2. $G$ can be obtained by iteratively adding twins to non-cover vertices in $G'$.")
         .showed("", Pp(263), &complete, &twin_cover_num, UpperBound(Constant), "We note that complete graphs indeed have a twin-cover of zero.")
         .showed("", Pp(263), &twin_cover_num, &vertex_cover, Exclusion, "The vertex cover of graphs of bounded twin-cover may be arbitrarily large.")
@@ -519,8 +519,8 @@ pub fn build_collection() -> RawData {
         .done();
     let tran2022 = create.source("uXViPE", "Tran2022")
         .defined("J1sHj8", Pp(15), &twin_cover_num, "An edge $\\{v,w\\}$ is a twin edge if vertices $v$ and $w$ have the same neighborhood excluding each other. The twin cover number $tcn(G)$ of a graph $G$ is the size of a smallest set $V' \\subseteq V(G)$ of vertices such that every edge in $E(G)$ is either a twin edge or incident to a vertex in $V'$")
-        .defined("MlTT7n", Pp(15), &edge_clique_cover, "The edge clique cover number $eccn(G); of a graph $G$ is the minimum number of complete subgraphs required such that each edge is contained in at least one of them.")
-        .defined("iAkCJ3", Pp(15), &neighborhood_diversity, "The neighborhood diversity $nd(G); of a graph $G$ is the smallest number $k$ such that there is a $k$-partition $(V_1,\\dots,V_k)$ of $G$, where each subset $V_i$, $i \\in [k]$ is a module and is either a complete set or an independent set.")
+        .defined("MlTT7n", Pp(15), &edge_clique_cover, "The edge clique cover number $eccn(G)$ of a graph $G$ is the minimum number of complete subgraphs required such that each edge is contained in at least one of them.")
+        .defined("iAkCJ3", Pp(15), &neighborhood_diversity, "The neighborhood diversity $nd(G)$ of a graph $G$ is the smallest number $k$ such that there is a $k$-partition $(V_1,\\dots,V_k)$ of $G$, where each subset $V_i$, $i \\in [k]$ is a module and is either a complete set or an independent set.")
         .defined("i3su9L", Pp(15), &modular_width, "The modular-width $mw(G)$ of a graph $G$ is the smallest number $h$ such that a $k$-partition $(V_1,\\dots,V_k)$ of $G$ exists, where $k \\le h$ and each subset $V_i$, $i \\in [k]$ is a module and either contains a single vertex or for which the modular-subgraph $G[V_i]$ has a modular-width of $h$.")
         .defined("", Pp(15), &c_closure, "The c-closure $\\mathrm{cc}(G)$ of a graph $G$ is the smallest number $c$ such that any pair of vertices $v,w \\in V(G)$ with $|N_G(v) \\cap N_G(w)| \\ge c$ is adjacent. ...")
         .defined("eGC0vH", Pp(17), &boxicity, "The boxicity of a graph $G$ is the minimum amount of interval graphs required, such that their intersecten results in $G$")

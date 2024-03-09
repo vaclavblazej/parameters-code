@@ -14,9 +14,8 @@ use crate::data::data::{Data, Linkable, Set, Showed, ShowedFact, Source};
 use crate::data::preview::{PreviewKind, PreviewSet, PreviewSource, PreviewSourceKey};
 use crate::general::enums::{Page, SourceKey};
 use crate::file;
-use crate::processing::processing::bfs_limit_distance;
 
-use super::diagram::make_focus_drawing;
+use super::diagram::{make_focus_drawing, make_subset_drawing};
 use super::to_markdown::ToMarkdown;
 
 type Result<T> = std::result::Result<T, MarkdownError>;
@@ -72,27 +71,45 @@ pub trait GeneratedPage {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String;
 }
 
+fn copy_file_to_final_location(file: &PathBuf, to_directory: &PathBuf) {
+    assert!(file.exists());
+    assert!(file.is_file());
+    let filename = file.file_name().expect("Result file has no name").to_owned();
+    fs::create_dir_all(&to_directory);
+    assert!(to_directory.is_dir());
+    let final_path = to_directory.join(&filename);
+    fs::copy(&file, &final_path).expect("Failed to copy result to final directory");
+}
+
 impl GeneratedPage for Set {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
         res += &format!("# {}\n\n", self.name);
         res += "[[handcrafted]]\n\n";
-        res += &match make_focus_drawing(&builder.data, self, builder, 2, working_dir) {
+        res += &match make_focus_drawing(&builder.data, self, 2, working_dir) {
             Ok(result_pdf_file) => {
-                let filename = result_pdf_file.file_name().expect("Result file has no name").to_owned();
-                let html_dir = final_dir.join("html");
-                fs::create_dir_all(&html_dir);
-                let final_path = html_dir.join(&filename);
-                fs::copy(&result_pdf_file, &final_path).expect("Failed to copy result to final directory");
-                // result_pdf_file.clone().into_os_string().to_str().expect("Failed to convert to string").to_owned();
-                // let result_pdf_relative = Path::new("/").to_path_buf().join(final_path.strip_prefix(&final_dir).unwrap());
-                format!("[[pdf ../{}]]", filename.to_string_lossy())
+                copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
+                let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
+                format!("[[pdf ../{}]]", filename)
             },
             Err(e) => {
                 eprintln!("{:?}", e);
                 format!("{:?}", e)
             },
         };
+        let drawn_sets = builder.data.sets.iter().filter(|x| x.kind != self.kind).collect();
+        res += &match make_subset_drawing(&builder.data, self, drawn_sets, working_dir) {
+            Ok(result_pdf_file) => {
+                copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
+                let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
+                format!("[[pdf ../{}]]", filename)
+            },
+            Err(e) => {
+                eprintln!("{:?}", e);
+                format!("{:?}", e)
+            },
+        };
+        // make_subset_drawing
         for source in &self.timeline {
             if let Some(val) = source.to_markdown(builder){
                 res += &val;
@@ -105,10 +122,34 @@ impl GeneratedPage for Set {
 impl GeneratedPage for Source {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
-        res += &format!("{:?} {}", self.sourcekey, self.time);
+        match &self.sourcekey {
+            SourceKey::Bibtex { key, entry } => {
+                res += &format!("# {}\n\n", key);
+                if let Some(val) = entry {
+                    if let Ok(doi) = val.doi() {
+                        let doi_url = format!("https://www.doi.org/{}", doi);
+                        res += &format!("[{}]({})\n\n", doi_url, doi_url);
+                    } else if let Ok(url) = val.url() {
+                        res += &format!("[{}]({})\n\n", url, url);
+                    }
+                    // todo print the original biblatex citation
+                    res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
+                } else {
+                    eprintln!("unable to load {} from main.bib", key);
+                    res += &format!("an error occured while loading the bibtex entry for `{}`", key);
+                }
+            },
+            SourceKey::Unknown => {
+                res += &format!("# Unknown {}\n\n", self.id);
+            },
+            SourceKey::Online { url } => {
+                res += &format!("# Online source {}\n\n", self.id);
+            },
+        }
+        // res += &format!("{:?} {}", self.sourcekey, self.time);
         for s in &self.showed {
             if let Some(val) = s.to_markdown(builder) {
-                res += &val;
+                res += &format!("* {}\n", val);
             }
         }
         res
@@ -199,7 +240,7 @@ impl<'a> Markdown<'a> {
                 },
                 "sources" => {
                     for source in &self.data.sources {
-                        if let SourceKey::Bibtex { key, formatted_citation } = &source.sourcekey {
+                        if let SourceKey::Bibtex { key, entry } = &source.sourcekey {
                             content += &format!("* {}\n", self.linkto(&source.preview));
                         }
                     }

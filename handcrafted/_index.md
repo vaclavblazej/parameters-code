@@ -13,8 +13,8 @@ This project is in its *baby phase* so we are grateful for feedback and contribu
 For further information about development refer to the [project page](https://github.com/vaclavblazej/parameters-code).
 
 <div class="imagebuttons">
-    {{< imagebutton "Web view" "html/" "images/html.png" >}}
-    {{< imagebutton "Tutorial & Documentation" "docs/" "images/docs.png" >}}
+    {{< imagebutton "Web view" "html/" "images/parameters.png" >}}
+    {{< imagebutton "Tutorial & Documentation" "docs/" "images/bookshelf.png" >}}
 </div>
 
 <br/>

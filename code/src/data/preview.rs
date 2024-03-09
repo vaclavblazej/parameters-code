@@ -9,7 +9,6 @@ use super::data::{Date, Showed};
 pub enum PreviewKind {
     Parameter,
     GraphClass,
-    Intersection(Vec<PreviewSet>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
