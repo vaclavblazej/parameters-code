@@ -18,8 +18,14 @@ impl Into<Date> for &Entry {
                         match date.value{
                             DateValue::At(datetime) => {
                                 let year = Some(datetime.year).into();
-                                let month = datetime.month;
-                                let day = datetime.day;
+                                let mut month = datetime.month;
+                                if let Some(m) = month {
+                                    month = Some(m+1);
+                                }
+                                let mut day = datetime.day;
+                                if let Some(d) = day {
+                                    day = Some(d+1);
+                                }
                                 return Date { year, month, day, };
                             },
                             _ => {

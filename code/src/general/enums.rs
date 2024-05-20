@@ -34,6 +34,7 @@ pub enum SourceKey {
 }
 
 /// Enum that makes inputting complexities more convenient.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Cpx {
     Bounds(CpxTime, CpxTime),
     UpperBound(CpxTime),

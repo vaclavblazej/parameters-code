@@ -11,7 +11,7 @@ use std::process::Command;
 use regex::Regex;
 
 use crate::data::data::{Data, Linkable, Set, Showed, ShowedFact, Source};
-use crate::data::preview::{PreviewKind, PreviewSet, PreviewSource, PreviewSourceKey};
+use crate::data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey};
 use crate::general::enums::{Page, SourceKey};
 use crate::file;
 
@@ -41,9 +41,22 @@ impl fmt::Display for MarkdownError {
     }
 }
 
+fn base(id: &String) -> String {
+    format!("{{{{< base >}}}}html/{}", id)
+}
+
+impl Linkable for PreviewRelation {
+    fn get_url(&self) -> String {
+        base(&self.id)
+    }
+    fn get_name(&self) -> String {
+        format!("{} → {}", self.subset.name, self.superset.name)
+    }
+}
+
 impl Linkable for PreviewSet {
     fn get_url(&self) -> String {
-        self.id.clone()
+        base(&self.id)
     }
     fn get_name(&self) -> String {
         self.name.clone()
@@ -53,7 +66,7 @@ impl Linkable for PreviewSet {
 impl Linkable for PreviewSource {
     fn get_url(&self) -> String {
         match &self.sourcekey {
-            PreviewSourceKey::Bibtex { key: _ } => self.id.clone(),
+            PreviewSourceKey::Bibtex { key: _ } => base(&self.id),
             PreviewSourceKey::Online { url } => url.clone(),
             PreviewSourceKey::Unknown => "#".into(),
         }
@@ -189,7 +202,6 @@ impl<'a> Markdown<'a> {
             match part {
                 Some(raw_name) => {
                     let key = raw_name.as_str();
-                    // println!("  substituting [[{}]]", key);
                     match self.process_key(&key.into(), map) {
                         Ok(res) => res,
                         Err(error) => {

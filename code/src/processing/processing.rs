@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Entry};
 
-use crate::data::{data::{Data, Date, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex};
+use crate::data::{data::{Data, Date, Linkable, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -263,8 +263,8 @@ fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
         if raw_relation.cpx == CpxInfo::Equivalence {
             let (a, b) = key;
             let flipped = RawRelation {
-                subset: raw_relation.superset,
-                superset: raw_relation.subset,
+                subset: raw_relation.subset,
+                superset: raw_relation.superset,
                 cpx: raw_relation.cpx,
             };
             add_to_relation_idx(&mut relation_idx, (b, a), &flipped);
@@ -276,9 +276,9 @@ fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
 /// Take a set of relations and attempt to combine in every possible way to create
 /// novel relations and overriding superseded relations.
 fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Relation> {
-    let mut map: HashMap<(PreviewSet, PreviewSet), Relation> = first_relations.into_iter().map(|x|((x.superset.clone(), x.subset.clone()), x)).collect();
+    let mut map: HashMap<(PreviewSet, PreviewSet), Relation> = first_relations.into_iter().map(|x|((x.subset.clone(), x.superset.clone()), x)).collect();
     let mut relations = Vec::new();
-    for i in 1..5 { // todo remove this but to make the connections correct
+    // for i in 1..5 { // todo remove this but to make the connections correct
         for set in sets {
             let mut inrel = Vec::new();
             let mut outrel = Vec::new();
@@ -292,12 +292,15 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
             }
             // two inclusions compose serially
             for ar_preview in &inrel {
-                let ar_key = (ar_preview.superset.clone(), ar_preview.subset.clone());
+                let ar_key = (ar_preview.subset.clone(), ar_preview.superset.clone());
                 for br_preview in &outrel {
-                    let br_key = (br_preview.superset.clone(), br_preview.subset.clone());
+                    let br_key = (br_preview.subset.clone(), br_preview.superset.clone());
                     let ar = map.get(&ar_key).unwrap();
                     let br = map.get(&br_key).unwrap();
-                    let res_key = (ar.superset.clone(), br.subset.clone());
+                    if ar.subset == br.superset {
+                        continue;
+                    }
+                    let res_key = (ar.subset.clone(), br.superset.clone());
                     let ser = ar.combine_serial(br);
                     map.entry(res_key).and_modify(|x|{
                         x.combine_parallel(&ser);
@@ -306,7 +309,7 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
             }
             // outgoing inclusion and exclusion implies exclusion between endpoints
             for ar_preview in &outrel {
-                let ar_key = (ar_preview.superset.clone(), ar_preview.subset.clone());
+                let ar_key = (ar_preview.subset.clone(), ar_preview.superset.clone());
                 for br_preview in &outrel {
                     if ar_preview == br_preview {
                         continue;
@@ -315,22 +318,22 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                         (CpxInfo::Inclusion { .. }, CpxInfo::Exclusion) => {},
                         _ => continue,
                     }
-                    let br_key = (br_preview.superset.clone(), br_preview.subset.clone());
+                    let br_key = (br_preview.subset.clone(), br_preview.superset.clone());
                     let ar = map.get(&ar_key).unwrap();
                     let br = map.get(&br_key).unwrap();
-                    let res_key = (ar.subset.clone(), br.subset.clone());
+                    let res_key = (ar.superset.clone(), br.superset.clone());
                     // println!("==========\n{:?}\n{:?}\n", ar, br);
                     let preview = PreviewRelation {
                         id: "".into(),
                         cpx: CpxInfo::Exclusion,
-                        superset: ar.subset.clone(),
-                        subset: br.subset.clone(),
+                        subset: ar.superset.clone(),
+                        superset: br.superset.clone(),
                     };
                     let ser = Relation {
                         id: "".into(),
                         cpx: preview.cpx.clone(),
-                        superset: preview.superset.clone(),
                         subset: preview.subset.clone(),
+                        superset: preview.superset.clone(),
                         preview,
                         combined_from: Some((ar_preview.clone(), br_preview.clone())),
                     };
@@ -342,7 +345,7 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
             // incoming inclusion and exclusion implies exclusion between endpoints
             // todo almost copy of the above
             for ar_preview in &inrel {
-                let ar_key = (ar_preview.superset.clone(), ar_preview.subset.clone());
+                let ar_key = (ar_preview.subset.clone(), ar_preview.superset.clone());
                 for br_preview in &inrel {
                     if ar_preview == br_preview {
                         continue;
@@ -351,21 +354,21 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                         (CpxInfo::Exclusion, CpxInfo::Inclusion { .. }) => {},
                         _ => continue,
                     }
-                    let br_key = (br_preview.superset.clone(), br_preview.subset.clone());
+                    let br_key = (br_preview.subset.clone(), br_preview.superset.clone());
                     let ar = map.get(&ar_key).unwrap();
                     let br = map.get(&br_key).unwrap();
-                    let res_key = (ar.superset.clone(), br.superset.clone());
+                    let res_key = (ar.subset.clone(), br.subset.clone());
                     let preview = PreviewRelation {
                         id: "".into(),
                         cpx: CpxInfo::Exclusion,
-                        superset: ar.superset.clone(),
-                        subset: br.superset.clone(),
+                        subset: ar.subset.clone(),
+                        superset: br.subset.clone(),
                     };
                     let ser = Relation {
                         id: "".into(),
                         cpx: preview.cpx.clone(),
-                        superset: preview.superset.clone(),
                         subset: preview.subset.clone(),
+                        superset: preview.superset.clone(),
                         preview,
                         combined_from: Some((ar_preview.clone(), br_preview.clone())),
                     };
@@ -375,7 +378,7 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                 }
             }
         }
-    }
+    // }
     for ((a,b), rel) in map {
         relations.push(rel);
     }
@@ -383,7 +386,6 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
 }
 
 impl Relation {
-    // todo insert backtrace of inferences
     pub fn combine_parallel(&mut self, other: &Relation) {
         assert_eq!(self.superset, other.superset);
         assert_eq!(self.subset, other.subset);
@@ -392,19 +394,19 @@ impl Relation {
             Err(err) => eprintln!("{}\n{:?}\n{:?}", err, self.preview, other.preview),
         }
     }
-    pub fn combine_serial(&self, other: &Relation) -> Relation{
-        assert_eq!(self.subset, other.superset);
+    pub fn combine_serial(&self, other: &Relation) -> Relation {
+        assert_eq!(self.superset, other.subset);
         let cpx = self.cpx.combine_serial(&other.cpx);
         let preview = PreviewRelation {
             id: "".into(),
-            superset: self.superset.clone(),
-            subset: other.subset.clone(),
+            subset: self.subset.clone(),
+            superset: other.superset.clone(),
             cpx: cpx.clone(),
         };
         Relation {
             id: preview.id.clone(),
-            superset: preview.superset.clone(),
             subset: preview.subset.clone(),
+            superset: preview.superset.clone(),
             preview,
             cpx,
             combined_from: Some((self.preview.clone(), other.preview.clone())),
@@ -413,7 +415,6 @@ impl Relation {
 }
 
 pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data {
-    // todo, create urls that markdowns can use; these are maps from id to address of the entity
     let simpleindex = SimpleIndex::new(rawdata);
     let bibliography = load_bibliography(&bibliography_file);
     let mut sources = vec![];
@@ -441,15 +442,19 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
         for (transfer_group, map) in rawdata.transfer.iter() {
             let some_top = map.get(&relation.subset);
             let some_bot = map.get(&relation.superset);
-            if let Some(top) = some_top {
-                if let Some(bot) = some_bot {
-                    let rel = RawRelation {
-                        cpx: relation.cpx.clone(),
-                        subset: top.clone(),
-                        superset: bot.clone(),
-                    };
-                    transfered_relations.push(rel);
+            if let (Some(top), Some(bot)) = (some_top, some_bot) {
+                let mut res_cpx = relation.cpx.clone();
+                if let CpxInfo::Inclusion { mn, mx } = &res_cpx {
+                    if let crate::general::enums::CpxTime::Constant = mx {
+                        res_cpx = CpxInfo::Inclusion { mn: mn.clone(), mx: crate::general::enums::CpxTime::Linear };
+                    }
                 }
+                let rel = RawRelation {
+                    cpx: res_cpx,
+                    subset: top.clone(),
+                    superset: bot.clone(),
+                };
+                transfered_relations.push(rel);
             }
         }
     }
@@ -458,5 +463,15 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     }
     let first_relations = process_relations(raw_relations);
     let relations = combine_relations(&sets, first_relations);
-    Data::new(sets, relations, HashMap::new(), sources)
+    let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new();
+    for set in &sets {
+        linkable.insert(set.id.clone(), Box::new(set.preview.clone()));
+    }
+    for rel in &relations {
+        linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
+    }
+    for source in &sources {
+        linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
+    }
+    Data::new(sets, relations, linkable, sources)
 }

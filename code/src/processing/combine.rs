@@ -20,8 +20,8 @@ impl fmt::Display for CombinationError {
 impl CpxTime {
 
     /// What kind of complexity we get when we substitute k with b instead?
-    pub fn combine_serial(&self, b: &Self) -> Self {
-        match (self, b) {
+    pub fn combine_serial(&self, other: &Self) -> Self {
+        match (self, other) {
             (Self::Exists, _) | (_, Self::Exists) => Self::Exists,
             (Self::Tower(a), _) | (_, Self::Tower(a)) => Self::Tower(a.clone()),
             (Self::Exponential, Self::Exponential) => Self::Tower(2),
@@ -33,23 +33,23 @@ impl CpxTime {
     }
 
     /// Out of two options give the one that is asymptotically smaller.
-    pub fn combine_parallel_min(&self, b: &Self) -> Self {
-        match (self, b) {
+    pub fn combine_parallel_min(&self, other: &Self) -> Self {
+        match (self, other) {
             (Self::Constant, _) | (_, Self::Constant) => Self::Constant,
             (Self::Linear, _) | (_, Self::Linear) => Self::Linear,
             (Self::Polynomial, _) | (_, Self::Polynomial) => Self::Polynomial,
             (Self::Exponential, _) | (_, Self::Exponential) => Self::Exponential,
-            (Self::Tower(a), Self::Tower(b)) => Self::Tower(a.clone().min(b.clone())),
+            (Self::Tower(a), Self::Tower(other)) => Self::Tower(a.clone().min(other.clone())),
             (Self::Tower(a), _) | (_, Self::Tower(a)) => Self::Tower(a.clone()),
             (Self::Exists, Self::Exists) => Self::Exists,
         }
     }
 
     /// Out of two options give the one that is asymptotically bigger.
-    pub fn combine_parallel_max(&self, b: &Self) -> Self {
-        match (self, b) {
+    pub fn combine_parallel_max(&self, other: &Self) -> Self {
+        match (self, other) {
             (Self::Exists, _) | (_, Self::Exists) => Self::Exists,
-            (Self::Tower(a), Self::Tower(b)) => Self::Tower(a.clone().max(b.clone())),
+            (Self::Tower(a), Self::Tower(other)) => Self::Tower(a.clone().max(other.clone())),
             (Self::Tower(a), _) | (_, Self::Tower(a)) => Self::Tower(a.clone()),
             (Self::Exponential, _) | (_, Self::Exponential) => Self::Exponential,
             (Self::Polynomial, _) | (_, Self::Polynomial) => Self::Polynomial,
@@ -63,14 +63,14 @@ impl CpxTime {
 impl CpxInfo {
 
     /// Combine the two complexities to represent the transitive complexity.
-    pub fn combine_serial(&self, b: &Self) -> Self {
-        match (self, b) {
-            // (a = b) and (b rel c) => (a rel c)
+    pub fn combine_serial(&self, other: &Self) -> Self {
+        match (self, other) {
+            // (a = other) and (other rel c) => (a rel c)
             (Self::Equivalence, a) | (a, Self::Equivalence) => a.clone(),
             // No matter what, nothing can be deduced.
             (Self::Unknown, _) | (_, Self::Unknown) => Self::Unknown,
             // Lower bounds are existential, i.e., there exists a graph
-            // that has value B > f(A) which does not compose, because
+            // that has value other > f(A) which does not compose, because
             // existing graphs are not necessarily the same.
             (Self::Exclusion, _) | (_, Self::Exclusion) => Self::Unknown,
             (Self::LowerBound { .. }, _) | (_, Self::LowerBound { .. }) => Self::Unknown,
@@ -80,8 +80,8 @@ impl CpxInfo {
     }
 
     /// Combine the two complexities' best results.
-    pub fn combine_parallel(&self, b: &Self) -> Result<Self, CombinationError> {
-        Ok(match (self, b) {
+    pub fn combine_parallel(&self, other: &Self) -> Result<Self, CombinationError> {
+        Ok(match (self, other) {
             // Prefer anything before taking Unknown.
             (Self::Unknown, a) | (a, Self::Unknown) => a.clone(),
             // Check equivalence is compatible with the other bound and if so, keep it.
@@ -89,7 +89,7 @@ impl CpxInfo {
             (Self::Equivalence, Self::LowerBound { mn }) | (Self::LowerBound { mn }, Self::Equivalence) => {
                 match mn {
                     CpxTime::Constant | CpxTime::Linear => Self::Equivalence,
-                    _ => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), b.clone())),
+                    _ => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
                 }
             },
             (Self::Equivalence, Self::Inclusion { mn, mx }) | (Self::Inclusion { mn, mx }, Self::Equivalence) => {
@@ -97,7 +97,7 @@ impl CpxInfo {
                     (CpxTime::Constant | CpxTime::Linear,
                      CpxTime::Linear | CpxTime::Polynomial | CpxTime::Exponential | CpxTime::Tower(_) | CpxTime::Exists)
                         => Self::Equivalence,
-                        (_, _) => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), b.clone())),
+                        (_, _) => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
                 }
             },
             (Self::Exclusion, Self::Equivalence) | (Self::Equivalence, Self::Exclusion) => panic!("impossible"),
@@ -125,7 +125,7 @@ impl CpxInfo {
             // We cannot combine exclusion and inclusion as they are disjoint cases.
             (Self::Exclusion, Self::Inclusion { .. })
                 | (Self::Inclusion { .. }, Self::Exclusion)
-                => return Err(CombinationError::ExclusionInclusion(self.clone(), b.clone())),
+                => return Err(CombinationError::ExclusionInclusion(self.clone(), other.clone())),
         })
     }
 

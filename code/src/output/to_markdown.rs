@@ -36,7 +36,7 @@ impl ToMarkdown for CpxTime {
 
 impl ToMarkdown for PreviewSet {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
-        Some(builder.linkto(self))
+        Some(format!("[[{}]]", &self.id))
     }
 }
 
@@ -118,7 +118,7 @@ impl ToMarkdown for Showed {
 impl ToMarkdown for SourceSubset {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         let mut res = String::new();
-        res += &format!("* {} {}\n", self.time.to_string(), builder.linkto(&self.preview));
+        res += &format!("* {} [[{}]]\n", self.time.to_string(), &self.id);
         for showed in &self.showed {
             res += &format!("    * {}\n", showed.to_markdown(&builder).unwrap());
         }

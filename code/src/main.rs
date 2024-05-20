@@ -38,6 +38,7 @@ mod general {
 }
 mod processing {
     pub mod combine;
+    pub mod compare;
     pub mod convert;
     pub mod date;
     pub mod processing;
@@ -178,7 +179,7 @@ fn main() {
     // println!("clearing the final directory");
     // fs::remove_dir_all(&final_dir);
     // fs::create_dir(&final_dir);
-    // generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
+    generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
     // if let Ok(done_pdf) = generate_relation_table(&data, parent) { // todo generalize
         // let final_pdf = final_dir.join("html").join("table.pdf");
         // println!("copy the pdf to {:?}", &final_pdf);

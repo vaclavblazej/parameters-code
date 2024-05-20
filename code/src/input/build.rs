@@ -90,10 +90,10 @@ impl Builder {
     /// we may understand the intersection as a sum of parameters.
     pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str) -> RawSet {
         let sets = vec![set_a.clone(), set_b.clone()];
-        let kind = if sets.iter().all(|x|x.kind == RawKind::GraphClass) {
-            RawKind::GraphClass
+        let (kind, upper_bound) = if sets.iter().all(|x|x.kind == RawKind::GraphClass) {
+            (RawKind::GraphClass, UpperBound(Constant))
         } else {
-            RawKind::Parameter
+            (RawKind::Parameter, UpperBound(Linear))
         };
         let res = RawSet {
             id: id.into(),
@@ -106,7 +106,7 @@ impl Builder {
         // add a global source that holds all things that are known by definition
         let mut tmp_source = self.source("", "unknown");
         for s in &sets {
-            tmp_source = tmp_source.showed("", Page::NotApplicable, &res, &s, UpperBound(Linear), "by definition");
+            tmp_source = tmp_source.showed("", Page::NotApplicable, &res, &s, upper_bound.clone(), "by definition");
         }
         res
     }
