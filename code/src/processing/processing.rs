@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Entry};
 
-use crate::data::{data::{Data, Date, Linkable, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex};
+use crate::{data::{data::{Data, Date, Linkable, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -52,18 +52,26 @@ pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashMap<Pr
         if current_distance >= distance {
             continue;
         }
-        for subset in &set.subsets.all {
-            if !visited.contains_key(subset) {
+        // todo logic repeated 3x
+        for sset in &set.equivsets {
+            if !visited.contains_key(sset) {
                 let new_distance = current_distance + 1;
-                visited.insert(subset.clone(), new_distance);
-                queue.push_back((subset.clone(), new_distance));
+                visited.insert(sset.clone(), new_distance);
+                queue.push_back((sset.clone(), new_distance));
             }
         }
-        for superset in &set.supersets.all {
+        for sset in &set.subsets.minimal {
+            if !visited.contains_key(sset) {
+                let new_distance = current_distance + 1;
+                visited.insert(sset.clone(), new_distance);
+                queue.push_back((sset.clone(), new_distance));
+            }
+        }
+        for sset in &set.supersets.maximal {
             let new_distance = current_distance + 1;
-            if !visited.contains_key(superset) {
-                visited.insert(superset.clone(), new_distance);
-                queue.push_back((superset.clone(), new_distance));
+            if !visited.contains_key(sset) {
+                visited.insert(sset.clone(), new_distance);
+                queue.push_back((sset.clone(), new_distance));
             }
         }
     }
@@ -100,18 +108,18 @@ pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources:
     .collect();
     timeline.sort_by_key(|subset| subset.time.clone());
     timeline.reverse();
-    let supersets = help.get_supersets(&set);
     let subsets = help.get_subsets(&set);
-    let super_exclusions = help.get_antisupersets(&set);
+    let supersets = help.get_supersets(&set);
     let sub_exclusions = help.get_antisubsets(&set);
+    let super_exclusions = help.get_antisupersets(&set);
     let mut unknown_map: HashSet<PreviewSet> = HashSet::new();
     for par in &data.sets {
         unknown_map.insert(par.clone().into());
     }
-    for s in &supersets {
+    for s in &subsets {
         unknown_map.remove(&s);
     }
-    for s in &subsets {
+    for s in &supersets {
         unknown_map.remove(&s);
     }
     let unknown = unknown_map.iter().cloned().collect();
@@ -130,10 +138,11 @@ pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources:
         // providers,
         timeline,
         // transfers,
-        supersets: prepare_extremes(supersets, help),
+        equivsets: help.get_equiv(&set),
         subsets: prepare_extremes(subsets, help),
-        super_exclusions: prepare_extremes(super_exclusions, help),
+        supersets: prepare_extremes(supersets, help),
         sub_exclusions: prepare_extremes(sub_exclusions, help),
+        super_exclusions: prepare_extremes(super_exclusions, help),
         unknown: prepare_extremes(unknown, help),
     }
 }
@@ -205,17 +214,17 @@ pub fn prepare_extremes(preview_set: Vec<PreviewSet>, data: &SimpleIndex) -> Set
     let mut minimal = Vec::new();
     let mut maximal = Vec::new();
     let mut all = Vec::new();
-    for i in 0..preview_set.len() {
-        let current_set = &preview_set[i];
+    for current_set in &preview_set {
         let mut is_maximal = true;
         let mut is_minimal = true;
-        for j in 0..preview_set.len() {
-            if i != j {
-                let other_set = &preview_set[j];
-                if data.first_subset_of_second(current_set, other_set) {
+        for other_set in &preview_set {
+            if current_set != other_set {
+                let ab = data.first_subset_of_second(current_set, other_set);
+                let ba = data.first_subset_of_second(other_set, current_set);
+                if ab && !ba {
                     is_minimal = false;
                 }
-                if data.first_subset_of_second(other_set, current_set) {
+                if ba && !ab {
                     is_maximal = false;
                 }
             }
@@ -263,8 +272,8 @@ fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
         if raw_relation.cpx == CpxInfo::Equivalence {
             let (a, b) = key;
             let flipped = RawRelation {
-                subset: raw_relation.subset,
-                superset: raw_relation.superset,
+                subset: raw_relation.superset,
+                superset: raw_relation.subset,
                 cpx: raw_relation.cpx,
             };
             add_to_relation_idx(&mut relation_idx, (b, a), &flipped);
@@ -275,10 +284,21 @@ fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
 
 /// Take a set of relations and attempt to combine in every possible way to create
 /// novel relations and overriding superseded relations.
-fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Relation> {
+fn combine_relations(sets: &Vec<PreviewSet>, first_relations: Vec<Relation>, transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>) -> Vec<Relation> {
     let mut map: HashMap<(PreviewSet, PreviewSet), Relation> = first_relations.into_iter().map(|x|((x.subset.clone(), x.superset.clone()), x)).collect();
-    let mut relations = Vec::new();
-    // for i in 1..5 { // todo remove this but to make the connections correct
+    for i in 1..=4 { // todo remove this and fix the process to make the connections correct
+        println!("combining relations iteration {}", i);
+        let mut current_relations: Vec<Relation> = Vec::new();
+        for (k, v) in &map {
+            current_relations.push(v.clone());
+        }
+        let new_relations = apply_transfers(transfers, &current_relations);
+        for rel in new_relations {
+            let key = (rel.subset.clone(), rel.superset.clone());
+            map.entry(key).and_modify(|x|{
+                x.combine_parallel(&rel);
+            }).or_insert(rel);
+        }
         for set in sets {
             let mut inrel = Vec::new();
             let mut outrel = Vec::new();
@@ -315,7 +335,7 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                         continue;
                     }
                     match (&ar_preview.cpx, &br_preview.cpx) {
-                        (CpxInfo::Inclusion { .. }, CpxInfo::Exclusion) => {},
+                        (CpxInfo::Inclusion { .. } | CpxInfo::Equivalence, CpxInfo::Exclusion) => {},
                         _ => continue,
                     }
                     let br_key = (br_preview.subset.clone(), br_preview.superset.clone());
@@ -336,8 +356,9 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                         superset: preview.superset.clone(),
                         preview,
                         combined_from: Some((ar_preview.clone(), br_preview.clone())),
+                        essential: true,
                     };
-                    map.entry(res_key).and_modify(|x|{
+                    map.entry(res_key.clone()).and_modify(|x|{
                         x.combine_parallel(&ser);
                     }).or_insert(ser);
                 }
@@ -351,7 +372,7 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                         continue;
                     }
                     match (&ar_preview.cpx, &br_preview.cpx) {
-                        (CpxInfo::Exclusion, CpxInfo::Inclusion { .. }) => {},
+                        (CpxInfo::Exclusion, CpxInfo::Inclusion { .. } | CpxInfo::Equivalence) => {},
                         _ => continue,
                     }
                     let br_key = (br_preview.subset.clone(), br_preview.superset.clone());
@@ -371,6 +392,7 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                         superset: preview.superset.clone(),
                         preview,
                         combined_from: Some((ar_preview.clone(), br_preview.clone())),
+                        essential: true,
                     };
                     map.entry(res_key).and_modify(|x|{
                         x.combine_parallel(&ser);
@@ -378,19 +400,21 @@ fn combine_relations(sets: &Vec<Set>, first_relations: Vec<Relation>) -> Vec<Rel
                 }
             }
         }
-    // }
-    for ((a,b), rel) in map {
-        relations.push(rel);
     }
-    relations
+    map.into_values().collect()
 }
 
 impl Relation {
+    // todo this should be changed to find the simplest way to find the resulting complexity
     pub fn combine_parallel(&mut self, other: &Relation) {
         assert_eq!(self.superset, other.superset);
         assert_eq!(self.subset, other.subset);
+        // todo merging entries just via complexity is not good enough, they combine in a more nuanced way
         match self.cpx.combine_parallel(&other.cpx){
-            Ok(res) => self.cpx = res,
+            Ok(res) => {
+                self.preview.cpx = res.clone();
+                self.cpx = res;
+            },
             Err(err) => eprintln!("{}\n{:?}\n{:?}", err, self.preview, other.preview),
         }
     }
@@ -410,12 +434,54 @@ impl Relation {
             preview,
             cpx,
             combined_from: Some((self.preview.clone(), other.preview.clone())),
+            essential: true,
         }
     }
 }
 
+fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>, relations: &Vec<Relation>) -> Vec<Relation> {
+    let mut transferred_relations = Vec::new();
+    for relation in relations {
+        let top = relation.subset.clone();
+        let bot = relation.superset.clone();
+        for (transfer_group, map) in transfers.iter() {
+            if let (Some(top_res), Some(bot_res)) = (map.get(&top), map.get(&bot)) {
+                let mut res_cpx = relation.cpx.clone();
+                if let CpxInfo::Inclusion { mn, mx } = &res_cpx {
+                    if let crate::general::enums::CpxTime::Constant = mx {
+                        res_cpx = CpxInfo::Inclusion {
+                            mn: mn.clone(),
+                            mx: crate::general::enums::CpxTime::Linear
+                        };
+                    }
+                    for tr in top_res {
+                        for br in bot_res {
+                            let prev = PreviewRelation {
+                                id: "".into(),
+                                cpx: res_cpx.clone(),
+                                subset: tr.clone(),
+                                superset: br.clone(),
+                            };
+                            let rel = Relation {
+                                id: prev.id.clone(),
+                                cpx: prev.cpx.clone(),
+                                subset: prev.subset.clone(),
+                                superset: prev.superset.clone(),
+                                preview: prev,
+                                essential: false,
+                                combined_from: None, // todo signify that this relation was transferred
+                            };
+                            transferred_relations.push(rel);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    transferred_relations
+}
+
 pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data {
-    let simpleindex = SimpleIndex::new(rawdata);
     let bibliography = load_bibliography(&bibliography_file);
     let mut sources = vec![];
     let mut source_keys: HashMap<RawSource, Source> = HashMap::new();
@@ -425,9 +491,9 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
         sources.push(source);
     }
     sources.reverse();
-    let mut sets = vec![];
+    let mut preview_sets: Vec<PreviewSet> = vec![];
     for set in &rawdata.sets {
-        sets.push(process_set(set.clone().into(), &simpleindex, &rawdata, &source_keys));
+        preview_sets.push(set.clone().into());
     }
     let mut raw_relations = Vec::new();
     for (raw_source, showed) in &rawdata.factoids {
@@ -437,32 +503,31 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
             RawShowedFact::Definition(_) => (),
         }
     }
-    let mut transfered_relations = Vec::new();
-    for relation in &raw_relations {
-        for (transfer_group, map) in rawdata.transfer.iter() {
-            let some_top = map.get(&relation.subset);
-            let some_bot = map.get(&relation.superset);
-            if let (Some(top), Some(bot)) = (some_top, some_bot) {
-                let mut res_cpx = relation.cpx.clone();
-                if let CpxInfo::Inclusion { mn, mx } = &res_cpx {
-                    if let crate::general::enums::CpxTime::Constant = mx {
-                        res_cpx = CpxInfo::Inclusion { mn: mn.clone(), mx: crate::general::enums::CpxTime::Linear };
-                    }
-                }
-                let rel = RawRelation {
-                    cpx: res_cpx,
-                    subset: top.clone(),
-                    superset: bot.clone(),
-                };
-                transfered_relations.push(rel);
-            }
+    let mut transfers: HashMap::<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>> = HashMap::new();
+    for (key, raw_pairs) in &rawdata.transfer {
+        let mut res: HashMap<PreviewSet, Vec<PreviewSet>> = HashMap::new();
+        for raw_pair in raw_pairs {
+            let (from, to) = raw_pair.clone();
+            let res_from: PreviewSet = from.into();
+            let res_to: PreviewSet = to.into();
+            res.entry(res_from).or_insert_with(|| vec![]).push(res_to.clone());
+
         }
-    }
-    for tr in transfered_relations {
-        raw_relations.push(tr);
+        transfers.insert(key.clone(), res);
     }
     let first_relations = process_relations(raw_relations);
-    let relations = combine_relations(&sets, first_relations);
+    let mut relations = combine_relations(&preview_sets, first_relations, &transfers);
+    let preview_relations = relations.iter().map(|x|x.preview.clone()).collect();
+    let essential_relations_vec = filter_hidden(preview_relations, &preview_sets);
+    let essential_relations_set: HashSet<&PreviewRelation> = essential_relations_vec.iter().collect();
+    for rel in &mut relations {
+        rel.essential = essential_relations_set.contains(&rel.preview);
+    }
+    let simpleindex = SimpleIndex::new(&relations);
+    let mut sets = vec![];
+    for set in &rawdata.sets {
+        sets.push(process_set(set.clone().into(), &simpleindex, &rawdata, &source_keys));
+    }
     let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new();
     for set in &sets {
         linkable.insert(set.id.clone(), Box::new(set.preview.clone()));

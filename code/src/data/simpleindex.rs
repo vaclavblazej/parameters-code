@@ -2,9 +2,10 @@
 
 use std::collections::HashSet;
 
-use crate::{general::enums::CpxInfo, input::raw::{RawData, RawShowedFact}};
 
-use super::preview::{PreviewRelation, PreviewSet};
+use crate::general::enums::CpxInfo;
+
+use super::{data::Relation, preview::{PreviewRelation, PreviewSet}};
 
 
 
@@ -16,21 +17,19 @@ pub struct SimpleIndex {
 
 impl SimpleIndex {
 
-    pub fn new(rawdata: &RawData) -> SimpleIndex {
+    pub fn new(relations: &Vec<Relation>) -> SimpleIndex {
         let mut res = SimpleIndex{
             first_subset_of_second: HashSet::new(),
             first_not_subset_of_second: HashSet::new(),
         };
-        for (_, showed) in &rawdata.factoids {
-            if let RawShowedFact::Relation(rel) = &showed.fact {
-                res.add(rel.clone().into());
-            }
+        for rel in relations {
+            res.add(rel.preview.clone());
         }
         res
     }
 
     fn add(&mut self, relation: PreviewRelation) {
-        let element = (relation.superset.clone(), relation.subset.clone());
+        let element = (relation.subset.clone(), relation.superset.clone());
         match &relation.cpx {
             CpxInfo::Inclusion { mn: _, mx: _ } => {
                 self.first_subset_of_second.insert(element);
@@ -49,35 +48,37 @@ impl SimpleIndex {
         }
     }
 
-    // pub fn get_relation(&self, a: &PreviewSet, b: &PreviewSet) -> PreviewRelation {
-        // // todo this implementation is temporary and terrible
-        // let subsets = self.get_subsets(a);
-        // let antisubsets = self.get_antisubsets(a);
-        // let mut cpx = CpxInfo::Unknown;
-        // // if subsets.contains(b) {
-            // // cpx = CpxInfo::Inclusion{mn: crate::complexity::CpxTime::Constant, mx: crate::complexity::CpxTime::Exists};
-        // // } else if antisubsets.contains(b) {
-            // // cpx = CpxInfo::Exclusion;
-        // // }
-        // return PreviewRelation{
-            // subset: a.clone(),
-            // superset: b.clone(),
-            // cpx,
-        // };
-    // }
-
-    pub fn get_subsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
+    fn get_all_subsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         self.first_subset_of_second.iter()
             .filter(|(_,sup)|sup==a)
             .map(|(sub,_)|sub.clone())
             .collect()
     }
 
-    pub fn get_supersets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
+    fn get_all_supersets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         self.first_subset_of_second.iter()
             .filter(|(sub,_)|sub==a)
             .map(|(_,sup)|sup.clone())
             .collect()
+    }
+
+    pub fn get_equiv(&self, a: &PreviewSet) -> Vec<PreviewSet> {
+        let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a).into_iter());
+        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_supersets(a).into_iter());
+        let res: Vec<PreviewSet> = seta.intersection(&setb).into_iter().cloned().collect();
+        res
+    }
+
+    pub fn get_subsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
+        let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a).into_iter());
+        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_equiv(a).into_iter());
+        seta.difference(&setb).into_iter().cloned().collect()
+    }
+
+    pub fn get_supersets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
+        let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_supersets(a).into_iter());
+        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_equiv(a).into_iter());
+        seta.difference(&setb).into_iter().cloned().collect()
     }
 
     pub fn get_antisubsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {

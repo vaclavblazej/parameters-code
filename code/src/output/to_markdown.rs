@@ -48,16 +48,18 @@ impl ToMarkdown for PreviewRelation {
             CpxInfo::Inclusion { mn, mx } => {
                 let lb = mn.to_markdown(builder).unwrap();
                 let ub = mx.to_markdown(builder).unwrap();
-                if mn == mx {
-                    Some(format!("{} equal to $k$ implies that {} is equal to {}", subset_string, superset_string, ub)) // todo theta would be better
+                if *mx == CpxTime::Constant {
+                    Some(format!("{} upper bounds {} by a constant", subset_string, superset_string))
+                } else if mn == mx {
+                    Some(format!("{} $k$ implies that {} is {}", subset_string, superset_string, ub)) // todo theta would be better
                 } else if *mn == CpxTime::Constant {
-                    Some(format!("{} equal to $k$ implies that {} is upper bounded by {}", subset_string, superset_string, ub))
+                    Some(format!("{} $k$ upper bounds {} by {}", subset_string, superset_string, ub))
                 } else {
-                    Some(format!("{} equal to $k$ implies that {} is lower bounded by {} and upper bounded by {}", subset_string, superset_string, lb, ub))
+                    Some(format!("{} $k$ implies that {} is lower bounded by {} and upper bounded by {}", subset_string, superset_string, lb, ub))
                 }
             },
-            CpxInfo::LowerBound { mn } => Some(format!("there exist cases where {} is bounded by $k$ but {} is at least {}", subset_string, superset_string, mn.to_markdown(builder).unwrap())),
-            CpxInfo::Equivalence => Some(format!("{} is equivalent to {}", subset_string, superset_string)),
+            CpxInfo::LowerBound { mn } => Some(format!("there exist cases where {} is $k$ but {} is at least {}", subset_string, superset_string, mn.to_markdown(builder).unwrap())),
+            CpxInfo::Equivalence => Some(format!("{} is equal to {}", subset_string, superset_string)),
             CpxInfo::Exclusion => Some(format!("bounded {} does not imply bounded {}", subset_string, superset_string)),
             CpxInfo::Unknown => None,
         }

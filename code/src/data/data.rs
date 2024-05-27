@@ -86,6 +86,7 @@ pub struct Set {
     pub kind: PreviewKind,
     // pub providers: Vec<Provider>, // todo isgci, (and others?)
     pub timeline: Vec<SourceSubset>,
+    pub equivsets: Vec<PreviewSet>,
     pub supersets: Sets,
     pub subsets: Sets,
     pub super_exclusions: Sets,
@@ -157,7 +158,7 @@ impl Data {
 
 // todo abbreviation
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Relation {
     pub id: String,
     pub preview: PreviewRelation,
@@ -167,6 +168,7 @@ pub struct Relation {
     pub superset: PreviewSet,
     pub cpx: CpxInfo,
     pub combined_from: Option<(PreviewRelation, PreviewRelation)>,
+    pub essential: bool,
 }
 
 impl Cpx {

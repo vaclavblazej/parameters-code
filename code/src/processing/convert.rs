@@ -31,6 +31,7 @@ impl Into<PreviewSet> for RawSet {
             id: self.id,
             name: self.name,
             kind: self.kind.into(),
+            popularity: self.popularity,
         }
     }
 }
@@ -65,6 +66,7 @@ impl Into<Relation> for RawRelation {
             superset: self.superset.clone().into(),
             cpx: self.cpx.clone(),
             combined_from: None,
+            essential: true,
         }
     }
 }

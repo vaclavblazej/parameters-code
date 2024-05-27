@@ -50,6 +50,7 @@ pub struct RawSet {
     pub name: String,
     pub kind: RawKind,
     pub composed: Option<Composition>,
+    pub popularity: u32, // from 0 to 10
 }
 
 impl Id for RawSet {
@@ -88,7 +89,7 @@ pub struct RawData {
     pub sources: Vec<RawSource>,
     pub isgci: Vec<(RawSet, u32)>,
     pub topics: Vec<RawTopic>,
-    pub transfer: HashMap<TransferGroup, HashMap<RawSet, RawSet>>,
+    pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
 }
 
 impl RawData {

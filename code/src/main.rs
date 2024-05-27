@@ -35,6 +35,7 @@ mod data {
 mod general {
     pub mod enums;
     pub mod file;
+    pub mod hide;
 }
 mod processing {
     pub mod combine;
@@ -180,10 +181,10 @@ fn main() {
     // fs::remove_dir_all(&final_dir);
     // fs::create_dir(&final_dir);
     generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
-    // if let Ok(done_pdf) = generate_relation_table(&data, parent) { // todo generalize
-        // let final_pdf = final_dir.join("html").join("table.pdf");
-        // println!("copy the pdf to {:?}", &final_pdf);
-        // fs::copy(&done_pdf, &final_pdf);
-    // }
+    if let Ok(done_pdf) = generate_relation_table(&data, parent) { // todo generalize
+        let final_pdf = final_dir.join("html").join("table.pdf");
+        println!("copy the pdf to {:?}", &final_pdf);
+        fs::copy(&done_pdf, &final_pdf);
+    }
     println!("done");
 }

@@ -54,7 +54,7 @@ impl CpxTime {
             (Self::Exponential, _) | (_, Self::Exponential) => Self::Exponential,
             (Self::Polynomial, _) | (_, Self::Polynomial) => Self::Polynomial,
             (Self::Linear, _) | (_, Self::Linear) => Self::Linear,
-            (Self::Constant, Self::Constant) => Self::Constant,
+            (Self::Constant, Self::Constant) => Self::Constant, // constant & something is constant
         }
     }
 

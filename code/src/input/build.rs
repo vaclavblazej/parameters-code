@@ -10,15 +10,23 @@ pub struct Builder {
     data: RawData,
     id_sanity_map: HashSet<String>,
     name_sanity_map: HashSet<String>,
+    unknown: RawSource,
 }
 
 impl Builder {
 
     pub fn new() -> Builder {
+        let unknown_source = RawSource {
+            id: "myit4D".into(),
+            rawsourcekey: RawSourceKey::Unknown,
+        };
+        let mut data = RawData::new();
+        data.sources.push(unknown_source.clone());
         Self {
-            data: RawData::new(),
+            data,
             id_sanity_map: HashSet::new(),
             name_sanity_map: HashSet::new(),
+            unknown: unknown_source,
         }
     }
 
@@ -47,8 +55,8 @@ impl Builder {
     /// Represents that bounds on *from* instances transfer to *to* instances.
     /// For the bound to transfer both its endpoints must be from the same TranferGroup.
     pub fn transfers_bound_to(&mut self, group: TransferGroup, from: &RawSet, to: &RawSet) {
-        let r = self.data.transfer.entry(group).or_insert_with(HashMap::new);
-        r.insert(from.clone(), to.clone());
+        let r = self.data.transfer.entry(group).or_insert_with(Vec::new);
+        r.push((from.clone(), to.clone()));
     }
 
     /// Add a new parameter.
@@ -56,14 +64,15 @@ impl Builder {
     /// For ambiguous names we have no clear solution yet. (todo)
     /// For parameters with more names each can be defined as
     /// a separate parameter and then united with Equavilence.
-    /// Equivalent parameters whose equivalence is to a degree surprising
+    /// Equivalent parameters whose equivalence is to some degree surprising
     /// their definitions may be kept separate.
-    pub fn parameter(&mut self, id: &str, name: &str) -> RawSet {
+    pub fn parameter(&mut self, id: &str, name: &str, popularity: u32) -> RawSet {
         let res = RawSet {
             id: id.into(),
             name: name.into(),
             kind: RawKind::Parameter,
             composed: None,
+            popularity,
         };
         self.add_set(&res);
         res
@@ -77,10 +86,11 @@ impl Builder {
             name: format!("distance to {}", set.name.clone()),
             kind: RawKind::Parameter,
             composed: None,
+            popularity: set.popularity,
         };
         self.add_set(&res);
-        let mut tmp_source = self.source("", "unknown");
-        tmp_source = tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
+        let mut tmp_source = self.unknown_source();
+        tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
         self.transfers_bound_to(TransferGroup::DistanceTo, &set, &res);
         res
     }
@@ -100,11 +110,12 @@ impl Builder {
             name: name.into(),
             kind,
             composed: Some(Composition::Intersection(sets.clone())),
+            popularity: 0, // todo
         };
         self.add_set(&res);
         // todo polish how these structures are created this; perhaps
         // add a global source that holds all things that are known by definition
-        let mut tmp_source = self.source("", "unknown");
+        let mut tmp_source = self.unknown_source();
         for s in &sets {
             tmp_source = tmp_source.showed("", Page::NotApplicable, &res, &s, upper_bound.clone(), "by definition");
         }
@@ -120,9 +131,14 @@ impl Builder {
             name: name.into(),
             kind: RawKind::GraphClass,
             composed: None,
+            popularity: 0, // todo
         };
         self.add_set(&res);
         res
+    }
+
+    pub fn unknown_source(&mut self) -> RawDataSource {
+        RawDataSource::new(&self.unknown, &mut self.data)
     }
 
     /// Define a source of information. This includes online sources
@@ -131,8 +147,6 @@ impl Builder {
         // todo improve this
         let rawsourcekey = if sourcekey.contains("://") {
             RawSourceKey::Online{ url: sourcekey.into() }
-        } else if sourcekey == "unknown" {
-            RawSourceKey::Unknown
         } else {
             RawSourceKey::Bibtex{ key: sourcekey.into() }
         };
