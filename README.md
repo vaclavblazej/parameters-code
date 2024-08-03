@@ -1,7 +1,7 @@
 # HOPS code
 
 *Hierarchy of Parameters* (HOPS) is meant to provide overview of structural parameters, their relations, and auxiliary information.
-This repository is the true source of the [website](https://vaclavblazej.github.io/parameters/) content and is the correct place to give [feedback](https://github.com/vaclavblazej/parameters/issues).
+This repository is the true source of the [website](https://vaclavblazej.github.io/parameters/) content and is the correct place to give [feedback](https://github.com/vaclavblazej/parameters-code/issues).
 
 The project consists of three parts:
 
