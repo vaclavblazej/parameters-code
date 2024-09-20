@@ -11,6 +11,7 @@ pub struct Builder {
     id_sanity_map: HashSet<String>,
     name_sanity_map: HashSet<String>,
     unknown: RawSource,
+    assumed_knowledge: RawSource,
 }
 
 impl Builder {
@@ -18,7 +19,17 @@ impl Builder {
     pub fn new() -> Builder {
         let unknown_source = RawSource {
             id: "myit4D".into(),
-            rawsourcekey: RawSourceKey::Unknown,
+            rawsourcekey: RawSourceKey::Other {
+                name: "unknown".into(),
+                description: "This knowledge was added to the database without tying it to an appropriate resource.".into(),
+            },
+        };
+        let assumed_knowledge_source = RawSource {
+            id: "9kg0oo".into(),
+            rawsourcekey: RawSourceKey::Other {
+                name: "assumed".into(),
+                description: "Is axiomatic knowledge from the viewpoint of HOPS website.".into(),
+            },
         };
         let mut data = RawData::new();
         data.sources.push(unknown_source.clone());
@@ -27,6 +38,7 @@ impl Builder {
             id_sanity_map: HashSet::new(),
             name_sanity_map: HashSet::new(),
             unknown: unknown_source,
+            assumed_knowledge: assumed_knowledge_source,
         }
     }
 
@@ -42,7 +54,7 @@ impl Builder {
             panic!("id {} used multiple times", set.id);
         }
         if self.name_sanity_map.contains(&set.name) {
-            panic!("name {} used multiple times", set.name);
+            println!("name {} used multiple times", set.name);
         }
         self.data.sets.push(set.clone());
         if set.id != "" { // todo get rid of this exception; maybe recommend what ID could be used
@@ -78,6 +90,23 @@ impl Builder {
         res
     }
 
+    /// Add a parameter defined as bounded function of the red degree created
+    /// via a contraction sequence.
+    pub fn reduced(&mut self, name: &str, set: &RawSet, popularity: u32) -> RawSet {
+        let res = RawSet {
+            id: format!("reduced_{}", set.id.clone()),
+            name: name.to_string(),
+            kind: RawKind::Parameter,
+            composed: None,
+            popularity,
+        };
+        self.add_set(&res);
+        let mut tmp_source = self.unknown_source();
+        tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Linear), "by definition");
+        self.transfers_bound_to(TransferGroup::ReducedGroup, &set, &res);
+        res
+    }
+
     /// Add a parameter defined as the number of vertices to be removed
     /// until the remaining graph falls in the given set.
     pub fn distance_to(&mut self, set: &RawSet) -> RawSet {
@@ -92,6 +121,23 @@ impl Builder {
         let mut tmp_source = self.unknown_source();
         tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
         self.transfers_bound_to(TransferGroup::DistanceTo, &set, &res);
+        res
+    }
+
+    /// Add a parameter defined as the minimum number of graphs from another set required
+    /// to cover the edges of the input graph.
+    pub fn edge_cover_by(&mut self, set: &RawSet) -> RawSet {
+        let res = RawSet {
+            id: format!("edge_cover_by_{}", set.id.clone()),
+            name: format!("edge cover by {}", set.name.clone()),
+            kind: RawKind::Parameter,
+            composed: None,
+            popularity: set.popularity,
+        };
+        self.add_set(&res);
+        let mut tmp_source = self.unknown_source();
+        tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
+        self.transfers_bound_to(TransferGroup::EdgeCover, &set, &res);
         res
     }
 
@@ -137,19 +183,24 @@ impl Builder {
         res
     }
 
+    pub fn assumed_source(&mut self) -> RawDataSource {
+        self.data.sources.push(self.assumed_knowledge.clone());
+        RawDataSource::new(&self.assumed_knowledge, &mut self.data)
+    }
+
     pub fn unknown_source(&mut self) -> RawDataSource {
         RawDataSource::new(&self.unknown, &mut self.data)
     }
 
-    /// Define a source of information. This includes online sources
-    /// or reserach paper sources.
     pub fn source(&mut self, id: &str, sourcekey: &str) -> RawDataSource {
-        // todo improve this
-        let rawsourcekey = if sourcekey.contains("://") {
-            RawSourceKey::Online{ url: sourcekey.into() }
-        } else {
-            RawSourceKey::Bibtex{ key: sourcekey.into() }
-        };
+        let rawsourcekey = RawSourceKey::Bibtex{ key: sourcekey.into() };
+        let res = RawSource { id: id.into(), rawsourcekey, };
+        self.data.sources.push(res.clone());
+        RawDataSource::new(&res, &mut self.data)
+    }
+
+    pub fn web_source(&mut self, id: &str, url: &str) -> RawDataSource {
+        let rawsourcekey = RawSourceKey::Online{ url: url.into() };
         let res = RawSource { id: id.into(), rawsourcekey, };
         self.data.sources.push(res.clone());
         RawDataSource::new(&res, &mut self.data)

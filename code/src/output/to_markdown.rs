@@ -28,7 +28,7 @@ impl ToMarkdown for CpxTime {
             CpxTime::Linear => "$\\mathcal O(k)$".into(),
             CpxTime::Polynomial => "$k^{\\mathcal O(1)}$".into(),
             CpxTime::Exponential => "$2^{\\mathcal O(k)}$".into(),
-            CpxTime::Tower(x) => "$k^k^k^k$".into(),
+            CpxTime::Tower => "$\\mathrm{tower}(k)$".into(),
             CpxTime::Exists => "$f(k)$".into(),
         })
     }
@@ -71,7 +71,7 @@ impl ToMarkdown for PreviewSource {
         match &self.sourcekey {
             PreviewSourceKey::Bibtex { key } => Some(key.clone()),
             PreviewSourceKey::Online { url } => Some(url.clone()),
-            PreviewSourceKey::Unknown => None,
+            PreviewSourceKey::Other { name } => Some(name.clone()),
         }
     }
 }

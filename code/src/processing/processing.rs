@@ -170,8 +170,11 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
         RawSourceKey::Online { url } => {
             sourcekey = SourceKey::Online { url: url.clone() };
         },
-        RawSourceKey::Unknown => {
-            sourcekey = SourceKey::Unknown;
+        RawSourceKey::Other { name, description } => {
+            sourcekey = SourceKey::Other {
+                name: name.clone(),
+                description: description.clone(),
+            };
         },
     }
     let mut showed = vec![];

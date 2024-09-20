@@ -25,7 +25,7 @@ pub enum Composition {
 pub enum RawSourceKey {
     Bibtex { key: String },
     Online { url: String },
-    Unknown,
+    Other { name: String, description: String },
 }
 
 impl RawSourceKey {
@@ -33,7 +33,7 @@ impl RawSourceKey {
         match self {
             RawSourceKey::Bibtex { key } => key.clone(),
             RawSourceKey::Online { url } => url.clone(),
-            RawSourceKey::Unknown => "unknown".into(),
+            RawSourceKey::Other { name, description: _ } => name.clone(),
         }
     }
 }

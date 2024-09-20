@@ -23,8 +23,8 @@ impl CpxTime {
     pub fn combine_serial(&self, other: &Self) -> Self {
         match (self, other) {
             (Self::Exists, _) | (_, Self::Exists) => Self::Exists,
-            (Self::Tower(a), _) | (_, Self::Tower(a)) => Self::Tower(a.clone()),
-            (Self::Exponential, Self::Exponential) => Self::Tower(2),
+            (Self::Tower, _) | (_, Self::Tower) => Self::Tower,
+            (Self::Exponential, Self::Exponential) => Self::Tower,
             (Self::Exponential, _) | (_, Self::Exponential) => Self::Exponential,
             (Self::Polynomial, _) | (_, Self::Polynomial) => Self::Polynomial,
             (Self::Linear, _) | (_, Self::Linear) => Self::Linear,
@@ -39,8 +39,7 @@ impl CpxTime {
             (Self::Linear, _) | (_, Self::Linear) => Self::Linear,
             (Self::Polynomial, _) | (_, Self::Polynomial) => Self::Polynomial,
             (Self::Exponential, _) | (_, Self::Exponential) => Self::Exponential,
-            (Self::Tower(a), Self::Tower(other)) => Self::Tower(a.clone().min(other.clone())),
-            (Self::Tower(a), _) | (_, Self::Tower(a)) => Self::Tower(a.clone()),
+            (Self::Tower, _) | (_, Self::Tower) => Self::Tower,
             (Self::Exists, Self::Exists) => Self::Exists,
         }
     }
@@ -49,8 +48,7 @@ impl CpxTime {
     pub fn combine_parallel_max(&self, other: &Self) -> Self {
         match (self, other) {
             (Self::Exists, _) | (_, Self::Exists) => Self::Exists,
-            (Self::Tower(a), Self::Tower(other)) => Self::Tower(a.clone().max(other.clone())),
-            (Self::Tower(a), _) | (_, Self::Tower(a)) => Self::Tower(a.clone()),
+            (Self::Tower, _) | (_, Self::Tower) => Self::Tower,
             (Self::Exponential, _) | (_, Self::Exponential) => Self::Exponential,
             (Self::Polynomial, _) | (_, Self::Polynomial) => Self::Polynomial,
             (Self::Linear, _) | (_, Self::Linear) => Self::Linear,
@@ -95,7 +93,7 @@ impl CpxInfo {
             (Self::Equivalence, Self::Inclusion { mn, mx }) | (Self::Inclusion { mn, mx }, Self::Equivalence) => {
                 match (mn, mx) {
                     (CpxTime::Constant | CpxTime::Linear,
-                     CpxTime::Linear | CpxTime::Polynomial | CpxTime::Exponential | CpxTime::Tower(_) | CpxTime::Exists)
+                     CpxTime::Linear | CpxTime::Polynomial | CpxTime::Exponential | CpxTime::Tower | CpxTime::Exists)
                         => Self::Equivalence,
                         (_, _) => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
                 }

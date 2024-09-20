@@ -1,0 +1,12 @@
+[
+  {
+    "alias": "server",
+    "rel_path": "./.cmd/scripts/server.sh",
+    "description": "Starts the hugo server"
+  },
+  {
+    "alias": "run",
+    "rel_path": "./.cmd/scripts/run.sh",
+    "description": ""
+  }
+]

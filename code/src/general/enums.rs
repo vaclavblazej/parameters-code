@@ -18,6 +18,8 @@ pub enum Page{
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TransferGroup {
     DistanceTo,
+    ReducedGroup,
+    EdgeCover,
 }
 
 /// Points to the source of a citation.
@@ -30,7 +32,10 @@ pub enum SourceKey {
     Online {
         url: String,
     },
-    Unknown,
+    Other {
+        name: String,
+        description: String,
+    },
 }
 
 /// Enum that makes inputting complexities more convenient.
@@ -52,7 +57,7 @@ pub enum CpxTime {
     Linear,     // O(N)
     Polynomial, // N^{O(1)}
     Exponential,// 2^{O(N)}
-    Tower(u32), // 2^2^...^N of given length
+    Tower, // 2^2^...^N
     Exists,     // f(N) where f is a computable function
 }
 

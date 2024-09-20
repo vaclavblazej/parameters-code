@@ -16,7 +16,7 @@ fn inclusion_edge_style(mx: &CpxTime) -> String {
         CpxTime::Linear => &" weight=\"100\" penwidth=\"2.0\"",
         CpxTime::Polynomial => &" weight=\"20\" penwidth=\"0.7\"",
         CpxTime::Exponential => &" style=\"dotted\" weight=\"1\" penwidth=\"1.0\"",
-        CpxTime::Tower(_) => &" style=\"dotted\" weight=\"1\" penwidth=\"0.8\"",
+        CpxTime::Tower => &" style=\"dotted\" weight=\"1\" penwidth=\"0.8\"",
         CpxTime::Exists => &" color=\"gray\" weight=\"1\"",
     };
     res

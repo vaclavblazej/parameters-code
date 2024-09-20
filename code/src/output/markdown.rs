@@ -68,14 +68,14 @@ impl Linkable for PreviewSource {
         match &self.sourcekey {
             PreviewSourceKey::Bibtex { key: _ } => base(&self.id),
             PreviewSourceKey::Online { url } => url.clone(),
-            PreviewSourceKey::Unknown => "#".into(),
+            PreviewSourceKey::Other { name: _ } => base(&self.id),
         }
     }
     fn get_name(&self) -> String {
         match &self.sourcekey {
             PreviewSourceKey::Bibtex { key } => key.clone(),
             PreviewSourceKey::Online { url } => url.clone(),
-            PreviewSourceKey::Unknown => "unknown".into(),
+            PreviewSourceKey::Other { name } => name.into(),
         }
     }
 }
@@ -152,8 +152,9 @@ impl GeneratedPage for Source {
                     res += &format!("an error occured while loading the bibtex entry for `{}`", key);
                 }
             },
-            SourceKey::Unknown => {
-                res += &format!("# Unknown {}\n\n", self.id);
+            SourceKey::Other { name, description } => {
+                res += &format!("# {}\n\n", name);
+                res += &format!("{}\n\n", description);
             },
             SourceKey::Online { url } => {
                 res += &format!("# Online source {}\n\n", self.id);

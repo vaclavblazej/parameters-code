@@ -15,7 +15,7 @@ pub enum PreviewKind {
 pub enum PreviewSourceKey {
     Bibtex { key: String },
     Online { url: String },
-    Unknown,
+    Other { name: String },
 }
 
 impl PreviewSourceKey {
@@ -23,7 +23,7 @@ impl PreviewSourceKey {
         match self {
             PreviewSourceKey::Bibtex { key } => key.clone(),
             PreviewSourceKey::Online { url } => url.clone(),
-            PreviewSourceKey::Unknown => "unknown".into(),
+            PreviewSourceKey::Other { name } => name.into(),
         }
     }
 }

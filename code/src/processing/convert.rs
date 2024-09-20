@@ -11,7 +11,7 @@ impl Into<PreviewSourceKey> for RawSourceKey {
         match self {
             Self::Bibtex { key } => PreviewSourceKey::Bibtex { key },
             Self::Online { url } => PreviewSourceKey::Online { url },
-            Self::Unknown => PreviewSourceKey::Unknown,
+            Self::Other { name, description: _ } => PreviewSourceKey::Other { name },
         }
     }
 }
