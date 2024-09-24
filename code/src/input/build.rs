@@ -85,6 +85,7 @@ impl Builder {
             kind: RawKind::Parameter,
             composed: None,
             popularity,
+            hidden: false,
         };
         self.add_set(&res);
         res
@@ -99,27 +100,29 @@ impl Builder {
             kind: RawKind::Parameter,
             composed: None,
             popularity,
+            hidden: false,
         };
         self.add_set(&res);
-        let mut tmp_source = self.unknown_source();
-        tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Linear), "by definition");
-        self.transfers_bound_to(TransferGroup::ReducedGroup, &set, &res);
         res
     }
 
     /// Add a parameter defined as the number of vertices to be removed
     /// until the remaining graph falls in the given set.
-    pub fn distance_to(&mut self, set: &RawSet) -> RawSet {
+    pub fn distance_to(&mut self, set: &RawSet, popularity: u32) -> RawSet {
         let res = RawSet {
             id: format!("distance_to_{}", set.id.clone()),
             name: format!("distance to {}", set.name.clone()),
             kind: RawKind::Parameter,
             composed: None,
-            popularity: set.popularity,
+            popularity,
+            hidden: false,
         };
         self.add_set(&res);
         let mut tmp_source = self.unknown_source();
-        tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
+        match set.kind {
+            RawKind::Parameter => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Linear), "by definition"),
+            RawKind::GraphClass => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition"),
+        };
         self.transfers_bound_to(TransferGroup::DistanceTo, &set, &res);
         res
     }
@@ -133,6 +136,7 @@ impl Builder {
             kind: RawKind::Parameter,
             composed: None,
             popularity: set.popularity,
+            hidden: false,
         };
         self.add_set(&res);
         let mut tmp_source = self.unknown_source();
@@ -157,6 +161,7 @@ impl Builder {
             kind,
             composed: Some(Composition::Intersection(sets.clone())),
             popularity: 0, // todo
+            hidden: false,
         };
         self.add_set(&res);
         // todo polish how these structures are created this; perhaps
@@ -178,6 +183,7 @@ impl Builder {
             kind: RawKind::GraphClass,
             composed: None,
             popularity: 0, // todo
+            hidden: false,
         };
         self.add_set(&res);
         res

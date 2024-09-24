@@ -19,9 +19,10 @@ fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
 
 fn order_sets_from_sources(data: &Data, sets: Vec<PreviewSet>) -> Vec<PreviewSet> {
     let mut predecesors: HashMap<PreviewSet, usize> = HashMap::new();
+    let sets_set: HashSet<PreviewSet> = HashSet::from_iter(sets.iter().cloned());
     for preview in sets {
         let set = data.get_set(&preview);
-        let number_of_predecesors = set.subsets.minimal.iter().filter(|x|x.kind == PreviewKind::Parameter).count();
+        let number_of_predecesors = HashSet::from_iter(set.subsets.all.iter().cloned()).intersection(&sets_set).count();
         predecesors.insert(preview, number_of_predecesors);
     }
     let mut queue: Vec<PreviewSet> = Vec::new();
@@ -33,24 +34,22 @@ fn order_sets_from_sources(data: &Data, sets: Vec<PreviewSet>) -> Vec<PreviewSet
     let mut result = Vec::new();
     while let Some(current) = queue.pop() { // todo prioritize mutually bounded parameters
         result.push(current.clone());
-        let children: Vec<&PreviewSet> = data.get_set(&current).supersets.maximal.iter().filter(|x|x.kind == PreviewKind::Parameter).collect();
+        let children: Vec<&PreviewSet> = data.get_set(&current).supersets.all.iter().filter(|x|x.kind == PreviewKind::Parameter).collect();
         for neighbor in children {
-            *predecesors.get_mut(neighbor).unwrap() -= 1;
-            if predecesors[&neighbor] == 0 {
-                queue.push(neighbor.clone());
+            if predecesors.contains_key(neighbor){
+                *predecesors.get_mut(neighbor).unwrap() -= 1;
+                if predecesors[&neighbor] == 0 {
+                    queue.push(neighbor.clone());
+                }
             }
         }
     }
     result
 }
 
-pub fn render_table(data: &Data, table_folder: &PathBuf) -> io::Result<PathBuf> {
-    let draw_pars: Vec<PreviewSet> = data.sets.iter()
-        .map(|x|x.preview.clone())
-        .filter(|x|x.kind==PreviewKind::Parameter)
-        .collect();
-    let size_str = format!("\\def\\parlen{{{}}}\n", draw_pars.len());
-    let ordered_pars = order_sets_from_sources(data, draw_pars);
+pub fn render_table(data: &Data, draw_sets: Vec<PreviewSet>, table_folder: &PathBuf) -> io::Result<PathBuf> {
+    let size_str = format!("\\def\\parlen{{{}}}\n", draw_sets.len());
+    let ordered_pars = order_sets_from_sources(data, draw_sets);
 
     let mut content = Vec::new();
     for (i, a) in ordered_pars.iter().enumerate() {

@@ -171,19 +171,6 @@ pub struct Relation {
     pub essential: bool,
 }
 
-impl Cpx {
-    pub fn expand(self) -> CpxInfo {
-        match self {
-            Cpx::Bounds(a, b) => CpxInfo::Inclusion{mn: a.clone(), mx: b.clone()},
-            Cpx::Exactly(a) => CpxInfo::Inclusion{mn: a.clone(), mx: a.clone()},
-            Cpx::UpperBound(b) => CpxInfo::Inclusion{mn: CpxTime::Constant, mx: b.clone()},
-            Cpx::Todo => CpxInfo::Inclusion { mn: CpxTime::Constant, mx: CpxTime::Exists },
-            Cpx::Equivalence => CpxInfo::Equivalence,
-            Cpx::Exclusion => CpxInfo::Exclusion,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Showed {
     pub id: String,

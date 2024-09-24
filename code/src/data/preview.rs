@@ -41,6 +41,7 @@ pub struct PreviewSet {
     pub name: String,
     pub kind: PreviewKind,
     pub popularity: u32,
+    pub hidden: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

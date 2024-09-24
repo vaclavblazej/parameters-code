@@ -4,7 +4,8 @@
 use biblatex::Entry;
 
 
-/// Refers to a page in a book or paper.
+/// Refers to a page in a book or paper. If pdf is available it should refer its
+/// page in pdf instead of the label.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Page{
     Pp(u32),
@@ -18,7 +19,6 @@ pub enum Page{
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TransferGroup {
     DistanceTo,
-    ReducedGroup,
     EdgeCover,
 }
 
@@ -43,9 +43,11 @@ pub enum SourceKey {
 pub enum Cpx {
     Bounds(CpxTime, CpxTime),
     UpperBound(CpxTime),
+    StrictUpperBound(CpxTime),
     Exactly(CpxTime),
     Equivalence,
     Exclusion,
+    Incomparable,
     Todo,
 }
 

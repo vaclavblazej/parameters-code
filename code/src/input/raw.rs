@@ -51,6 +51,7 @@ pub struct RawSet {
     pub kind: RawKind,
     pub composed: Option<Composition>,
     pub popularity: u32, // from 0 to 10
+    pub hidden: bool,
 }
 
 impl Id for RawSet {
@@ -68,6 +69,16 @@ pub struct RawRelation {
     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
     pub superset: RawSet,
     pub cpx: CpxInfo,
+}
+
+impl RawRelation {
+    pub fn new(subset: &RawSet, superset: &RawSet, cpx: CpxInfo) -> RawRelation {
+        RawRelation{
+            subset: subset.clone(),
+            superset: superset.clone(),
+            cpx,
+        }
+    }
 }
 
 impl Id for RawRelation {

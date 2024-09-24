@@ -8,6 +8,7 @@ use std::path::{PathBuf,Path};
 use std::process::Command;
 
 use anyhow::Result;
+use rayon::prelude::*;
 use data::data::Data;
 use data::data::Relation;
 use data::data::Set;
@@ -20,6 +21,7 @@ use crate::data::preview::PreviewSet;
 use crate::output::diagram::make_drawing;
 use crate::output::markdown::Address;
 use crate::output::markdown::Markdown;
+use crate::output::pages;
 use crate::output::pages::TargetPage;
 use crate::output::pages::add_content;
 use crate::data::simpleindex::SimpleIndex;
@@ -60,42 +62,54 @@ mod output {
 }
 mod collection;
 
-fn generate_pages(pages: &Vec<TargetPage>, markdown: &Markdown,
-                  final_dir: &PathBuf, working_dir: &PathBuf,
+fn build_page(page: &TargetPage,
+              markdown: &Markdown,
+              final_dir: &PathBuf,
+              working_dir: &PathBuf,
+              map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
+    let content = match page.substitute {
+        Some(substitute) => {
+            // println!("generating {:?}", page.target);
+            substitute.object.get_page(&markdown, &final_dir, &working_dir)
+        },
+        None => "[[handcrafted]]".into(),
+    };
+    let mut local_map = map.clone();
+    let handcrafted_content = match page.source {
+        Some(source) => {
+            if source.as_os_str().to_str().unwrap().ends_with(".md") {
+                println!("copy & processing {:?}", source);
+                file::read_file_content(source)?
+            } else {
+                println!("copy {:?}", page.target);
+                let target_folder = &page.target.parent().unwrap();
+                fs::create_dir_all(target_folder)?;
+                fs::copy(&source, &page.target)?;
+                return Ok(());
+            }
+        },
+        None => { "".into() },
+    };
+    local_map.insert("handcrafted", Mappable::String(handcrafted_content));
+    if page.target.exists() { fs::remove_file(&page.target)?; }
+    if let Some(parent) = page.target.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let altered_content = substitute(&content, &markdown, &local_map);
+    file::write_file_content(page.target, &altered_content)?;
+    Ok(())
+}
+
+fn generate_pages(pages: &Vec<TargetPage>,
+                  markdown: &Markdown,
+                  final_dir: &PathBuf,
+                  working_dir: &PathBuf,
                   map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
     println!("generating pages");
-    for page in pages {
-        let content = match page.substitute {
-            Some(substitute) => {
-                // println!("generating {:?}", page.target);
-                substitute.object.get_page(&markdown, &final_dir, &working_dir)
-            },
-            None => "[[handcrafted]]".into(),
-        };
-        let mut local_map = map.clone();
-        let handcrafted_content = match page.source {
-            Some(source) => {
-                if source.as_os_str().to_str().unwrap().ends_with(".md") {
-                    println!("copy & processing {:?}", source);
-                    file::read_file_content(source)?
-                } else {
-                    println!("copy {:?}", page.target);
-                    let target_folder = &page.target.parent().unwrap();
-                    fs::create_dir_all(target_folder)?;
-                    fs::copy(&source, &page.target)?;
-                    continue;
-                }
-            },
-            None => { "".into() },
-        };
-        local_map.insert("handcrafted", Mappable::String(handcrafted_content));
-        if page.target.exists() { fs::remove_file(&page.target)?; }
-        if let Some(parent) = page.target.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let altered_content = substitute(&content, &markdown, &local_map);
-        file::write_file_content(page.target, &altered_content)?;
-    }
+    // todo par_iter
+    let res: Result<Vec<()>> = pages.iter().map(|page| -> anyhow::Result<()>{
+        build_page(page, markdown, final_dir, working_dir, map)
+    }).collect();
     Ok(())
 }
 
@@ -114,10 +128,10 @@ fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappabl
     altered_content
 }
 
-fn generate_relation_table(data: &Data, parent: &Path) -> anyhow::Result<PathBuf> {
+fn generate_relation_table(data: &Data, draw_sets: Vec<PreviewSet>,  parent: &Path) -> anyhow::Result<PathBuf> {
     println!("generating relation table");
     let table_folder = parent.join("scripts").join("table_tikz");
-    let table_file = render_table(&data, &table_folder).unwrap();
+    let table_file = render_table(&data, draw_sets, &table_folder).unwrap();
     Ok(table_file)
 }
 
@@ -132,8 +146,12 @@ fn main() {
     let data = process_raw_data(&rawdata, &bibliography_file);
     let final_dir = parent.join("web").join("content");
     let working_dir = current.join("target");
+    let hide_unpopular_parameters_below = 5;
     println!("creating main page pdfs");
-    let parameters: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::Parameter).collect();
+    let parameters: Vec<&Set> = data.sets.iter()
+        .filter(|x|x.kind == PreviewKind::Parameter)
+        .filter(|x|x.preview.popularity >= hide_unpopular_parameters_below)
+        .collect();
     if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "parameters", &parameters, None){
         let final_pdf = final_dir.join("html").join("parameters.pdf");
         println!("copy the pdf to {:?}", &final_pdf);
@@ -169,8 +187,8 @@ fn main() {
     for (k, _) in &handcrafted_pages { target_keys.insert(k); }
     let mut pages = vec![];
     for target in target_keys {
-        let substitute = generated_pages.get(&target.clone());
-        let source = handcrafted_pages.get(&target.clone());
+        let substitute = generated_pages.get(target);
+        let source = handcrafted_pages.get(target);
         pages.push(TargetPage{ target, substitute, source });
     }
     println!("building general substitution map");
@@ -181,7 +199,13 @@ fn main() {
     // fs::remove_dir_all(&final_dir);
     // fs::create_dir(&final_dir);
     generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
-    if let Ok(done_pdf) = generate_relation_table(&data, parent) { // todo generalize
+    let draw_sets: Vec<PreviewSet> = data.sets.iter()
+        .map(|x|x.preview.clone())
+        .filter(|x|x.kind==PreviewKind::Parameter)
+        .filter(|x|x.popularity >= hide_unpopular_parameters_below)
+        .filter(|x|!x.hidden)
+        .collect();
+    if let Ok(done_pdf) = generate_relation_table(&data, draw_sets, parent) { // todo generalize
         let final_pdf = final_dir.join("html").join("table.pdf");
         println!("copy the pdf to {:?}", &final_pdf);
         fs::copy(&done_pdf, &final_pdf);
