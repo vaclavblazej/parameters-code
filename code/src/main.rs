@@ -146,7 +146,7 @@ fn main() {
     let data = process_raw_data(&rawdata, &bibliography_file);
     let final_dir = parent.join("web").join("content");
     let working_dir = current.join("target");
-    let hide_unpopular_parameters_below = 5;
+    let hide_unpopular_parameters_below = 3;
     println!("creating main page pdfs");
     let parameters: Vec<&Set> = data.sets.iter()
         .filter(|x|x.kind == PreviewKind::Parameter)

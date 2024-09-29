@@ -2,6 +2,7 @@ use crate::data::data::{Showed, ShowedFact, SourceSubset};
 use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey};
 use crate::general::enums::{CpxInfo, CpxTime, Page, SourceKey};
 use crate::input::raw::{RawRelation, RawSet};
+use crate::data::preview::PreviewKind;
 
 use super::markdown::Markdown;
 
@@ -60,7 +61,22 @@ impl ToMarkdown for PreviewRelation {
             },
             CpxInfo::LowerBound { mn } => Some(format!("there exist cases where {} is $k$ but {} is at least {}", subset_string, superset_string, mn.to_markdown(builder).unwrap())),
             CpxInfo::Equivalence => Some(format!("{} is equal to {}", subset_string, superset_string)),
-            CpxInfo::Exclusion => Some(format!("bounded {} does not imply bounded {}", subset_string, superset_string)),
+            CpxInfo::Exclusion => {
+                match (&self.subset.kind, &self.superset.kind) {
+                    (PreviewKind::Parameter, PreviewKind::Parameter) => {
+                        Some(format!("bounded {} does not imply bounded {}", subset_string, superset_string))
+                    },
+                    (PreviewKind::GraphClass, PreviewKind::Parameter) => {
+                        Some(format!("graph class {} has unbounded {}", subset_string, superset_string))
+                    },
+                    (PreviewKind::Parameter, PreviewKind::GraphClass) => {
+                        Some(format!("graphs with bounded {} are not included in graph class {}", subset_string, superset_string))
+                    },
+                    (PreviewKind::GraphClass, PreviewKind::GraphClass) => {
+                        Some(format!("graph class {} is not included in graph class {}", subset_string, superset_string))
+                    },
+                }
+            },
             CpxInfo::Unknown => None,
         }
     }

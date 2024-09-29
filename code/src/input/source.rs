@@ -93,6 +93,16 @@ impl<'a> RawDataSource<'a> {
         self
     }
 
+    pub fn hasse(self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
+        // todo
+        self
+    }
+
+    pub fn table(self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
+        // todo
+        self
+    }
+
     pub fn todo(self) -> RawSource {
         self.source
     }

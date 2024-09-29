@@ -1,6 +1,6 @@
 ---
 layout: "single"
-title: "Parameters hierarchy"
+title: "Hierarchy"
 ---
 
 # HOPS web view
@@ -15,18 +15,9 @@ This page lists:
 
 ## Parameters
 
-The hierarchy of parameters is still under construction -- contributions to its refinement are greatly appreciated.
-The following diagram shows parameter inclusions.
-Arrow styles: normal for linear, thin for polynomial, dotted for exponential, gray for "under construction".
-Arrows that can be implied by other arrows are hidden for clarity.
-
 [Parameter hierarchy PDF](parameters.pdf)
 
 [[pdf parameters.pdf]]
-
-We follow with a complete comparison of all pairs of parameters.
-Row-to-column meaning is: green for inclusion (bounded), red for exclusion (unbounded), blue for "under construction"
-The above diagram shows only a meaningful subset of the green relations below.
 
 [[pdf table.pdf]]
 

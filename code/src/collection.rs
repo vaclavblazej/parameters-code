@@ -14,8 +14,7 @@ pub fn build_collection() -> RawData {
     let cluster = create.graph_class("WAU7vf", "cluster");
     let co_cluster = create.graph_class("7HR4uV", "co-cluster");
     let cograph = create.graph_class("9Qd0Mx", "cograph");
-    let bounded_degree = create.graph_class("yeKPCw", "bounded degree"); // todo join with max degre, move to par
-    let parameter_degree = create.graph_class("PUSZhY", "parameter degree");
+    let bounded_degree = create.graph_class("yeKPCw", "bounded degree");
     let complete = create.intersection("EhdXNA", &connected, &cluster, "complete");
     let const_components = create.graph_class("FJ8gmU", "constant components");
     let forest = create.graph_class("JngPPm", "forest");
@@ -34,6 +33,7 @@ pub fn build_collection() -> RawData {
     let disjoint_cycles = create.graph_class("AGnF5Z", "disjoint cycles");
     let grid = create.graph_class("lfYXuK", "grid");
     let bounded_components = create.graph_class("t7c4mp", "bounded components"); // move to par
+    let disconnected = create.graph_class("lA0K71", "disconnected");
     // let all_graphs = create.graph_class("TDTA85", "all graphs"); // hide
 
     create.isgci(&bipartite, 69)
@@ -68,7 +68,6 @@ pub fn build_collection() -> RawData {
         .defined("sp6LGE", Unknown, &grid, "Cartesian product of two paths.")
         .defined("sAZHF4", Unknown, &cycles, "Every component is a cycle.")
         .defined("FvgORV", Unknown, &const_components, "Disjoint union of components of constant size.")
-        .defined("ivxOm1", Unknown, &parameter_degree, "Degree is upper bounded by the parameter")
         .proper_graph_inclusion("piRTZw", &chordal, &perfect)
         .proper_graph_inclusion("stwHRi", &cograph, &perfect)
         .proper_graph_inclusion("ogyvLp", &bipartite, &perfect)
@@ -94,7 +93,6 @@ pub fn build_collection() -> RawData {
         .proper_graph_inclusion("1PLbSg", &grid, &planar)
         .proper_graph_inclusion("RQcVkC", &grid, &bipartite)
         .proper_graph_inclusion("KxMj5k", &grid, &bounded_degree)
-        .proper_graph_inclusion("VnTIL0", &bounded_degree, &parameter_degree)
         .proper_graph_inclusion("rSYFkG", &const_components, &bounded_degree)
         .proper_graph_inclusion("pohj2V", &const_components, &bounded_components)
         .proper_graph_inclusion("TxxhnK", &bounded_components, &bounded_degree)
@@ -103,6 +101,9 @@ pub fn build_collection() -> RawData {
         .proper_graph_inclusion("a3JKzR", &cycles, &bounded_degree)
         .proper_graph_inclusion("CTwA2j", &grid, &connected)
         .proper_graph_inclusion("wTugFB", &edgeless, &cluster)
+        .proper_graph_inclusion("1pdarO", &star, &tree)
+        .proper_graph_inclusion("gAlyjK", &path, &tree)
+        .proper_graph_inclusion("1pdarO", &path, &grid)
         ;
 
     let top_metric = create.topic("wpYsel", "metric", "Typically used in metric spaces.");
@@ -135,12 +136,13 @@ pub fn build_collection() -> RawData {
     let linear_clique_width = create.parameter("fQj3wU", "linear clique-width", 5);
     let pathwidth = create.parameter("VHClqR", "pathwidth", 9);
     let pathwidth_maxdeg = create.intersection("6BWcgd", &pathwidth, &max_degree, "pathwidth+maxdegree");
+    let d_path_free = create.parameter("s4EiWI", "d-path-free", 2); // todo
     let treewidth = create.parameter("5Q7fuR", "treewidth", 10);
     let branch_width = create.parameter("lIcmuR", "branch width", 8);
     let clique_width = create.parameter("wg5HuV", "clique-width", 9);
     let clique_tree_width = create.parameter("7P9WUz", "clique-tree-width", 2);
     let rank_width = create.parameter("fojquT", "rank-width", 7);
-    let linear_rank_width = create.parameter("cHugsk", "linear rank-width", 4);
+    let linear_rank_width = create.parameter("cHugsk", "linear rank-width", 2);
     let boolean_width = create.parameter("A2jPWT", "boolean width", 5);
     let inf_flip_width = create.parameter("nYXiuT", "inf-flip-width", 2);
     let degree_treewidth = create.intersection("nCWUh3", &max_degree, &treewidth, "degree treewidth");
@@ -157,6 +159,7 @@ pub fn build_collection() -> RawData {
     let min_degree = create.parameter("GPmOeT", "minimum degree", 1);
     let max_clique = create.parameter("q7zHeT", "maximum clique", 5);
     let edge_connectivity = create.parameter("JbqZoT", "edge connectivity", 2);
+    let vertex_connectivity = create.parameter("OyLUe4", "vertex connectivity", 2);
     let boxicity = create.parameter("a7MpiT", "boxicity", 6);
     let chordality = create.parameter("fTqo40", "chordality", 4);
     let max_induced_matching = create.parameter("GzMYlT", "maximum induced matching", 3);
@@ -190,6 +193,7 @@ pub fn build_collection() -> RawData {
     let dist_to_interval = create.distance_to(&interval, 3);
     let dist_to_max_degree = create.distance_to(&max_degree, 4);
     let dist_to_bounded_components = create.distance_to(&bounded_components, 4);
+    let dist_to_disconnected = create.distance_to(&disconnected, 2);
 
     create.isgci(&vertex_cover, 2)
         .isgci(&max_matching, 13)
@@ -258,12 +262,14 @@ pub fn build_collection() -> RawData {
         .showed("xrVJqb", Unknown, &dist_to_bipartite, &chromatic_num, UpperBound(Linear), "Removed vertices get one color each and we need only $2$ colors for the rest.")
         .showed("5wc1ir", Unknown, &edge_clique_cover, &neighborhood_diversity, UpperBound(Exponential), "Label vertices by the cliques they are contained in, each label is its own group in the neighborhood diversity, connect accordingly.")
         .showed("RnkWvT", Unknown, &dist_to_complete, &edge_clique_cover, UpperBound(Polynomial), "Cover the remaining clique, cover each modulator vertex and its neighborhood outside of it with another clique, cover each edge within the modulator by its own edge.")
-        // .showed("", Unknown, &edge_clique_cover, &clique_cover_num, UpperBound(Linear), "Covering all edges ")
+        // .showed("8ouyNs", Unknown, &edge_clique_cover, &clique_cover_num, UpperBound(Linear), "Covering all edges ")
         .showed("FY0U1r", Unknown, &treewidth, &book_thickness, UpperBound(Exists), "")
         .showed("BKCgft", Unknown, &max_leaf_num, &dist_to_linear_forest, UpperBound(Exists), "")
         .showed("CyAMhs", Unknown, &acyclic_chromatic_number, &boxicity, UpperBound(Exists), "")
         .showed("pUfoGn", Unknown, &hindex, &dist_to_max_degree, UpperBound(Linear), "Remove the $h$ vertices of degree at least $h$ to get a graph that has maximum degree $h$.")
         .showed("8ZzI5w", Unknown, &dist_to_max_degree, &hindex, UpperBound(Linear), "Removal of $k$ vertices yielding a graph with maximum degree $c$ means that there were $k$ vertices of arbitrary degree and the remaining vertices had degree at most $k+c$. Hence, $h$-index is no more than $k+c$.")
+        .showed("wKpSGF", Unknown, &bounded_degree, &max_degree, UpperBound(Constant), by_definition)
+        .showed("YOBod9", Unknown, &vertex_connectivity, &dist_to_disconnected, Equivalence, by_definition)
         .showed("Bzw7GY", Unknown, &dist_to_cograph, &clique_width, UpperBound(Exists), "")
         .showed("fedm1t", Unknown, &dist_to_cograph, &chordality, UpperBound(Exists), "")
         .showed("rGMb0t", Unknown, &dist_to_cograph, &diameter, UpperBound(Exists), "")
@@ -448,7 +454,9 @@ pub fn build_collection() -> RawData {
         // .showed("NqLFrC", Pp(2), "(1.2) For any fixed integer $w$, there is a polynomial algorithm to decide if the input graph has tree-width $\\le w$.") // non-constructive
         // .showed("a7nQ0N", Pp(6), treewidth, minor_closed, "(2.7) If $G$ has tree-width $< w$, so does ever minor of $G$.")
         .done();
-    let chordality1993 = create.source("", "chordality1993")
+    // let excludingforest1991 = create.source("AyLnH4", "excludingforest1991")
+        // .todo();
+    let chordality1993 = create.source("IFY0Rw", "chordality1993")
         .defined("Xdg7Hv", Pp(1), &chordality, "The \\emph{chordality} of a graph $G=(V,E)$ is defined as the minimum $k$ such that we can write $E=E_1,\\cap\\dots\\cap E_k$ with each $(V,E_i)$ a chordal graph.")
         .showed("rQBO3K", Pp(2), &chromatic_num, &chordality, UpperBound(Linear), "Corollary 4. For any graph $G$, $\\mathrm{Chord}(G) \\le \\chi(G)$, the chromatic number of $G$.")
         .showed("N0jfjr", Pp(5), &treewidth, &chordality, UpperBound(Linear), "Theorem 7. For any graph $G$, $\\mathrm{Chord}(G) \\le \\tau(G)$.")
@@ -545,6 +553,11 @@ pub fn build_collection() -> RawData {
     let delavina_waller2008 = create.source("C5cBsd", "spanningTreesManyLeaves2008")
         // .showed("ZXINaY", Unknown, &max_leaf_num, &feedback_vertex_set, UpperBound(Linear), "")
         .todo();
+    let gradnesetril2008 = create.source("kXDDmb", "gradnesetril2008")
+        .showed("VLpzhW", Unknown, &d_path_free, &treedepth, UpperBound(Polynomial), "") // todo
+        .showed("Q7qpEp", Unknown, &treedepth, &d_path_free, UpperBound(Exponential), "") // todo
+        // d_path_free
+        .todo();
     let cliquewidthnpc2009 = create.source("zuhSo5", "cliquewidthnpc2009")
         .showed("i1eBMN", Pp(8), &pathwidth, &linear_clique_width, UpperBound(Linear), "(5) $\\mathrm{lin-cwd}(G) \\le \\mathrm{pwd}(G)+2$.")
         .todo();
@@ -552,13 +565,23 @@ pub fn build_collection() -> RawData {
         .showed("ipo6rm", Pp(2), &grid, &rank_width, Exclusion, "The grid $G_{n,n}$ has rank-width equal to $n-1$.")
         .done();
     let sasak2010 = create.source("XlBXyo", "Sasak2010")
-        .showed("Lp8I7N", Pp(16), &tree, &pathwidth, Exclusion, "Theorem 2.1")
+        .showed("Lp8I7N", Pp(16), &tree, &pathwidth, Exclusion, "Theorem 2.1") // cites excludingforest1991, cannot find there
         .showed("BtRWId", Pp(17), &complete, &treewidth, Exclusion, "Theorem 2.2")
-        .showed("GN6dar", Pp(17), &grid, &treewidth, Exclusion, "Theorem 2.4")
+        .showed("GN6dar", Pp(17), &grid, &treewidth, Exclusion, "Theorem 2.4") // cites Csaba Biró. Tree-width and grids, cannot find the paper
+        .cited("kXDDmb", Pp(21), jelinek2010, "Theorem 2.14 [12] Rank-width of a grid $\\sqrt{n} \\times \\sqrt{n}$ on $n$ vertices is $\\sqrt{n}-1$.")
+        // Theorem 2.15 [4] Boolean-width of a grid √n×√n on n vertices lies between
         .showed("BwIc79", Pp(28), &cutwidth, &max_degree, UpperBound(Linear), "Lemma 2.18. For any graph $G$ and any vertex $v \\in V(G), cutw(g) \\ge \\lceil \\frac{deg(v)}2 \\rceil$.")
+        .showed("h49cUu", Pp(30), &carving_width, &max_degree, UpperBound(Linear), "Lemma 2.20 Carving-width of a graph $G$ is at least $\\Delta(G)$ where $\\Delta(G)$ is the maximum degree of a graph $G$.")
+        .showed("2Wk4AF", Pp(30), &star, &carving_width, Exclusion, "Corollary 2.21 Carving-width of a star is $n-1$.")
+        .showed("6Ln8ux", Pp(30), &path, &carving_width, UpperBound(Constant), "... path with carving-width 2.")
+        // .cited("7jmzab", Pp(32), &gradnesetril2008, "Theorem 2.23 [13] Let $l$ be the length of the longest path in a graph $G$. Then the tree-depth of $G$ is bounded as follows: $\\lceil \\log_2(l+2)\\rceil \\le td(G) \\le \\binom{l+3}2-1$ ...")
+        .showed("MboUFT", Pp(32), &grid, &treedepth, Exclusion, "Corollary 2.24 Tree-depth of a grid is at least $\\lceil \\log_2(n+1)\\rceil$.")
         .showed("WiiQn4", Pp(38), &cutwidth, &carving_width, UpperBound(Linear), "Theorem 4.3 (carw $\\prec$ cutw) Carving-width is bounded by cut-width.")
         .showed("u5VPeX", Pp(49), &carving_width, &treewidth, UpperBound(Linear), "Theorem 5.5 (tw $\\prec$ carw) Tree-width is bounded by carving-width.")
         .todo();
+    let bipboxicity2011 = create.source("Vkc4EU", "bipboxicity2011")
+        .showed("Yelk6V", Pp(9), &dist_to_bipartite, &boxicity, Exclusion, "Theorem 2 For any $b \\in \\mathbb N^+$, there exists a chordal bipartite graph $G$ (ed: i.e. bipartite graph with no induced cycle on more than 4 vertices) with $\\mathrm{box}(G) > b$.")
+        .done();
     let bui_xuan2011 = create.source("cNjhWx", "BuiXuan2011")
         .defined("L7aY6D", Unknown, &boolean_width, "\\textbf{Definition 1.} A decomposition tree of a graph $G$ is a pair $(T,\\delta)$ where $T$ is a tree having internal nodes of degree three and $\\delta$ a bijection between the leaf set of $T$ and the vertex set of $G$. Removing an edge from $T$ results in two subtrees, and in a cut $\\{A,\\comp{A}\\}$ of $G$ given by the two subsets of $V(G)$ in bijection $\\delta$ with the leaves of the two subtrees. Let $f\\colon w^V \\to \\mathbb{R}$ be a symmetric function that is also called a cut function: $f(A)=f(\\comp{A})$ for all $A\\subseteq V(G)$. The $f$-width of $(T,\\delta)$ is the maximum value of $f(A)$ over all cuts $\\{A,\\comp{A}\\}$ of $G$ given by the removal of an edge of $T$. ... \\textbf{Definition 2.} Let $G$ be a graph and $A \\subseteq V(G)$. Define the set of unions of neighborhoods of $A$ across the cut $\\{A,\\comp{A}\\}$ as $U(A) = \\{Y \\subseteq \\comp{A} \\mid \\exists X \\subseteq A \\land Y=N(X)\\cap \\comp{A}\\}. The \\emph{bool-dim}$\\colon 2^{V(G)} \\to \\mathbb{R}$ function of a graph $G$ is defined as $\\mathrm{bool-dim}(A)=\\log_2 |U(A)|$. Using Definition 1 with $f=\\mathrm{bool-dim}$ we define the boolean-width of a decomposition tree, denoted by $boolw(T,\\delta)$, and the boolean-width of a graph, denoted by $boolw(G)$.")
         .showed("AdNkCy", Unknown, &boolean_width, &rank_width, UpperBound(Exponential), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $\\log_2 rw(G) \\le boolw(G)$ ...")
@@ -648,9 +671,12 @@ pub fn build_collection() -> RawData {
         .todo(); // page 10
     let mimwidth2020 = create.source("BIQh3r", "mimwidth2020")
         .todo();
+    let schroder_parameter_list = vec!["distance_to_EhdXNA", "4lp9Yj", "BN92vX", "VomShB", "distance_to_7HR4uV", "distance_to_WAU7vf", "distance_to_skQuFN", "HTk9PZ", "aP5a38", "mHtXUU", "distance_to_9Qd0Mx", "distance_to_p5skoj", "GNOiyB", "KEP2qM", "UyQ5yM", "Gq0onN", "distance_to_0oCyaG", "VHClqR", "gbaHdw", "GNTwUS", "p4bTjp", "distance_to_loZ5LD", "5Q7fuR", "zH8PpT", "distance_to_Cv1PaJ", "QGZuUW", "BCwUeT", "wg5HuV", "VowkuW", "distance_to_cLHJkW", "a7MpiT", "z0y4TW", "distance_to_RmssrZ", "w7MmyW", "GPmOeT", "q7zHeT", "fTqo40", "KRV6tI", "distance_to_lA0K71"];
     let schroder_thesis = create.source("DYGiYb", "SchroderThesis")
         .cited("pJxHVS", Unknown, sorge2019, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
         .cited("bybFgo", Unknown, froemmrich2018, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
+        .hasse("DfHlFn", Pp(7), &schroder_parameter_list)
+        .table("ONqedT", Pp(8), &schroder_parameter_list)
         .showed("R9eI61", Pp(11), &treedepth, &diameter, UpperBound(Linear), "Proposition 3.1")
         .showed("dohKmq", Pp(12), &dist_to_linear_forest, &hindex, UpperBound(Linear), "Proposition 3.2")
         .showed("WY0T4I", Pp(13), &dist_to_cluster, &dist_to_co_cluster, Exclusion, "Proposition 3.3")
@@ -659,14 +685,14 @@ pub fn build_collection() -> RawData {
         .showed("Ysx42j", Pp(15), &clique_cover_num, &dist_to_perfect, Exclusion, "Proposition 3.6")
         .showed("VMDVbW", Pp(16), &dist_to_complete, &max_clique, Exclusion, "Proposition 3.7")
         .showed("3WQZ4g", Pp(16), &dist_to_complete, &domatic_num, Exclusion, "Proposition 3.7")
-        // .showed("rCDCaC", Pp(16), &dist_to_complete, &dist_to_disconnected, Exclusion, "Proposition 3.8") // todo
+        .showed("rCDCaC", Pp(16), &dist_to_complete, &vertex_connectivity, Exclusion, "Proposition 3.8")
         .showed("AbzdZf", Pp(16), &clique_cover_num, &clique_width, Exclusion, "Proposition 3.9")
         .showed("W2GU1L", Pp(19), &clique_cover_num, &chordality, Exclusion, "Proposition 3.11")
         .showed("3Tunx6", Pp(19), &dist_to_perfect, &chordality, Exclusion, "Proposition 3.11")
         .showed("OKKYpY", Pp(20), &dist_to_co_cluster, &dist_to_chordal, Exclusion, "Proposition 3.12")
         .showed("A18O6S", Pp(20), &dist_to_bipartite, &dist_to_chordal, Exclusion, "Proposition 3.12")
-        // .showed("TiiRaX", Pp(20), &dist_to_co_cluster, &dist_to_disconnected, Exclusion, "Proposition 3.12")
-        // .showed("uvXQGw", Pp(20), &dist_to_bipartite, &dist_to_disconnected, Exclusion, "Proposition 3.12")
+        .showed("TiiRaX", Pp(20), &dist_to_co_cluster, &vertex_connectivity, Exclusion, "Proposition 3.12")
+        .showed("uvXQGw", Pp(20), &dist_to_bipartite, &vertex_connectivity, Exclusion, "Proposition 3.12")
         .showed("5jYT5W", Pp(20), &dist_to_co_cluster, &domatic_num, Exclusion, "Proposition 3.12")
         .showed("U6hu68", Pp(20), &dist_to_bipartite, &domatic_num, Exclusion, "Proposition 3.12")
         .showed("hu6cvG", Pp(21), &bandwidth, &dist_to_planar, Exclusion, "Proposition 3.13")
@@ -693,7 +719,7 @@ pub fn build_collection() -> RawData {
         .showed("Hm9nY3", Pp(30), &bandwidth, &genus, Exclusion, "Proposition 3.27")
         .showed("6olZjM", Pp(30), &bisection_bandwidth, &domatic_num, Exclusion, "Proposition 3.28")
         .showed("W6h5ZK", Pp(30), &feedback_edge_set, &bisection_bandwidth, Exclusion, "Proposition 3.29")
-        // .showed("KYpom9", Pp(31), &domatic_num, &distance_to_disconnected, Exclusion, "Proposition 3.30") // todo
+        .showed("KYpom9", Pp(31), &domatic_num, &vertex_connectivity, Exclusion, "Proposition 3.30")
         .showed("2nmdxu", Pp(33), &bisection_bandwidth, &chordality, Exclusion, "Proposition 3.31")
         .showed("bxep24", Pp(33), &bisection_bandwidth, &clique_width, Exclusion, "Proposition 3.32")
         .showed("bhJsnM", Pp(33), &bisection_bandwidth, &max_clique, Exclusion, "Proposition 3.33")
@@ -709,8 +735,8 @@ pub fn build_collection() -> RawData {
         .todo();
     // let reduced_star = &create.reduced(&star, 0);
     // let twin_width_beyond_2022 = create.source("3B7Kvt", "twinWidthBeyond2022")
-        // .showed("", Pp(3), &all_graphs, &reduced_star, UpperBound(Constant), "Every graph has a reduction sequence in which every red graph is a star ...")
-        // // .defined("", , &reduced_bandwidth, "")
+        // .showed("AwGkfi", Pp(3), &all_graphs, &reduced_star, UpperBound(Constant), "Every graph has a reduction sequence in which every red graph is a star ...")
+        // // .defined("M6H2kI", , &reduced_bandwidth, "")
         // .todo();
     let tran2022 = create.source("uXViPE", "Tran2022")
         .defined("J1sHj8", Pp(14), &twin_cover_num, "An edge $\\{v,w\\}$ is a twin edge if vertices $v$ and $w$ have the same neighborhood excluding each other. The twin cover number $tcn(G)$ of a graph $G$ is the size of a smallest set $V' \\subseteq V(G)$ of vertices such that every edge in $E(G)$ is either a twin edge or incident to a vertex in $V'$")
@@ -752,7 +778,7 @@ pub fn build_collection() -> RawData {
         .showed("Yvkf8u", Pp(34), &c_closure, &dist_to_complete, Incomparable, "Proposition 5.4. $c$-Closure is incomparable to Distance to Clique.")
         .showed("49lTWH", Pp(34), &c_closure, &bisection_bandwidth, Incomparable, "Proposition 5.5. $c$-Closure is incomparable to Bisection Width.") // todo check bisection bandwidth = bisection width
         .showed("LCe3uI", Pp(34), &c_closure, &genus, Incomparable, "Proposition 5.6. $c$-Closure is incomparable to Genus.")
-        // .showed("XjB6Cy", Pp(34), &c_closure, &vertex_connectivity, Incomparable, "Observation 5.7. $c$-Closure is incomparable to Distance to Disconnected, Domatic Number and Maximum Clique.")
+        .showed("XjB6Cy", Pp(34), &c_closure, &vertex_connectivity, Incomparable, "Observation 5.7. $c$-Closure is incomparable to Distance to Disconnected, Domatic Number and Maximum Clique.")
         .showed("XaXtqm", Pp(34), &c_closure, &domatic_num, Incomparable, "Observation 5.7. $c$-Closure is incomparable to Distance to Disconnected, Domatic Number and Maximum Clique.")
         .showed("lXXajO", Pp(34), &c_closure, &max_clique, Incomparable, "Observation 5.7. $c$-Closure is incomparable to Distance to Disconnected, Domatic Number and Maximum Clique.")
         .showed("OinVkl", Pp(35), &c_closure, &boxicity, Incomparable, "Proposition 5.8. $c$-Closure is incomparable to Boxicity.")
@@ -868,27 +894,3 @@ pub fn build_collection() -> RawData {
 // A2vYf3
 // btFVbS
 // MQ0K6A
-// wKpSGF
-// DfHlFn
-// ONqedT
-// IFY0Rw
-// AyLnH4
-// 8ouyNs
-// M6H2kI
-// AwGkfi
-// MboUFT
-// 7jmzab
-// 6Ln8ux
-// 2Wk4AF
-// h49cUu
-// kXDDmb
-// VLpzhW
-// Q7qpEp
-// s4EiWI
-// 1pdarO
-// gAlyjK
-// Yelk6V
-// Vkc4EU
-// lA0K71
-// YOBod9
-// OyLUe4
