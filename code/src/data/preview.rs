@@ -1,6 +1,6 @@
 //! Preview versions of the full structures.
 
-use crate::general::enums::{CpxInfo, Page};
+use crate::general::enums::{CpxInfo, Page, SourceKey};
 
 use super::data::{Date, Showed};
 
@@ -31,7 +31,7 @@ impl PreviewSourceKey {
 #[derive(Debug, Clone)]
 pub struct PreviewSource {
     pub id: String,
-    pub sourcekey: PreviewSourceKey,
+    pub sourcekey: SourceKey,
     pub time: Date,
 }
 

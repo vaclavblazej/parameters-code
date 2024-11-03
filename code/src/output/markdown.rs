@@ -66,16 +66,16 @@ impl Linkable for PreviewSet {
 impl Linkable for PreviewSource {
     fn get_url(&self) -> String {
         match &self.sourcekey {
-            PreviewSourceKey::Bibtex { key: _ } => base(&self.id),
-            PreviewSourceKey::Online { url } => url.clone(),
-            PreviewSourceKey::Other { name: _ } => base(&self.id),
+            SourceKey::Bibtex { key: _, entry: _ } => base(&self.id),
+            SourceKey::Online { url } => url.clone(),
+            SourceKey::Other { name: _, description: _ } => base(&self.id),
         }
     }
     fn get_name(&self) -> String {
         match &self.sourcekey {
-            PreviewSourceKey::Bibtex { key } => key.clone(),
-            PreviewSourceKey::Online { url } => url.clone(),
-            PreviewSourceKey::Other { name } => name.into(),
+            SourceKey::Bibtex { key, entry: _ } => key.clone(),
+            SourceKey::Online { url } => url.clone(),
+            SourceKey::Other { name, description: _ } => name.into(),
         }
     }
 }

@@ -98,10 +98,10 @@ pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources:
                 &format!("A raw source {} does not have a processed source. Use create.source() to add new sources.", raw.id)
                 );
             SourceSubset {
-                preview: raw.preprocess(),
+                preview: raw.preprocess(&source.sourcekey),
                 id: source.id.clone(),
                 sourcekey: source.sourcekey.clone(),
-                showed: showed_vec.into_iter().map(|x|x.into()).collect(),
+                showed: showed_vec.into_iter().map(|x|x.preprocess(&source.sourcekey)).collect(),
                 time: source.time.clone(),
             }
         })
@@ -180,11 +180,11 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
     let mut showed = vec![];
     for (fact_source, raw_showed) in &rawdata.factoids {
         if fact_source == source {
-            showed.push(raw_showed.clone().into());
+            showed.push(raw_showed.clone().preprocess(&sourcekey));
         }
     }
     let mut res = Source {
-        preview: source.clone().preprocess(),
+        preview: source.clone().preprocess(&sourcekey),
         id: source.id.clone(),
         sourcekey,
         showed,

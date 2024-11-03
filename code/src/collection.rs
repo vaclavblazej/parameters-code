@@ -14,9 +14,7 @@ pub fn build_collection() -> RawData {
     let cluster = create.graph_class("WAU7vf", "cluster");
     let co_cluster = create.graph_class("7HR4uV", "co-cluster");
     let cograph = create.graph_class("9Qd0Mx", "cograph");
-    let bounded_degree = create.graph_class("yeKPCw", "bounded degree");
     let complete = create.intersection("EhdXNA", &connected, &cluster, "complete");
-    let const_components = create.graph_class("FJ8gmU", "constant components");
     let forest = create.graph_class("JngPPm", "forest");
     let tree = create.intersection("rJyICu", &connected, &forest, "tree");
     let interval = create.graph_class("p5skoj", "interval");
@@ -32,7 +30,6 @@ pub fn build_collection() -> RawData {
     let cycle = create.intersection("Ti0asF", &connected, &cycles, "cycle");
     let disjoint_cycles = create.graph_class("AGnF5Z", "disjoint cycles");
     let grid = create.graph_class("lfYXuK", "grid");
-    let bounded_components = create.graph_class("t7c4mp", "bounded components"); // move to par
     let disconnected = create.graph_class("lA0K71", "disconnected");
     // let all_graphs = create.graph_class("TDTA85", "all graphs"); // hide
 
@@ -42,7 +39,6 @@ pub fn build_collection() -> RawData {
         .isgci(&cluster, 1237)
         .isgci(&co_cluster, 1248)
         .isgci(&cograph, 151)
-        .isgci(&bounded_degree, 1053)
         .isgci(&complete, 1241)
         .isgci(&forest, 342)
         .isgci(&interval, 234)
@@ -67,7 +63,6 @@ pub fn build_collection() -> RawData {
         .defined("51KDFn", Unknown, &stars, "Disjoint union of stars.")
         .defined("sp6LGE", Unknown, &grid, "Cartesian product of two paths.")
         .defined("sAZHF4", Unknown, &cycles, "Every component is a cycle.")
-        .defined("FvgORV", Unknown, &const_components, "Disjoint union of components of constant size.")
         .proper_graph_inclusion("piRTZw", &chordal, &perfect)
         .proper_graph_inclusion("stwHRi", &cograph, &perfect)
         .proper_graph_inclusion("ogyvLp", &bipartite, &perfect)
@@ -88,17 +83,10 @@ pub fn build_collection() -> RawData {
         .proper_graph_inclusion("VsrnoK", &edgeless, &linear_forest)
         .proper_graph_inclusion("E8B2Gj", &stars, &forest)
         .proper_graph_inclusion("BWJDZs", &edgeless, &stars)
-        .proper_graph_inclusion("yWSq1V", &edgeless, &const_components)
         .proper_graph_inclusion("HtdoRP", &edgeless, &co_cluster)
         .proper_graph_inclusion("1PLbSg", &grid, &planar)
         .proper_graph_inclusion("RQcVkC", &grid, &bipartite)
-        .proper_graph_inclusion("KxMj5k", &grid, &bounded_degree)
-        .proper_graph_inclusion("rSYFkG", &const_components, &bounded_degree)
-        .proper_graph_inclusion("pohj2V", &const_components, &bounded_components)
-        .proper_graph_inclusion("TxxhnK", &bounded_components, &bounded_degree)
-        .proper_graph_inclusion("ZEEhCr", &linear_forest, &bounded_degree)
         .proper_graph_inclusion("CJ76wg", &cycles, &disjoint_cycles)
-        .proper_graph_inclusion("a3JKzR", &cycles, &bounded_degree)
         .proper_graph_inclusion("CTwA2j", &grid, &connected)
         .proper_graph_inclusion("wTugFB", &edgeless, &cluster)
         .proper_graph_inclusion("1pdarO", &star, &tree)
@@ -175,6 +163,7 @@ pub fn build_collection() -> RawData {
     let linear_nlc_width = create.parameter("v09DMY", "linear NLC-width", 2);
     let thickness = create.parameter("sxTPYj", "thickness", 2);
     let outerthickness = create.parameter("MIeOwU", "outerthickness", 1);
+    let bounded_components = create.parameter("t7c4mp", "bounded components", 2);
     let dist_to_complete = create.distance_to(&complete, 6);
     let dist_to_co_cluster = create.distance_to(&co_cluster, 7);
     let dist_to_cograph = create.distance_to(&cograph, 5);
@@ -188,7 +177,6 @@ pub fn build_collection() -> RawData {
     let dist_to_planar = create.distance_to(&planar, 4);
     let dist_to_chordal = create.distance_to(&chordal, 5);
     let dist_to_stars = create.distance_to(&stars, 3);
-    let dist_to_const_components = create.distance_to(&const_components, 2);
     let dist_to_perfect = create.distance_to(&perfect, 4);
     let dist_to_interval = create.distance_to(&interval, 3);
     let dist_to_max_degree = create.distance_to(&max_degree, 4);
@@ -230,7 +218,8 @@ pub fn build_collection() -> RawData {
     let by_definition = "By definition";
     let cliques_make_it_unbounded = "Parameter is unbounded for the graph class of cliques.";
 
-    let tmp_8mm5qj = create.intersection("8Mm5qJ", &bipartite, &max_matching, "maximum matching on bipartite graphs"); // todo hide
+    let tmp_8mm5qj = create.intersection("8Mm5qJ", &bipartite, &max_matching, "maximum matching on bipartite graphs");
+
     create.unknown_source()
         .defined("XK5Xxy", Unknown, &linear_forest, "Disjoint union of paths.")
         .showed("8Mm5qJ", Unknown, &tmp_8mm5qj, &vertex_cover, Exactly(Linear), "Kőnig's theorem")
@@ -254,7 +243,6 @@ pub fn build_collection() -> RawData {
         .showed("d2ZJIh", Unknown, &dist_to_linear_forest, &pathwidth, UpperBound(Linear), "After removal of $k$ vertices the remaining class has a bounded width $w$. So by including the removed vertices in every bag, we can achieve decomposition of width $w+k$")
         .showed("d2ZJIh", Unknown, &dist_to_outerplanar, &treewidth, UpperBound(Linear), "After removal of $k$ vertices the remaining class has a bounded width $w$. So by including the removed vertices in every bag, we can achieve decomposition of width $w+k$")
         .showed("VS44M7", Unknown, &vertex_integrity, &treedepth, UpperBound(Linear), "First, treedepth removes vertices of the modulator, then it iterates through remaining components one by one.")
-        // .showed("D0wE7A", Unknown, &dist_to_const_components, &vertex_integrity, UpperBound(Linear), "The remaining components in vertex integrity are parameter-sized which can be always made bigger than constant-sized components.")
         .showed("rmLeo2", Unknown, &dist_to_stars, &treedepth, UpperBound(Linear), "First, treedepth removes vertices of the modulator, remainder has treedepth $2$")
         .showed("bYybsT", Unknown, &dist_to_complete, &clique_cover_num, UpperBound(Linear), "We cover the $k$ vertices of the modulator by cliques of size $1$ and cover the remaining clique by another one.")
         .showed("gGtTUf", Unknown, &max_independent_set, &domination_num, UpperBound(Linear), "Every maximal independent set is also a dominating set because any undominated vertex could be added to the independent set.")
@@ -268,7 +256,6 @@ pub fn build_collection() -> RawData {
         .showed("CyAMhs", Unknown, &acyclic_chromatic_number, &boxicity, UpperBound(Exists), "")
         .showed("pUfoGn", Unknown, &hindex, &dist_to_max_degree, UpperBound(Linear), "Remove the $h$ vertices of degree at least $h$ to get a graph that has maximum degree $h$.")
         .showed("8ZzI5w", Unknown, &dist_to_max_degree, &hindex, UpperBound(Linear), "Removal of $k$ vertices yielding a graph with maximum degree $c$ means that there were $k$ vertices of arbitrary degree and the remaining vertices had degree at most $k+c$. Hence, $h$-index is no more than $k+c$.")
-        .showed("wKpSGF", Unknown, &bounded_degree, &max_degree, UpperBound(Constant), by_definition)
         .showed("YOBod9", Unknown, &vertex_connectivity, &dist_to_disconnected, Equivalence, by_definition)
         .showed("Bzw7GY", Unknown, &dist_to_cograph, &clique_width, UpperBound(Exists), "")
         .showed("fedm1t", Unknown, &dist_to_cograph, &chordality, UpperBound(Exists), "")
@@ -281,7 +268,6 @@ pub fn build_collection() -> RawData {
         .showed("unkZhD", Unknown, &max_independent_set, &max_induced_matching, UpperBound(Linear), "Each edge of the induced matching can host at one vertex of the independent set.")
         .showed("RqDij1", Unknown, &vertex_cover, &neighborhood_diversity, UpperBound(Exponential), "")
         .showed("a2DTDH", Unknown, &twin_cover_num, &neighborhood_diversity, Exclusion, "")
-        .showed("OoSnHu", Unknown, &twin_cover_num, &shrub_depth, UpperBound(Linear), "") // todo
         .showed("Pinlr2", Unknown, &linear_clique_width, &clique_width, UpperBound(Exists), "")
         .showed("OUUh3y", Unknown, &clique_width, &boolean_width, UpperBound(Linear), "")
         .showed("hgUvsR", Unknown, &boolean_width, &clique_width, UpperBound(Exponential), "")
@@ -343,16 +329,28 @@ pub fn build_collection() -> RawData {
         .showed("EZdonY", Unknown, &planar, &girth, Exclusion, "")
         .showed("cIAr80", Unknown, &planar, &max_degree, Exclusion, "")
         .showed("DxmXhS", Unknown, &planar, &dist_to_perfect, Exclusion, "")
-        .showed("QeiwSR", Unknown, &const_components, &cutwidth, UpperBound(Constant), "")
-        .showed("EjGaM8", Unknown, &const_components, &dist_to_perfect, Exclusion, "")
         .showed("VAAXVv", Unknown, &vertex_integrity, &neighborhood_diversity, Exclusion, "")
-        .showed("bQLN2O", Unknown, &const_components, &dist_to_planar, Exclusion, "")
         .showed("CoBOm0", Unknown, &stars, &hindex, Exclusion, "")
         .showed("Ei8B1H", Unknown, &stars, &vertex_integrity, Exclusion, "")
         .showed("ORlCs0", Unknown, &disjoint_cycles, &dist_to_perfect, Exclusion, "")
         .showed("tZrOta", Unknown, &cycle, &max_leaf_num, UpperBound(Constant), "")
         .showed("cYF2KU", Unknown, &cycle, &girth, Exclusion, "")
         .showed("CkDe7e", Unknown, &max_leaf_num, &feedback_edge_set, UpperBound(Polynomial), "M. Bentert (personal communication)") // todo not unknown
+        .showed("QeiwSR", NotApplicable, &bounded_components, &cutwidth, UpperBound(Polynomial), "By greedily placing one component after another.")
+        .showed("EjGaM8", NotApplicable, &bounded_components, &dist_to_perfect, Exclusion, "By a disjoint union of small components with distance to perfect at least 1.")
+        .showed("bQLN2O", NotApplicable, &bounded_components, &dist_to_planar, Exclusion, "By a disjoint union of many $K_5$ graphs.")
+        .showed("yWSq1V", NotApplicable, &edgeless, &bounded_components, UpperBound(Constant), by_definition)
+        .showed("KxMj5k", NotApplicable, &grid, &max_degree, UpperBound(Constant), by_definition)
+        .showed("TxxhnK", NotApplicable, &bounded_components, &max_degree, UpperBound(Linear), by_definition)
+        .showed("ZEEhCr", NotApplicable, &linear_forest, &max_degree, UpperBound(Constant), by_definition)
+        .showed("a3JKzR", NotApplicable, &cycles, &max_degree, UpperBound(Constant), by_definition)
+        .showed("MQ0K6A", NotApplicable, &star, &vertex_cover, UpperBound(Constant), "trivially")
+        .showed("btFVbS", NotApplicable, &star, &hindex, UpperBound(Constant), "trivially")
+        .showed("A2vYf3", NotApplicable, &tree, &hindex, Exclusion, "trivially")
+        .showed("vPk1LG", NotApplicable, &path, &dist_to_cluster, Exclusion, "trivially")
+        .showed("dy8lvH", NotApplicable, &path, &diameter, Exclusion, "trivially")
+        .showed("DsZGLl", NotApplicable, &cycles, &pathwidth, UpperBound(Constant), "trivially")
+        .showed("K9z178", NotApplicable, &star, &max_degree, Exclusion, "trivially")
         // .showed("D2YglK", Unknown, &create.intersection("QrYeIw", &treewidth, &max_degree, "treewidth+maxdegree"), &create.intersection("hljuu8", &clique_width, &max_degree, "cliquewidth+maxdegree"), UpperBound(Linear), "")
         // .showed("JJTNMl", Unknown, &create.intersection("nP3xBv", &clique_width, &max_degree, "cliquewidth+maxdegree"), &create.intersection("iPgGur", &treewidth, &max_degree, "treewidth+maxdegree"), UpperBound(Linear), "")
         // clique-width = fusing width (operation to merge a color class to a single vertex)
@@ -623,6 +621,8 @@ pub fn build_collection() -> RawData {
         .showed("dvqfqQ", Pp(3), &pathwidth, &linear_rank_width, UpperBound(Linear), "Lemma 5. Any graph $G$ satisfies $\\mathrm{lrw}(G) \\le \\mathrm{pw}(G)$.")
         .todo();
     let twin_cover_2015 = create.source("VQLE2i", "ganianTwinCover2015")
+        .defined("J1sHj8", Pp(5), &twin_cover_num, "Definition 3 A set of vertices $X \\subseteq V(G)$ is a twin-cover of $G$ if for every edge $e = ab \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are true twins. We then say that $G$ has twin-cover $k$ if the size of a minimum twin-cover of $G$ is $k$.")
+        .showed("OoSnHu", Pp(20), &twin_cover_num, &shrub_depth, UpperBound(Constant), "Let $\\mathcal H_k$ be the class of graphs of twin-cover $k$. Then $\\mathcal H_k \\subseteq \\mathcal{TM}_{2^k+k}(2)$ and a tree-model of any $G \\in \\mathcal H_k$ may be constructed in single-exponential FPT time.")
         .todo();
     let parameterized_algorithms2015 = create.source("Xlsyce", "ParameterizedAlgorithms2015")
         .todo();
@@ -739,7 +739,7 @@ pub fn build_collection() -> RawData {
         // // .defined("M6H2kI", , &reduced_bandwidth, "")
         // .todo();
     let tran2022 = create.source("uXViPE", "Tran2022")
-        .defined("J1sHj8", Pp(14), &twin_cover_num, "An edge $\\{v,w\\}$ is a twin edge if vertices $v$ and $w$ have the same neighborhood excluding each other. The twin cover number $tcn(G)$ of a graph $G$ is the size of a smallest set $V' \\subseteq V(G)$ of vertices such that every edge in $E(G)$ is either a twin edge or incident to a vertex in $V'$")
+        // .defined("J1sHj8", Pp(14), &twin_cover_num, "An edge $\\{v,w\\}$ is a twin edge if vertices $v$ and $w$ have the same neighborhood excluding each other. The twin cover number $tcn(G)$ of a graph $G$ is the size of a smallest set $V' \\subseteq V(G)$ of vertices such that every edge in $E(G)$ is either a twin edge or incident to a vertex in $V'$")
         .defined("MlTT7n", Pp(14), &edge_clique_cover, "The edge clique cover number $eccn(G)$ of a graph $G$ is the minimum number of complete subgraphs required such that each edge is contained in at least one of them.")
         .defined("iAkCJ3", Pp(14), &neighborhood_diversity, "The neighborhood diversity $nd(G)$ of a graph $G$ is the smallest number $k$ such that there is a $k$-partition $(V_1,\\dots,V_k)$ of $G$, where each subset $V_i$, $i \\in [k]$ is a module and is either a complete set or an independent set.")
         .defined("i3su9L", Pp(14), &modular_width, "The modular-width $mw(G)$ of a graph $G$ is the smallest number $h$ such that a $k$-partition $(V_1,\\dots,V_k)$ of $G$ exists, where $k \\le h$ and each subset $V_i$, $i \\in [k]$ is a module and either contains a single vertex or for which the modular-subgraph $G[V_i]$ has a modular-width of $h$.")
@@ -885,12 +885,3 @@ pub fn build_collection() -> RawData {
 // hbfWwE
 // 2LDMQ6
 // zUv8EU
-// JfILGT
-// 0vL13U
-// K9z178
-// DsZGLl
-// dy8lvH
-// vPk1LG
-// A2vYf3
-// btFVbS
-// MQ0K6A

@@ -1,7 +1,10 @@
 
+use std::collections::HashMap;
+
 use biblatex::Entry;
 
-use crate::data::data::{Date, Relation, Showed, ShowedFact};
+use crate::data::data::{Date, Relation, Showed, ShowedFact, Source};
+use crate::general::enums::SourceKey;
 use crate::input::raw::*;
 use crate::data::preview::*;
 
@@ -37,22 +40,22 @@ impl Into<PreviewSet> for RawSet {
     }
 }
 
-impl Into<Showed> for RawShowed {
-    fn into(self) -> Showed {
+impl RawShowed {
+    pub fn preprocess(self, sourcekey: &SourceKey) -> Showed {
         Showed {
             id: self.id,
             text: self.text,
-            fact: self.fact.into(),
+            fact: self.fact.preprocess(&sourcekey),
             page: self.page,
         }
     }
 }
 
-impl Into<ShowedFact> for RawShowedFact {
-    fn into(self) -> ShowedFact {
+impl RawShowedFact {
+    pub fn preprocess(self, sourcekey: &SourceKey) -> ShowedFact {
         match self {
             Self::Relation(x) => ShowedFact::Relation(x.into()),
-            Self::Citation(x) => ShowedFact::Citation(x.preprocess()),
+            Self::Citation(x) => ShowedFact::Citation(x.preprocess(&sourcekey)),
             Self::Definition(x) => ShowedFact::Definition(x.into()),
         }
     }
@@ -84,10 +87,10 @@ impl Into<PreviewRelation> for RawRelation {
 }
 
 impl RawSource {
-    pub fn preprocess(self) -> PreviewSource {
+    pub fn preprocess(self, sourcekey: &SourceKey) -> PreviewSource {
         PreviewSource {
             id: self.id,
-            sourcekey: self.rawsourcekey.into(),
+            sourcekey: sourcekey.clone(),
             time: Date::empty(),
         }
     }

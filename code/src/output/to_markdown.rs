@@ -1,3 +1,4 @@
+
 use crate::data::data::{Showed, ShowedFact, SourceSubset};
 use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey};
 use crate::general::enums::{CpxInfo, CpxTime, Page, SourceKey};
@@ -25,12 +26,13 @@ impl ToMarkdown for Page {
 impl ToMarkdown for CpxTime {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         Some(match self {
-            CpxTime::Constant => "$\\mathcal O(1)$".into(),
-            CpxTime::Linear => "$\\mathcal O(k)$".into(),
-            CpxTime::Polynomial => "$k^{\\mathcal O(1)}$".into(),
-            CpxTime::Exponential => "$2^{\\mathcal O(k)}$".into(),
-            CpxTime::Tower => "$\\mathrm{tower}(k)$".into(),
-            CpxTime::Exists => "$f(k)$".into(),
+            // formed to continue line "upper bounded by ..."
+            CpxTime::Constant => "a constant".into(),
+            CpxTime::Linear => "a linear function".into(),
+            CpxTime::Polynomial => "$a polynomial function$".into(),
+            CpxTime::Exponential => "an exponential function".into(),
+            CpxTime::Tower => "a tower function".into(),
+            CpxTime::Exists => "a computable function".into(),
         })
     }
 }
@@ -49,14 +51,28 @@ impl ToMarkdown for PreviewRelation {
             CpxInfo::Inclusion { mn, mx } => {
                 let lb = mn.to_markdown(builder).unwrap();
                 let ub = mx.to_markdown(builder).unwrap();
-                if *mx == CpxTime::Constant {
-                    Some(format!("{} upper bounds {} by a constant", subset_string, superset_string))
-                } else if mn == mx {
-                    Some(format!("{} $k$ implies that {} is {}", subset_string, superset_string, ub)) // todo theta would be better
-                } else if *mn == CpxTime::Constant {
-                    Some(format!("{} $k$ upper bounds {} by {}", subset_string, superset_string, ub))
-                } else {
-                    Some(format!("{} $k$ implies that {} is lower bounded by {} and upper bounded by {}", subset_string, superset_string, lb, ub))
+                match (&self.subset.kind, &self.superset.kind) {
+                    (PreviewKind::Parameter, PreviewKind::Parameter) => {
+                        if *mx == CpxTime::Constant { // preventing the trivial mn==mx on constant lb
+                            Some(format!("{} upper bounds {} by {}", subset_string, superset_string, ub))
+                        } else if mn == mx {
+                            Some(format!("{} upper and lower bounds {} by {}", subset_string, superset_string, ub))
+                        } else if *mn == CpxTime::Constant {
+                            Some(format!("{} upper bounds {} by {}", subset_string, superset_string, ub))
+                        } else {
+                            Some(format!("{} upper bounds {} by {} and lower bounds it by {}", subset_string, superset_string, ub, lb))
+                        }
+                    },
+                    (PreviewKind::GraphClass, PreviewKind::Parameter) => {
+                        assert!(mx == &CpxTime::Constant);
+                        Some(format!("graph class {} has constant {}", subset_string, superset_string))
+                    },
+                    (PreviewKind::Parameter, PreviewKind::GraphClass) => {
+                        Some(format!("graphs with bounded {} are included in graph class {}", subset_string, superset_string))
+                    },
+                    (PreviewKind::GraphClass, PreviewKind::GraphClass) => {
+                        Some(format!("graph class {} is included in graph class {}", subset_string, superset_string))
+                    },
                 }
             },
             CpxInfo::LowerBound { mn } => Some(format!("there exist cases where {} is $k$ but {} is at least {}", subset_string, superset_string, mn.to_markdown(builder).unwrap())),
@@ -85,9 +101,9 @@ impl ToMarkdown for PreviewRelation {
 impl ToMarkdown for PreviewSource {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         match &self.sourcekey {
-            PreviewSourceKey::Bibtex { key } => Some(key.clone()),
-            PreviewSourceKey::Online { url } => Some(url.clone()),
-            PreviewSourceKey::Other { name } => Some(name.clone()),
+            SourceKey::Bibtex { key, entry: _ } => Some(key.clone()),
+            SourceKey::Online { url } => Some(url.clone()),
+            SourceKey::Other { name, description: _ } => Some(name.clone()),
         }
     }
 }
