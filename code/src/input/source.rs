@@ -9,6 +9,25 @@ pub struct RawDataSource<'a> {
     data: &'a mut RawData,
 }
 
+pub struct CollectiveSource<'a> {
+    raw: RawDataSource<'a>,
+    page: Page,
+    text: &'a str,
+}
+
+impl<'a> CollectiveSource<'a> {
+
+    pub fn showed(mut self, id: &str, subset: &RawSet, superset: &RawSet, cpx: Cpx, ) -> Self {
+        self.raw = self.raw.showed(id, self.page.clone(), subset, superset, cpx, self.text);
+        self
+    }
+
+    pub fn done(self) -> RawDataSource<'a> {
+        self.raw
+    }
+
+}
+
 impl<'a> RawDataSource<'a> {
 
     pub fn new(source: &RawSource, data: &'a mut RawData) -> Self {
@@ -80,6 +99,10 @@ impl<'a> RawDataSource<'a> {
             self.data.factoids.push((self.source.clone(), showed));
         }
         self
+    }
+
+    pub fn collective(self, page: Page, text: &'a str) -> CollectiveSource<'a> {
+        CollectiveSource { raw: self, page, text }
     }
 
     pub fn cited(self, id: &str, page: Page, who: RawSource, text: &str) -> Self {

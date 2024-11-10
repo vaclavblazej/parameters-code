@@ -26,6 +26,7 @@ On this page, we depict smaller parameters as being (generally) the ones below.
 
 ### Graph class view
 
+For this viewpoint let us assume that the dependency of an algorithm is proportional to size of the parameter.
 Each parameter can be thought of as a sequence of graph classes, one class for each value of the parameter.
 Then the parameter relations are about inclusions of these sequences.
 In other words, if we fix $k$ and take the class created by all graphs with parameter $A \le k$, is there some $f$ such that all graphs that have parameter $B \le f(k)$ is its graph superclass?
