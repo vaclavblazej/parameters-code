@@ -94,11 +94,17 @@ pub struct RawTopic {
     pub description: String,
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct RawProvider {
+    pub name: String,
+    pub url: String,
+}
+
 pub struct RawData {
     pub sets: Vec<RawSet>,
     pub factoids: Vec<(RawSource, RawShowed)>,
     pub sources: Vec<RawSource>,
-    pub isgci: Vec<(RawSet, u32)>,
+    pub provider_links: HashMap<RawProvider, Vec<String>>,
     pub topics: Vec<RawTopic>,
     pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
 }
@@ -109,7 +115,7 @@ impl RawData {
             sets: Vec::new(),
             factoids: Vec::new(),
             sources: Vec::new(),
-            isgci: Vec::new(),
+            provider_links: HashMap::new(),
             topics: Vec::new(),
             transfer: HashMap::new(),
         }

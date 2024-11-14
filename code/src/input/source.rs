@@ -1,6 +1,6 @@
 use crate::general::enums::{Cpx, Page};
 
-use super::raw::{RawData, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource};
+use super::raw::{RawData, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource, RawProvider};
 use crate::general::enums::CpxInfo::*;
 use crate::general::enums::CpxTime;
 
@@ -13,6 +13,28 @@ pub struct CollectiveSource<'a> {
     raw: RawDataSource<'a>,
     page: Page,
     text: &'a str,
+}
+
+pub struct RawDataProvider<'a> {
+    data: &'a mut RawData,
+    provider: RawProvider,
+    format_url: Box<dyn Fn(&str) -> String>,
+}
+
+impl<'a> RawDataProvider<'a> {
+
+    pub fn new(data: &'a mut RawData, provider: RawProvider, format_url: Box<dyn Fn(&str) -> String>) -> Self {
+        RawDataProvider { data, provider, format_url }
+    }
+
+    pub fn link(mut self, set: &RawSet, id: &str) -> Self {
+        ;
+        let r = self.data.provider_links.entry(self.provider.clone()).or_insert_with(Vec::new);
+        r.push((self.format_url)(id));
+        self
+    }
+
+    pub fn done(self) {}
 }
 
 impl<'a> CollectiveSource<'a> {

@@ -3,8 +3,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::general::enums::{Page, TransferGroup, CpxTime::{Linear, Constant}, Cpx::UpperBound};
-use super::raw::{Composition, RawData, RawKind, RawSet, RawSource, RawSourceKey, RawTopic};
-use super::source::RawDataSource;
+use super::raw::{Composition, RawData, RawKind, RawProvider, RawSet, RawSource, RawSourceKey, RawTopic};
+use super::source::{RawDataSource, RawDataProvider};
 
 pub struct Builder {
     data: RawData,
@@ -212,11 +212,9 @@ impl Builder {
         RawDataSource::new(&res, &mut self.data)
     }
 
-    /// Tie an identifier from the "Information System on Graph Classes
-    /// and their Inclusions" with the defined graph classes or parameters.
-    pub fn isgci(&mut self, set: &RawSet, code: u32) -> &mut Self {
-        self.data.isgci.push((set.clone(), code));
-        self
+    /// Tie to other websites that keep information about parameters.
+    pub fn provider(&mut self, name: &str, url: &str, format_url: Box<dyn Fn(&str) -> String>) -> RawDataProvider {
+        RawDataProvider::new(&mut self.data, RawProvider{name: name.into(), url: url.into()}, format_url)
     }
 
     /// Define a topic or property that some parameters share so they
