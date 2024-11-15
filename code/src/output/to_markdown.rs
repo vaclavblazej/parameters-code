@@ -29,7 +29,7 @@ impl ToMarkdown for CpxTime {
             // formed to continue line "upper bounded by ..."
             CpxTime::Constant => "a constant".into(),
             CpxTime::Linear => "a linear function".into(),
-            CpxTime::Polynomial => "$a polynomial function$".into(),
+            CpxTime::Polynomial => "a polynomial function".into(),
             CpxTime::Exponential => "an exponential function".into(),
             CpxTime::Tower => "a tower function".into(),
             CpxTime::Exists => "a computable function".into(),

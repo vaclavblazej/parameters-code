@@ -20,7 +20,7 @@ impl Builder {
         let unknown_source = RawSource {
             id: "myit4D".into(),
             rawsourcekey: RawSourceKey::Other {
-                name: "unknown".into(),
+                name: "unknown source".into(),
                 description: "This knowledge was added to the database without tying it to an appropriate resource.".into(),
             },
         };

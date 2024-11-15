@@ -52,26 +52,13 @@ pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashMap<Pr
         if current_distance >= distance {
             continue;
         }
-        // todo logic repeated 3x
-        for sset in &set.equivsets {
-            if !visited.contains_key(sset) {
-                let new_distance = current_distance + 1;
-                visited.insert(sset.clone(), new_distance);
-                queue.push_back((sset.clone(), new_distance));
-            }
-        }
-        for sset in &set.subsets.minimal {
-            if !visited.contains_key(sset) {
-                let new_distance = current_distance + 1;
-                visited.insert(sset.clone(), new_distance);
-                queue.push_back((sset.clone(), new_distance));
-            }
-        }
-        for sset in &set.supersets.maximal {
-            let new_distance = current_distance + 1;
-            if !visited.contains_key(sset) {
-                visited.insert(sset.clone(), new_distance);
-                queue.push_back((sset.clone(), new_distance));
+        for bigset in [&set.equivsets, &set.subsets.minimal, &set.supersets.maximal] {
+            for sset in bigset {
+                if !visited.contains_key(sset) {
+                    let new_distance = current_distance + 1;
+                    visited.insert(sset.clone(), new_distance);
+                    queue.push_back((sset.clone(), new_distance));
+                }
             }
         }
     }
