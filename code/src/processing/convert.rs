@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use biblatex::Entry;
 
-use crate::data::data::{Date, Relation, Showed, ShowedFact, Source};
+use crate::data::data::{Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source};
 use crate::general::enums::SourceKey;
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -24,6 +24,25 @@ impl Into<PreviewKind> for RawKind {
         match self {
             Self::Parameter => PreviewKind::Parameter,
             Self::GraphClass => PreviewKind::GraphClass,
+        }
+    }
+}
+
+impl Into<Provider> for RawProvider {
+    fn into(self) -> Provider {
+        Provider {
+            name: self.name,
+            url: self.url,
+        }
+    }
+}
+
+impl RawProviderLink {
+    pub fn preprocess(self, provider: &Provider) -> ProviderLink {
+        ProviderLink {
+            provider: provider.clone(),
+            set: self.set.into(),
+            url: self.url.into(),
         }
     }
 }

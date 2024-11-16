@@ -84,7 +84,7 @@ pub struct Set {
     pub id: String,
     pub name: String,
     pub kind: PreviewKind,
-    // pub providers: Vec<Provider>, // todo isgci, (and others?)
+    pub providers: Vec<ProviderLink>,
     pub timeline: Vec<SourceSubset>,
     pub equivsets: Vec<PreviewSet>,
     pub supersets: Sets,
@@ -95,7 +95,20 @@ pub struct Set {
     // pub transfers: HashMap<TransferGroup, Vec<PreviewSet>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
+pub struct Provider {
+    pub name: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProviderLink {
+    pub provider: Provider,
+    pub set: PreviewSet,
+    pub url: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct Source {
     pub preview: PreviewSource,
     pub id: String,
@@ -109,12 +122,13 @@ pub struct Data {
     pub relations: Vec<Relation>,
     pub urls: HashMap<String, Box<dyn Linkable>>,
     pub sources: Vec<Source>,
+    pub providers: Vec<Provider>,
     pub set_idx: HashMap<PreviewSet, usize>,
     pub relation_idx: HashMap<(PreviewSet, PreviewSet), usize>,
 }
 
 impl Data {
-    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, urls: HashMap<String, Box<dyn Linkable>>, sources: Vec<Source>) -> Self {
+    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, urls: HashMap<String, Box<dyn Linkable>>, sources: Vec<Source>, providers: Vec<Provider>) -> Self {
         let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
         for (idx, set) in sets.iter().enumerate() {
             set_idx.insert(set.preview.clone(), idx);
@@ -130,6 +144,7 @@ impl Data {
             relations,
             urls,
             sources,
+            providers,
             set_idx,
             relation_idx,
         }

@@ -1,6 +1,6 @@
 use crate::general::enums::{Cpx, Page};
 
-use super::raw::{RawData, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource, RawProvider};
+use super::raw::{RawData, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource, RawProvider, RawProviderLink};
 use crate::general::enums::CpxInfo::*;
 use crate::general::enums::CpxTime;
 
@@ -28,9 +28,12 @@ impl<'a> RawDataProvider<'a> {
     }
 
     pub fn link(mut self, set: &RawSet, id: &str) -> Self {
-        ;
         let r = self.data.provider_links.entry(self.provider.clone()).or_insert_with(Vec::new);
-        r.push((self.format_url)(id));
+        let provider_link = RawProviderLink{
+            set: set.clone(),
+            url: (self.format_url)(id),
+        };
+        r.push(provider_link);
         self
     }
 

@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Entry};
 
-use crate::{data::{data::{Data, Date, Linkable, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
+use crate::{data::{data::{Data, Date, Linkable, Relation, Set, Showed, ShowedFact, Source, SourceSubset, Provider}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -110,19 +110,22 @@ pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources:
         unknown_map.remove(&s);
     }
     let unknown = unknown_map.iter().cloned().collect();
-    // let mut providers = vec![]; // todo
-    // for (rawset, num) in &data.isgci {
-        // if *rawset == *set {
-            // providers.push(Provider::Isgci(*num));
-        // }
-    // }
+    let mut providers = vec![];
+    for (rawprovider, links) in &data.provider_links {
+        let provider : Provider = rawprovider.clone().into();
+        for link in links {
+            if *set.id == *link.set.id {
+                providers.push(link.clone().preprocess(&provider));
+            }
+        }
+    }
     // let transfers = HashMap::new(); // todo
     Set{
         preview: set.clone().into(),
         id: set.id.clone(),
         name: set.name.clone(),
         kind: set.kind.clone().into(),
-        // providers,
+        providers,
         timeline,
         // transfers,
         equivsets: help.get_equiv(&set),
@@ -493,6 +496,10 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
             RawShowedFact::Definition(_) => (),
         }
     }
+    let mut providers = vec![];
+    for (raw_provider, _) in &rawdata.provider_links {
+        providers.push(raw_provider.clone().into());
+    }
     let mut transfers: HashMap::<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>> = HashMap::new();
     for (key, raw_pairs) in &rawdata.transfer {
         let mut res: HashMap<PreviewSet, Vec<PreviewSet>> = HashMap::new();
@@ -528,5 +535,5 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     for source in &sources {
         linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
     }
-    Data::new(sets, relations, linkable, sources)
+    Data::new(sets, relations, linkable, sources, providers)
 }

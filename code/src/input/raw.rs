@@ -100,11 +100,17 @@ pub struct RawProvider {
     pub url: String,
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct RawProviderLink {
+    pub set: RawSet,
+    pub url: String,
+}
+
 pub struct RawData {
     pub sets: Vec<RawSet>,
     pub factoids: Vec<(RawSource, RawShowed)>,
     pub sources: Vec<RawSource>,
-    pub provider_links: HashMap<RawProvider, Vec<String>>,
+    pub provider_links: HashMap<RawProvider, Vec<RawProviderLink>>,
     pub topics: Vec<RawTopic>,
     pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
 }
