@@ -83,19 +83,19 @@ pub fn build_collection() -> RawData {
     let top_drawing = create.topic("lJJaYb", "drawing", "Closely tied to drawing the graph onto a topological space.");
 
     let vertex_cover = create.parameter("4lp9Yj", "vertex cover", 9);
-    let max_matching = create.parameter("veU7Jf", "maximum matching", 4);
+    let max_matching = create.parameter("veU7Jf", "maximum matching", 3);
     let vertex_integrity = create.parameter("KVhJFB", "vertex integrity", 6);
-    let treedepth = create.parameter("KEP2qM", "treedepth", 8);
+    let treedepth = create.parameter("KEP2qM", "treedepth", 7);
     let clique_cover_num = create.parameter("VomShB", "clique cover number", 5);
-    let max_independent_set = create.parameter("mHtXUU", "maximum independent set", 3);
-    let domination_num = create.parameter("Gq0onN", "domination number", 4);
+    let max_independent_set = create.parameter("mHtXUU", "maximum independent set", 2);
+    let domination_num = create.parameter("Gq0onN", "domination number", 3);
     let twin_cover_num = create.parameter("MUnHA0", "twin-cover number", 5);
     let edge_clique_cover = create.parameter("nYQDv6", "edge clique cover number", 4);
     let neighborhood_diversity = create.parameter("vMs3RS", "neighborhood diversity", 6);
     let modular_width = create.parameter("4bj71L", "modular-width", 7);
-    let max_leaf_num = create.parameter("BN92vX", "maximum leaf number", 5);
-    let feedback_edge_set = create.parameter("HTk9PZ", "feedback edge set", 8);
-    let genus = create.parameter("gbaHdw", "genus", 3); // top_drawing
+    let max_leaf_num = create.parameter("BN92vX", "maximum leaf number", 6);
+    let feedback_edge_set = create.parameter("HTk9PZ", "feedback edge set", 6);
+    let genus = create.parameter("gbaHdw", "genus", 2); // top_drawing
     let cutwidth = create.parameter("TLx1pz", "cutwidth", 4);
     let carving_width = create.parameter("dS6OgO", "carving-width", 3);
     let bandwidth = create.parameter("aP5a38", "bandwidth", 5);
@@ -103,21 +103,21 @@ pub fn build_collection() -> RawData {
     let bisection_bandwidth = create.parameter("wUdmUb", "bisection bandwidth", 4);
     let reduced_bandwidth = create.reduced("reduced bandwidth", &bandwidth, 2);
     let max_degree = create.parameter("UyQ5yM", "maximum degree", 8);
-    let c_closure = create.parameter("ou9VU1", "c-closure", 1);
-    let feedback_vertex_set = create.parameter("GNOiyB", "feedback vertex set", 9);
-    let shrub_depth = create.parameter("NTgNzT", "shrub-depth", 5);
+    let c_closure = create.parameter("ou9VU1", "c-closure", 0);
+    let feedback_vertex_set = create.parameter("GNOiyB", "feedback vertex set", 8);
+    let shrub_depth = create.parameter("NTgNzT", "shrub-depth", 6);
     let linear_clique_width = create.parameter("fQj3wU", "linear clique-width", 5);
-    let pathwidth = create.parameter("VHClqR", "pathwidth", 9);
+    let pathwidth = create.parameter("VHClqR", "pathwidth", 8);
     let pathwidth_maxdeg = create.intersection("6BWcgd", &pathwidth, &max_degree, "pathwidth+maxdegree", 3);
     let d_path_free = create.parameter("s4EiWI", "d-path-free", 2); // todo
     let treewidth = create.parameter("5Q7fuR", "treewidth", 9);
-    let branch_width = create.parameter("lIcmuR", "branch width", 6);
-    let clique_width = create.parameter("wg5HuV", "clique-width", 8);
+    let branch_width = create.parameter("lIcmuR", "branch width", 5);
+    let clique_width = create.parameter("wg5HuV", "clique-width", 7);
     let clique_tree_width = create.parameter("7P9WUz", "clique-tree-width", 2);
     let rank_width = create.parameter("fojquT", "rank-width", 7);
     let linear_rank_width = create.parameter("cHugsk", "linear rank-width", 2);
     let boolean_width = create.parameter("A2jPWT", "boolean width", 5);
-    let inf_flip_width = create.parameter("nYXiuT", "inf-flip-width", 2);
+    let inf_flip_width = create.parameter("nYXiuT", "inf-flip-width", 3);
     let degree_treewidth = create.intersection("nCWUh3", &max_degree, &treewidth, "degree treewidth", 6);
     let twin_width = create.reduced("twin-width", &max_degree, 8);
     let r_flip_width = create.parameter("4DIiH0", "radius-r flip-width", 3);
@@ -125,32 +125,32 @@ pub fn build_collection() -> RawData {
     // .showed("1IL2wn", NotApplicable, &book_thickness, &create.edge_cover_by(&outerplanar), Equivalence, "") //but with fixed vertices
     let hindex = create.parameter("GNTwUS", "h-index", 4);
     let acyclic_chromatic_number = create.parameter("QGZuUW", "acyclic chromatic number", 5);
-    let odd_cycle_transversal = create.parameter("Ve5ruW", "odd cycle transversal", 7);
+    let odd_cycle_transversal = create.parameter("Ve5ruW", "odd cycle transversal", 6);
     let degeneracy = create.parameter("VowkuW", "degeneracy", 6);
-    let chromatic_num = create.parameter("w7MmyW", "chromatic number", 4);
-    let average_degree = create.parameter("z0y4TW", "average degree", 3);
-    let min_degree = create.parameter("GPmOeT", "minimum degree", 1);
+    let chromatic_num = create.parameter("w7MmyW", "chromatic number", 5);
+    let average_degree = create.parameter("z0y4TW", "average degree", 2);
+    let min_degree = create.parameter("GPmOeT", "minimum degree", 0);
     let max_clique = create.parameter("q7zHeT", "maximum clique", 5);
     let edge_connectivity = create.parameter("JbqZoT", "edge connectivity", 2);
     let vertex_connectivity = create.parameter("OyLUe4", "vertex connectivity", 2);
     let boxicity = create.parameter("a7MpiT", "boxicity", 6);
     let chordality = create.parameter("fTqo40", "chordality", 4);
     let max_induced_matching = create.parameter("GzMYlT", "maximum induced matching", 3);
-    let diameter = create.parameter("p4bTjp", "diameter", 7);
+    let diameter = create.parameter("p4bTjp", "diameter", 6);
     let average_distance = create.parameter("zH8PpT", "average distance", 3);
     let girth = create.parameter("BCwUeT", "girth", 1);
     let domatic_num = create.parameter("KRV6tI", "domatic number", 3);
-    let arboricity = create.parameter("zgMenA", "arboricity", 4);
+    let arboricity = create.parameter("zgMenA", "arboricity", 5);
     let star_arboricity = create.parameter("Mvz8MX", "star-arboricity", 1);
-    let mim_width = create.parameter("WmIFB1", "mim-width", 5);
+    let mim_width = create.parameter("WmIFB1", "mim-width", 6);
     let nlc_width = create.parameter("Xrpbv7", "NLC-width", 4);
     let nlct_width = create.parameter("mOri44", "NLCT-width", 2);
     let linear_nlc_width = create.parameter("v09DMY", "linear NLC-width", 2);
-    let thickness = create.parameter("sxTPYj", "thickness", 2);
+    let thickness = create.parameter("sxTPYj", "thickness", 3);
     let outerthickness = create.parameter("MIeOwU", "outerthickness", 1);
-    let bounded_components = create.parameter("t7c4mp", "bounded components", 2);
+    let bounded_components = create.parameter("t7c4mp", "bounded components", 3);
     let dist_to_complete = create.distance_to(&complete, 6);
-    let dist_to_co_cluster = create.distance_to(&co_cluster, 7);
+    let dist_to_co_cluster = create.distance_to(&co_cluster, 5);
     let dist_to_cograph = create.distance_to(&cograph, 5);
     let dist_to_cluster = create.distance_to(&cluster, 5);
     let dist_to_linear_forest = create.distance_to(&linear_forest, 4);
@@ -160,7 +160,7 @@ pub fn build_collection() -> RawData {
     let dist_to_forest = create.distance_to(&forest, 5);
     let dist_to_bipartite = create.distance_to(&bipartite, 6);
     let dist_to_planar = create.distance_to(&planar, 4);
-    let dist_to_chordal = create.distance_to(&chordal, 5);
+    let dist_to_chordal = create.distance_to(&chordal, 4);
     let dist_to_stars = create.distance_to(&stars, 3);
     let dist_to_perfect = create.distance_to(&perfect, 4);
     let dist_to_interval = create.distance_to(&interval, 3);
@@ -740,7 +740,7 @@ pub fn build_collection() -> RawData {
         .showed("hoJGBX", Pp(35), &average_degree, &max_clique, Exclusion, "Proposition 3.35")
         .showed("JRqAlT", Pp(36), &average_degree, &chordality, Exclusion, "Proposition 3.36")
         .todo();
-    let reduced_edgeless = create.reduced("reduced edgeless", &edgeless, 1);
+    let reduced_edgeless = create.reduced("reduced edgeless", &edgeless, 0);
     let twin_width_1_2021 = create.source("nyaOye", "twinWidthI2021")
         .defined("s5Ktq7", Pp(2), &twin_width, "... we consider a sequence of graphs $G_n,G_{n-1},\\dots,G_2,G_1$, where $G_n$ is the original graph $G$, $G_1$ is the one-vertex graph, $G_i$ has $i$ vertices, and $G_{i-1}$ is obtained from $G_i$ by performing a single contraction of two (non-necessarily adjacent) vertices. For every vertex $u \\in V(G_i)$, let us denote by $u(G)$ the vertices of $G$ which have been contracted to $u$ along the sequence $G_n,\\dots,G_i$. A pair of disjoint sets of vertices is \\emph{homogeneous} if, between these sets, there are either all possible edges or no edge at all. The red edges ... consist of all pairs $uv$ of vertices of $G_i$ such that $u(G)$ and $v(G)$ are not homogeneous in $G$. If the red degree of every $G_i$ is at most $d$, then $G_n,G_{n-1},\\dots,G_2,G_1$ is called a \\emph{sequence of $d$-contractions}, or \\emph{$d$-sequence}. The twin-width of $G$ is the minimum $d$ for which there exists a sequence of $d$-contractions.")
         .showed("0RiLv2", Pp(15), &grid, &twin_width, UpperBound(Constant), "Theorem 4.3. For every positive integers $d$ and $n$, the $d$-dimensional $n$-grid has twin-width at most $3d$.")

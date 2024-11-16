@@ -45,6 +45,15 @@ fn base(id: &String) -> String {
     format!("{{{{< base >}}}}html/{}", id)
 }
 
+fn progress(value: u32, maxval: u32) -> String {
+    let filledstr = "█".repeat(value as usize);
+    let emptystr = "░".repeat((maxval-value) as usize);
+    let mut res = String::new();
+    res.push_str(filledstr.as_str());
+    res.push_str(emptystr.as_str());
+    res
+}
+
 impl Linkable for PreviewRelation {
     fn get_url(&self) -> String {
         base(&self.id)
@@ -243,7 +252,8 @@ impl<'a> Markdown<'a> {
                     content += "| Parameter ⮁ | Relevance ⮁ |\n";
                     content += "| ----------- | ----------- |\n";
                     for set in &pars {
-                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), set.preview.relevance);
+                        let relstring = progress(set.preview.relevance, 9);
+                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), relstring);
                     }
                 }
                 "graphs" => {
@@ -252,7 +262,8 @@ impl<'a> Markdown<'a> {
                     content += "| Graph class ⮁ | Relevance ⮁ |\n";
                     content += "| ------------- | ----------- |\n";
                     for set in graphs {
-                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), set.preview.relevance);
+                        let relstring = progress(set.preview.relevance, 9);
+                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), relstring);
                     }
                 },
                 "sources" => {
