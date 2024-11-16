@@ -129,13 +129,13 @@ impl Builder {
 
     /// Add a parameter defined as the minimum number of graphs from another set required
     /// to cover the edges of the input graph.
-    pub fn edge_cover_by(&mut self, set: &RawSet) -> RawSet {
+    pub fn edge_cover_by(&mut self, set: &RawSet, relevance: u32) -> RawSet {
         let res = RawSet {
             id: format!("edge_cover_by_{}", set.id.clone()),
             name: format!("edge cover by {}", set.name.clone()),
             kind: RawKind::Parameter,
             composed: None,
-            relevance: set.relevance,
+            relevance,
             hidden: false,
         };
         self.add_set(&res);
@@ -148,7 +148,7 @@ impl Builder {
     /// Create a new set that represents intersection of sets.
     /// From a view point of classical parameterized complexity
     /// we may understand the intersection as a sum of parameters.
-    pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str) -> RawSet {
+    pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str, relevance: u32) -> RawSet {
         let sets = vec![set_a.clone(), set_b.clone()];
         let (kind, upper_bound) = if sets.iter().all(|x|x.kind == RawKind::GraphClass) {
             (RawKind::GraphClass, UpperBound(Constant))
@@ -160,7 +160,7 @@ impl Builder {
             name: name.into(),
             kind,
             composed: Some(Composition::Intersection(sets.clone())),
-            relevance: 0, // todo
+            relevance,
             hidden: false,
         };
         self.add_set(&res);
@@ -176,13 +176,13 @@ impl Builder {
     /// Defines a new graph class. We do not aim to have all graph
     /// classes in the database but only those that are very relevant
     /// to the field of parameterized complexity.
-    pub fn graph_class(&mut self, id: &str, name: &str) -> RawSet {
+    pub fn graph_class(&mut self, id: &str, name: &str, relevance: u32) -> RawSet {
         let res = RawSet {
             id: id.into(),
             name: name.into(),
             kind: RawKind::GraphClass,
             composed: None,
-            relevance: 0, // todo
+            relevance,
             hidden: false,
         };
         self.add_set(&res);

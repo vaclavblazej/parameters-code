@@ -239,22 +239,28 @@ impl<'a> Markdown<'a> {
             match key.as_str() {
                 "parameters" => {
                     let mut pars = self.data.sets.iter().filter(|&s| s.kind == PreviewKind::Parameter).collect::<Vec<&Set>>();
-                    pars.sort_by_key(|x|&x.name);
+                    pars.sort_by_key(|x|x.name.to_lowercase());
+                    content += "| Parameter ⮁ | Relevance ⮁ |\n";
+                    content += "| ----------- | ----------- |\n";
                     for set in &pars {
-                        content += &format!("* {}\n", self.linkto(&set.preview));
+                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), set.preview.relevance);
                     }
                 }
                 "graphs" => {
                     let mut graphs = self.data.sets.iter().filter(|&s| s.kind == PreviewKind::GraphClass).collect::<Vec<&Set>>();
                     graphs.sort_by_key(|x|&x.name);
+                    content += "| Graph class ⮁ | Relevance ⮁ |\n";
+                    content += "| ------------- | ----------- |\n";
                     for set in graphs {
-                        content += &format!("* {}\n", self.linkto(&set.preview));
+                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), set.preview.relevance);
                     }
                 },
                 "sources" => {
-                    for source in &self.data.sources {
+                    content += "| Order ⮁ | Source ⮁ |\n";
+                    content += "| ------- |--------- |\n";
+                    for (index, source) in self.data.sources.iter().enumerate() {
                         if let SourceKey::Bibtex { key, entry } = &source.sourcekey {
-                            content += &format!("* {}\n", self.linkto(&source.preview));
+                            content += &format!("| {:0>3} | {} |\n", index, self.linkto(&source.preview));
                         }
                     }
                 },

@@ -7,30 +7,30 @@ use crate::input::{raw::RawData, build::Builder};
 pub fn build_collection() -> RawData {
     let mut create = Builder::new();
 
-    let connected = create.graph_class("KlMP0i", "connected");
-    let bipartite = create.graph_class("cLHJkW", "bipartite");
-    let block = create.graph_class("QrxQsH", "block");
-    let chordal = create.graph_class("Cv1PaJ", "chordal");
-    let cluster = create.graph_class("WAU7vf", "cluster");
-    let co_cluster = create.graph_class("7HR4uV", "co-cluster");
-    let cograph = create.graph_class("9Qd0Mx", "cograph");
-    let complete = create.intersection("EhdXNA", &connected, &cluster, "complete");
-    let forest = create.graph_class("JngPPm", "forest");
-    let tree = create.intersection("rJyICu", &connected, &forest, "tree");
-    let interval = create.graph_class("p5skoj", "interval");
-    let edgeless = create.graph_class("LsiBbX", "edgeless");
-    let linear_forest = create.graph_class("skQuFN", "linear forest");
-    let path = create.intersection("ryPlqz", &connected, &linear_forest, "path");
-    let outerplanar = create.graph_class("0oCyaG", "outerplanar");
-    let perfect = create.graph_class("RmssrZ", "perfect");
-    let planar = create.graph_class("loZ5LD", "planar");
-    let stars = create.graph_class("10JR3F", "stars");
-    let star = create.intersection("CortlU", &connected, &stars, "star");
-    let cycles = create.graph_class("2iJr52", "cycles");
-    let cycle = create.intersection("Ti0asF", &connected, &cycles, "cycle");
-    let disjoint_cycles = create.graph_class("AGnF5Z", "disjoint cycles");
-    let grid = create.graph_class("lfYXuK", "grid");
-    let disconnected = create.graph_class("lA0K71", "disconnected");
+    let connected = create.graph_class("KlMP0i", "connected", 2);
+    let bipartite = create.graph_class("cLHJkW", "bipartite", 8);
+    let block = create.graph_class("QrxQsH", "block", 4);
+    let chordal = create.graph_class("Cv1PaJ", "chordal", 5);
+    let cluster = create.graph_class("WAU7vf", "cluster", 6);
+    let co_cluster = create.graph_class("7HR4uV", "co-cluster", 6);
+    let cograph = create.graph_class("9Qd0Mx", "cograph", 7);
+    let complete = create.intersection("EhdXNA", &connected, &cluster, "complete", 9);
+    let forest = create.graph_class("JngPPm", "forest", 9);
+    let tree = create.intersection("rJyICu", &connected, &forest, "tree", 7);
+    let interval = create.graph_class("p5skoj", "interval", 7);
+    let edgeless = create.graph_class("LsiBbX", "edgeless", 1);
+    let linear_forest = create.graph_class("skQuFN", "linear forest", 4);
+    let path = create.intersection("ryPlqz", &connected, &linear_forest, "path", 3);
+    let outerplanar = create.graph_class("0oCyaG", "outerplanar", 5);
+    let perfect = create.graph_class("RmssrZ", "perfect", 6);
+    let planar = create.graph_class("loZ5LD", "planar", 8);
+    let stars = create.graph_class("10JR3F", "stars", 4);
+    let star = create.intersection("CortlU", &connected, &stars, "star", 3);
+    let cycles = create.graph_class("2iJr52", "cycles", 4);
+    let cycle = create.intersection("Ti0asF", &connected, &cycles, "cycle", 2);
+    let disjoint_cycles = create.graph_class("AGnF5Z", "disjoint cycles", 4);
+    let grid = create.graph_class("lfYXuK", "grid", 6);
+    let disconnected = create.graph_class("lA0K71", "disconnected", 1);
     // let all_graphs = create.graph_class("TDTA85", "all graphs"); // hide
 
     create.unknown_source()
@@ -82,7 +82,7 @@ pub fn build_collection() -> RawData {
     let top_metric = create.topic("wpYsel", "metric", "Typically used in metric spaces.");
     let top_drawing = create.topic("lJJaYb", "drawing", "Closely tied to drawing the graph onto a topological space.");
 
-    let vertex_cover = create.parameter("4lp9Yj", "vertex cover", 10);
+    let vertex_cover = create.parameter("4lp9Yj", "vertex cover", 9);
     let max_matching = create.parameter("veU7Jf", "maximum matching", 4);
     let vertex_integrity = create.parameter("KVhJFB", "vertex integrity", 6);
     let treedepth = create.parameter("KEP2qM", "treedepth", 8);
@@ -108,17 +108,17 @@ pub fn build_collection() -> RawData {
     let shrub_depth = create.parameter("NTgNzT", "shrub-depth", 5);
     let linear_clique_width = create.parameter("fQj3wU", "linear clique-width", 5);
     let pathwidth = create.parameter("VHClqR", "pathwidth", 9);
-    let pathwidth_maxdeg = create.intersection("6BWcgd", &pathwidth, &max_degree, "pathwidth+maxdegree");
+    let pathwidth_maxdeg = create.intersection("6BWcgd", &pathwidth, &max_degree, "pathwidth+maxdegree", 3);
     let d_path_free = create.parameter("s4EiWI", "d-path-free", 2); // todo
-    let treewidth = create.parameter("5Q7fuR", "treewidth", 10);
-    let branch_width = create.parameter("lIcmuR", "branch width", 8);
-    let clique_width = create.parameter("wg5HuV", "clique-width", 9);
+    let treewidth = create.parameter("5Q7fuR", "treewidth", 9);
+    let branch_width = create.parameter("lIcmuR", "branch width", 6);
+    let clique_width = create.parameter("wg5HuV", "clique-width", 8);
     let clique_tree_width = create.parameter("7P9WUz", "clique-tree-width", 2);
     let rank_width = create.parameter("fojquT", "rank-width", 7);
     let linear_rank_width = create.parameter("cHugsk", "linear rank-width", 2);
     let boolean_width = create.parameter("A2jPWT", "boolean width", 5);
     let inf_flip_width = create.parameter("nYXiuT", "inf-flip-width", 2);
-    let degree_treewidth = create.intersection("nCWUh3", &max_degree, &treewidth, "degree treewidth");
+    let degree_treewidth = create.intersection("nCWUh3", &max_degree, &treewidth, "degree treewidth", 6);
     let twin_width = create.reduced("twin-width", &max_degree, 8);
     let r_flip_width = create.parameter("4DIiH0", "radius-r flip-width", 3);
     let book_thickness = create.parameter("doijTS", "book thickness", 4); // top_drawing; a.k.a. stacknumber, pagenumber, fixed outerthickness
@@ -240,7 +240,7 @@ pub fn build_collection() -> RawData {
 
     let cliques_make_it_unbounded = "Parameter is unbounded for the graph class of cliques.";
 
-    let tmp_8mm5qj = create.intersection("8Mm5qJ", &bipartite, &max_matching, "maximum matching on bipartite graphs");
+    let tmp_8mm5qj = create.intersection("8Mm5qJ", &bipartite, &max_matching, "maximum matching on bipartite graphs", 0);
 
     create.unknown_source()
         .defined("XK5Xxy", Unknown, &linear_forest, "Disjoint union of paths.")

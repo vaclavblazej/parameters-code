@@ -15,11 +15,17 @@ This page lists:
 
 ## Parameters
 
-[Parameter hierarchy PDF](parameters.pdf)
+### Simplified hierarchy
+
+[Simplified Hasse hierarchy PDF](parameters.pdf)
 
 [[pdf parameters.pdf]]
 
+[Simplified comparison table PDF](table.pdf)
+
 [[pdf table.pdf]]
+
+### All parameters in HOPS
 
 [[list parameters]]
 
