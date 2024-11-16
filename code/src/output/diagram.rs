@@ -30,7 +30,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
         if displayed_sets_preview.contains(&relation.subset) && displayed_sets_preview.contains(&relation.superset) {
             match &relation.cpx {
                 CpxInfo::Equivalence => {
-                    if relation.subset.popularity < relation.superset.popularity {
+                    if relation.subset.relevance < relation.superset.relevance {
                         remove_sets_preview.insert(relation.subset.clone());
                     }
                 },

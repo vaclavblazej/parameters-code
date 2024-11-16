@@ -45,11 +45,11 @@ fn could_be_hidden(map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>, r
             // case 1 -- subset and midset are mutually bounded
             if let Some(same) = map.get(&(midset, &relation.superset)){
                 if rel_can_be_implied_through(map, same, &relation.subset){
-                    // can hide this relation if midset is more popular than subset
-                    if midset.popularity < relation.subset.popularity {
+                    // can hide this relation if midset is more relevant than subset
+                    if midset.relevance < relation.subset.relevance {
                         continue;
                     }
-                    if midset.popularity == relation.subset.popularity
+                    if midset.relevance == relation.subset.relevance
                         && midset.id < relation.subset.id{
                         continue;
                     }
@@ -58,11 +58,11 @@ fn could_be_hidden(map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>, r
             // case 2 -- superset and midset are mutually bounded
             if let Some(same) = map.get(&(&relation.subset, midset)){
                 if rel_can_be_implied_through(map, same, &relation.superset){
-                    // can hide this relation if midset is more popular than superset
-                    if midset.popularity < relation.superset.popularity {
+                    // can hide this relation if midset is more relevant than superset
+                    if midset.relevance < relation.superset.relevance {
                         continue;
                     }
-                    if midset.popularity == relation.subset.popularity
+                    if midset.relevance == relation.subset.relevance
                         && midset.id < relation.subset.id{
                         continue;
                     }

@@ -146,11 +146,11 @@ fn main() {
     let data = process_raw_data(&rawdata, &bibliography_file);
     let final_dir = parent.join("web").join("content");
     let working_dir = current.join("target");
-    let hide_unpopular_parameters_below = 3;
+    let hide_nonrelevant_parameters_below = 3;
     println!("creating main page pdfs");
     let parameters: Vec<&Set> = data.sets.iter()
         .filter(|x|x.kind == PreviewKind::Parameter)
-        .filter(|x|x.preview.popularity >= hide_unpopular_parameters_below)
+        .filter(|x|x.preview.relevance >= hide_nonrelevant_parameters_below)
         .collect();
     if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "parameters", &parameters, None){
         let final_pdf = final_dir.join("html").join("parameters.pdf");
@@ -202,7 +202,7 @@ fn main() {
     let draw_sets: Vec<PreviewSet> = data.sets.iter()
         .map(|x|x.preview.clone())
         .filter(|x|x.kind==PreviewKind::Parameter)
-        .filter(|x|x.popularity >= hide_unpopular_parameters_below)
+        .filter(|x|x.relevance >= hide_nonrelevant_parameters_below)
         .filter(|x|!x.hidden)
         .collect();
     if let Ok(done_pdf) = generate_relation_table(&data, draw_sets, parent) { // todo generalize

@@ -53,7 +53,7 @@ impl Into<PreviewSet> for RawSet {
             id: self.id,
             name: self.name,
             kind: self.kind.into(),
-            popularity: self.popularity,
+            relevance: self.relevance,
             hidden: self.hidden,
         }
     }

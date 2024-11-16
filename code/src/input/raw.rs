@@ -50,7 +50,7 @@ pub struct RawSet {
     pub name: String,
     pub kind: RawKind,
     pub composed: Option<Composition>,
-    pub popularity: u32, // from 0 to 10
+    pub relevance: u32, // from 0 to 10
     pub hidden: bool,
 }
 

@@ -40,7 +40,7 @@ pub struct PreviewSet {
     pub id: String,
     pub name: String,
     pub kind: PreviewKind,
-    pub popularity: u32,
+    pub relevance: u32,
     pub hidden: bool,
 }
 

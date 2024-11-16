@@ -78,13 +78,13 @@ impl Builder {
     /// a separate parameter and then united with Equavilence.
     /// Equivalent parameters whose equivalence is to some degree surprising
     /// their definitions may be kept separate.
-    pub fn parameter(&mut self, id: &str, name: &str, popularity: u32) -> RawSet {
+    pub fn parameter(&mut self, id: &str, name: &str, relevance: u32) -> RawSet {
         let res = RawSet {
             id: id.into(),
             name: name.into(),
             kind: RawKind::Parameter,
             composed: None,
-            popularity,
+            relevance,
             hidden: false,
         };
         self.add_set(&res);
@@ -93,13 +93,13 @@ impl Builder {
 
     /// Add a parameter defined as bounded function of the red degree created
     /// via a contraction sequence.
-    pub fn reduced(&mut self, name: &str, set: &RawSet, popularity: u32) -> RawSet {
+    pub fn reduced(&mut self, name: &str, set: &RawSet, relevance: u32) -> RawSet {
         let res = RawSet {
             id: format!("reduced_{}", set.id.clone()),
             name: name.to_string(),
             kind: RawKind::Parameter,
             composed: None,
-            popularity,
+            relevance,
             hidden: false,
         };
         self.add_set(&res);
@@ -108,13 +108,13 @@ impl Builder {
 
     /// Add a parameter defined as the number of vertices to be removed
     /// until the remaining graph falls in the given set.
-    pub fn distance_to(&mut self, set: &RawSet, popularity: u32) -> RawSet {
+    pub fn distance_to(&mut self, set: &RawSet, relevance: u32) -> RawSet {
         let res = RawSet {
             id: format!("distance_to_{}", set.id.clone()),
             name: format!("distance to {}", set.name.clone()),
             kind: RawKind::Parameter,
             composed: None,
-            popularity,
+            relevance,
             hidden: false,
         };
         self.add_set(&res);
@@ -135,7 +135,7 @@ impl Builder {
             name: format!("edge cover by {}", set.name.clone()),
             kind: RawKind::Parameter,
             composed: None,
-            popularity: set.popularity,
+            relevance: set.relevance,
             hidden: false,
         };
         self.add_set(&res);
@@ -160,7 +160,7 @@ impl Builder {
             name: name.into(),
             kind,
             composed: Some(Composition::Intersection(sets.clone())),
-            popularity: 0, // todo
+            relevance: 0, // todo
             hidden: false,
         };
         self.add_set(&res);
@@ -182,7 +182,7 @@ impl Builder {
             name: name.into(),
             kind: RawKind::GraphClass,
             composed: None,
-            popularity: 0, // todo
+            relevance: 0, // todo
             hidden: false,
         };
         self.add_set(&res);
