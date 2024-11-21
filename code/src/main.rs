@@ -6,8 +6,11 @@ use std::env;
 use std::fs;
 use std::path::{PathBuf,Path};
 use std::process::Command;
+use std::time::Instant;
 
 use anyhow::Result;
+use data::data::Linkable;
+use general::cache::Cache;
 use rayon::prelude::*;
 use data::data::Data;
 use data::data::Relation;
@@ -38,6 +41,7 @@ mod general {
     pub mod enums;
     pub mod file;
     pub mod hide;
+    pub mod cache;
 }
 mod processing {
     pub mod combine;
@@ -129,86 +133,221 @@ fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappabl
 }
 
 fn generate_relation_table(data: &Data, draw_sets: Vec<PreviewSet>,  parent: &Path) -> anyhow::Result<PathBuf> {
-    println!("generating relation table");
     let table_folder = parent.join("scripts").join("table_tikz");
     let table_file = render_table(&data, draw_sets, &table_folder).unwrap();
     Ok(table_file)
 }
 
-fn main() {
-    println!("retrieving data collection");
-    let rawdata = collection::build_collection();
-    println!("processing data");
-    let current = env::current_dir().unwrap();
-    let parent = current.parent().unwrap();
-    let handcrafted_dir = parent.join("handcrafted");
-    let bibliography_file = handcrafted_dir.join("main.bib");
-    let data = process_raw_data(&rawdata, &bibliography_file);
-    let final_dir = parent.join("web").join("content");
-    let working_dir = current.join("target");
-    let hide_nonrelevant_parameters_below = 5;
-    println!("creating main page pdfs");
-    let parameters: Vec<&Set> = data.sets.iter()
-        .filter(|x|x.kind == PreviewKind::Parameter)
-        .filter(|x|x.preview.relevance >= hide_nonrelevant_parameters_below)
-        .collect();
-    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "parameters", &parameters, None){
-        let final_pdf = final_dir.join("html").join("parameters.pdf");
-        println!("copy the pdf to {:?}", &final_pdf);
-        fs::copy(&done_pdf, &final_pdf);
+struct Timer {
+    instant: Instant,
+}
+
+impl Timer {
+    fn new() -> Self {
+        Self{ instant: Instant::now(), }
     }
-    let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::GraphClass).collect();
-    if let Ok(done_pdf) = make_drawing(&data, &current.join("target"), "graphs", &graphs, None){
-        let final_pdf = final_dir.join("html").join("graphs.pdf");
-        println!("copy the pdf to {:?}", &final_pdf);
-        fs::copy(&done_pdf, &final_pdf);
+
+    pub fn print(&self, message: &str) {
+        println!("{:?} {}", self.instant.elapsed(), message);
     }
-    println!("fetching generated pages");
-    let markdown = Markdown::new(&data);
-    let mut generated_pages = HashMap::new();
-    add_content(&data.sets, &final_dir, &mut generated_pages);
-    add_content(&data.sources, &final_dir, &mut generated_pages);
-    println!("fetching handcrafted pages");
-    let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
-    for source in file::iterate_folder_recursively(&handcrafted_dir) {
-        let relative = source.strip_prefix(&handcrafted_dir).unwrap();
-        let target_file = final_dir.join(relative);
-        if source.is_file() {
-            handcrafted_pages.insert(target_file.clone(), source.clone());
-        } else if source.is_dir() {
-            println!("directory {:?}", target_file);
-        } else {
-            println!("unprocessable file {:?}", target_file);
+}
+
+#[derive(Hash, PartialEq, Eq)]
+enum ComputationPhases {
+    PREPROCESS,
+    PDFS,
+    PAGES,
+    TABLE,
+}
+
+struct Computation {
+    args: HashSet<ComputationPhases>,
+    time: Timer,
+    parent: PathBuf,
+    handcrafted_dir: PathBuf,
+    bibliography_file: PathBuf,
+    final_dir: PathBuf,
+    working_dir: PathBuf,
+    html_dir: PathBuf,
+    tmp_dir: PathBuf,
+    hide_nonrelevant_parameters_below: u32,
+    some_data: Option<Data>,
+}
+
+impl Computation {
+
+    fn new() -> Self {
+        let rawargs: Vec<String> = env::args().collect();
+        let mut args = HashSet::new();
+        for arg in rawargs {
+            match arg.as_str() {
+                "preprocess" => {args.insert(ComputationPhases::PREPROCESS);},
+                "pdfs" => {args.insert(ComputationPhases::PDFS);},
+                "pages" => {args.insert(ComputationPhases::PAGES);},
+                "table" => {args.insert(ComputationPhases::TABLE);},
+                "all" => {
+                    args.insert(ComputationPhases::PREPROCESS);
+                    args.insert(ComputationPhases::PDFS);
+                    args.insert(ComputationPhases::PAGES);
+                    args.insert(ComputationPhases::TABLE);
+                },
+                _ => (),
+            }
+        }
+        let current = env::current_dir().unwrap();
+        let parent = current.parent().unwrap();
+        let handcrafted_dir = parent.join("handcrafted");
+        let bibliography_file = handcrafted_dir.join("main.bib");
+        let final_dir = parent.join("web").join("content");
+        let working_dir = current.join("target");
+        let html_dir = final_dir.join("html");
+        let tmp_dir = current.join("tmp");
+        Self {
+            args,
+            time: Timer::new(),
+            parent: parent.to_path_buf(),
+            handcrafted_dir,
+            bibliography_file,
+            final_dir,
+            working_dir,
+            html_dir,
+            tmp_dir,
+            hide_nonrelevant_parameters_below: 5,
+            some_data: None,
         }
     }
-    println!("merging generated and handcrafted pages");
-    let mut target_keys = HashSet::new();
-    for (k, _) in &generated_pages { target_keys.insert(k); }
-    for (k, _) in &handcrafted_pages { target_keys.insert(k); }
-    let mut pages = vec![];
-    for target in target_keys {
-        let substitute = generated_pages.get(target);
-        let source = handcrafted_pages.get(target);
-        pages.push(TargetPage{ target, substitute, source });
+
+    fn get_data(&self) -> &Data {
+        match self.some_data {
+            Some(ref data) => &data,
+            None => panic!("unwrap empty data"),
+        }
     }
-    println!("building general substitution map");
-    let mut map: HashMap<&str, Mappable> = HashMap::new();
-    // todo
-    map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
-    // println!("clearing the final directory");
-    // fs::remove_dir_all(&final_dir);
-    // fs::create_dir(&final_dir);
-    generate_pages(&pages, &markdown, &final_dir, &working_dir, &map);
-    let draw_sets: Vec<PreviewSet> = data.sets.iter()
-        .map(|x|x.preview.clone())
-        .filter(|x|x.kind==PreviewKind::Parameter)
-        .filter(|x|x.relevance >= hide_nonrelevant_parameters_below)
-        .filter(|x|!x.hidden)
-        .collect();
-    if let Ok(done_pdf) = generate_relation_table(&data, draw_sets, parent) { // todo generalize
-        let final_pdf = final_dir.join("html").join("table.pdf");
-        println!("copy the pdf to {:?}", &final_pdf);
-        fs::copy(&done_pdf, &final_pdf);
+
+    fn retrieve_and_process_data(&mut self) {
+        let cch: Cache<Data> = Cache::new(&self.tmp_dir.join("data.json"));
+        if !self.args.contains(&ComputationPhases::PREPROCESS) {
+            if let Some(res) = cch.load(){
+                println!("deserialized data");
+                self.some_data = Some(res);
+                return;
+            }
+        }
+        self.time.print("retrieving data collection");
+        let rawdata = collection::build_collection();
+        self.time.print("processing data");
+        let res = process_raw_data(&rawdata, &self.bibliography_file);
+        match cch.save(&res){
+            Ok(()) => {},
+            Err(err) => println!("{:?}", err),
+        }
+        self.some_data = Some(res); // takes long
     }
-    println!("done");
+
+    fn make_pdfs(&self) {
+        if !self.args.contains(&ComputationPhases::PDFS) {
+            return;
+        }
+        let data = self.get_data();
+        self.time.print("creating main page pdfs");
+        let parameters: Vec<&Set> = data.sets.iter()
+            .filter(|x|x.kind == PreviewKind::Parameter)
+            .filter(|x|x.preview.relevance >= self.hide_nonrelevant_parameters_below)
+            .collect();
+        self.time.print("drawing parameters");
+        if let Ok(done_pdf) = make_drawing(&data, &self.working_dir, "parameters", &parameters, None){
+            let final_pdf = self.html_dir.join("parameters.pdf");
+            println!("copy the pdf to {:?}", &final_pdf);
+            fs::copy(&done_pdf, &final_pdf);
+        }
+        self.time.print("drawing graphs");
+        let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::GraphClass).collect();
+        if let Ok(done_pdf) = make_drawing(&data, &self.working_dir, "graphs", &graphs, None){
+            let final_pdf = self.html_dir.join("graphs.pdf");
+            println!("copy the pdf to {:?}", &final_pdf);
+            fs::copy(&done_pdf, &final_pdf);
+        }
+    }
+
+    fn make_pages(&self) {
+        if !self.args.contains(&ComputationPhases::PAGES) {
+            return;
+        }
+        let data = self.get_data();
+        self.time.print("fetching generated pages");
+        let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new();
+        for set in &data.sets {
+            linkable.insert(set.id.clone(), Box::new(set.preview.clone()));
+        }
+        for rel in &data.relations {
+            linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
+        }
+        for source in &data.sources {
+            linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
+        }
+        let markdown = Markdown::new(&data, linkable);
+        let mut generated_pages = HashMap::new();
+        add_content(&data.sets, &self.final_dir, &mut generated_pages);
+        add_content(&data.sources, &self.final_dir, &mut generated_pages);
+        self.time.print("fetching handcrafted pages");
+        let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
+        for source in file::iterate_folder_recursively(&self.handcrafted_dir) {
+            let relative = source.strip_prefix(&self.handcrafted_dir).unwrap();
+            let target_file = self.final_dir.join(relative);
+            if source.is_file() {
+                handcrafted_pages.insert(target_file.clone(), source.clone());
+            } else if source.is_dir() {
+                println!("directory {:?}", target_file);
+            } else {
+                println!("unprocessable file {:?}", target_file);
+            }
+        }
+        self.time.print("merging generated and handcrafted pages");
+        let mut target_keys = HashSet::new();
+        for (k, _) in &generated_pages { target_keys.insert(k); }
+        for (k, _) in &handcrafted_pages { target_keys.insert(k); }
+        let mut pages = vec![];
+        for target in target_keys {
+            let substitute = generated_pages.get(target);
+            let source = handcrafted_pages.get(target);
+            pages.push(TargetPage{ target, substitute, source });
+        }
+        self.time.print("building general substitution map");
+        let mut map: HashMap<&str, Mappable> = HashMap::new();
+        // todo
+        map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
+        // println!("clearing the final directory");
+        // fs::remove_dir_all(&self.final_dir);
+        // fs::create_dir(&self.final_dir);
+        generate_pages(&pages, &markdown, &self.final_dir, &self.working_dir, &map); // takes long
+    }
+
+    fn make_relation_table(&self) {
+        if !self.args.contains(&ComputationPhases::TABLE) {
+            return;
+        }
+        let data = self.get_data();
+        self.time.print("generating relation table");
+        let draw_sets: Vec<PreviewSet> = data.sets.iter()
+            .map(|x|x.preview.clone())
+            .filter(|x|x.kind==PreviewKind::Parameter)
+            .filter(|x|x.relevance >= self.hide_nonrelevant_parameters_below)
+            .filter(|x|!x.hidden)
+            .collect();
+        if let Ok(done_pdf) = generate_relation_table(&data, draw_sets, &self.parent) { // todo generalize
+            let final_pdf = self.final_dir.join("html").join("table.pdf");
+            println!("copy the pdf to {:?}", &final_pdf);
+            fs::copy(&done_pdf, &final_pdf);
+        }
+    }
+
 }
+
+fn main() {
+    let mut computation = Computation::new();
+    computation.retrieve_and_process_data();
+    computation.make_pdfs();
+    computation.make_pages();
+    computation.make_relation_table();
+}
+

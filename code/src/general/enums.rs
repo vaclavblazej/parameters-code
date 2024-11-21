@@ -1,12 +1,12 @@
 //! Trivial enums that do not contain complex structure
 //! and so can be used from input till output.
 
-use biblatex::Entry;
+use serde::{Serialize, Deserialize};
 
 
 /// Refers to a page in a book or paper. If pdf is available it should refer its
 /// page in pdf instead of the label.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Page{
     Pp(u32),
     Unknown,
@@ -23,11 +23,11 @@ pub enum TransferGroup {
 }
 
 /// Points to the source of a citation.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum SourceKey {
     Bibtex {
         key: String,
-        entry: Option<Entry>,
+        entry: Option<String>,
     },
     Online {
         url: String,
@@ -52,7 +52,7 @@ pub enum Cpx {
 }
 
 /// High-level representation of values for computational complexity.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CpxTime {
     // with deeper processing, we would be able to devise these from the resulting equations directly
     Constant,   // O(1)
@@ -64,7 +64,7 @@ pub enum CpxTime {
 }
 
 /// What we know about parameter increase over a binary relation A with B.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CpxInfo {
     /// Value of B is at least mn(A) and at most mx(A).
     Inclusion{mn: CpxTime, mx: CpxTime},

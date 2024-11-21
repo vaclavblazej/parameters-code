@@ -47,6 +47,7 @@ pub fn append_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
 }
 
 pub fn write_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
+    fs::create_dir_all(target_path.parent().unwrap())?;
     let mut target_file = File::create(target_path)?;
     target_file.write_all(content.as_bytes())?;
     Ok(())

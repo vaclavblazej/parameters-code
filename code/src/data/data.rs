@@ -4,6 +4,8 @@
 use std::fmt;
 use std::collections::HashMap;
 
+use serde::{Serialize, Deserialize};
+
 use crate::data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource};
 use crate::general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey};
 use crate::processing::processing::Sets;
@@ -20,7 +22,7 @@ pub trait HasId {
 impl HasId for Set { fn id(&self) -> String { self.id.clone() } }
 impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
 
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 pub struct Date {
     pub year: Option<i32>,
     pub month: Option<u8>,
@@ -67,7 +69,7 @@ impl fmt::Debug for Date {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SourceSubset {
     pub preview: PreviewSource,
     pub id: String,
@@ -78,7 +80,7 @@ pub struct SourceSubset {
 
 /// A general structure for parameters, graph classes, any other structures.
 // todo remove clone
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Set {
     pub preview: PreviewSet,
     pub id: String,
@@ -95,20 +97,20 @@ pub struct Set {
     // pub transfers: HashMap<TransferGroup, Vec<PreviewSet>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Provider {
     pub name: String,
     pub url: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderLink {
     pub provider: Provider,
     pub set: PreviewSet,
     pub url: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Source {
     pub preview: PreviewSource,
     pub id: String,
@@ -117,18 +119,20 @@ pub struct Source {
     pub time: Date,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Data {
     pub sets: Vec<Set>,
     pub relations: Vec<Relation>,
-    pub urls: HashMap<String, Box<dyn Linkable>>,
     pub sources: Vec<Source>,
     pub providers: Vec<Provider>,
+    #[serde(skip)]
     pub set_idx: HashMap<PreviewSet, usize>,
+    #[serde(skip)]
     pub relation_idx: HashMap<(PreviewSet, PreviewSet), usize>,
 }
 
 impl Data {
-    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, urls: HashMap<String, Box<dyn Linkable>>, sources: Vec<Source>, providers: Vec<Provider>) -> Self {
+    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>) -> Self {
         let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
         for (idx, set) in sets.iter().enumerate() {
             set_idx.insert(set.preview.clone(), idx);
@@ -142,7 +146,6 @@ impl Data {
         Self {
             sets,
             relations,
-            urls,
             sources,
             providers,
             set_idx,
@@ -173,7 +176,7 @@ impl Data {
 
 // todo abbreviation
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Relation {
     pub id: String,
     pub preview: PreviewRelation,
@@ -186,7 +189,7 @@ pub struct Relation {
     pub essential: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Showed {
     pub id: String,
     pub text: String,
@@ -194,7 +197,7 @@ pub struct Showed {
     pub page: Page,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShowedFact {
     Relation(PreviewRelation),
     Definition(PreviewSet),

@@ -2,6 +2,7 @@
 
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Entry};
+use serde::{Serialize, Deserialize};
 
 use crate::{data::{data::{Data, Date, Linkable, Relation, Set, Showed, ShowedFact, Source, SourceSubset, Provider}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
@@ -144,9 +145,8 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
         RawSourceKey::Bibtex { key } => {
             let entry = match bibliography {
                 Some(bib) => {
-                    if let Some(e) = bib.get(&key) {
-                        time = e.into();
-                        Some(e.clone())
+                    if let Some(e) = bib.get(&key) { // todo fixme
+                        Some(format!("{}", e.to_biblatex_string()))
                     } else {
                         None
                     }
@@ -185,23 +185,12 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
 
 /// Minimal and maximal refer to inclusion-wise extremes. An isolated element
 /// would be included in all three sets.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct Sets {
     pub minimal: Vec<PreviewSet>,
     pub maximal: Vec<PreviewSet>,
     pub all: Vec<PreviewSet>,
 }
-
-// impl Into<PreviewSource> for RawSource {
-    // fn into(self) -> PreviewSource {
-        // PreviewSource{
-            // id: self.id,
-            // sourcekey: self.sourcekey.into(),
-            // showed: self.showed.into_iter().map(|x|x.into()).collect(),
-            // time: self.time,
-        // }
-    // }
-// }
 
 pub fn prepare_extremes(preview_set: Vec<PreviewSet>, data: &SimpleIndex) -> Sets {
     let mut minimal = Vec::new();
@@ -279,7 +268,7 @@ fn process_relations(raw_relations: Vec<RawRelation>) -> Vec<Relation> {
 /// novel relations and overriding superseded relations.
 fn combine_relations(sets: &Vec<PreviewSet>, first_relations: Vec<Relation>, transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>) -> Vec<Relation> {
     let mut map: HashMap<(PreviewSet, PreviewSet), Relation> = first_relations.into_iter().map(|x|((x.subset.clone(), x.superset.clone()), x)).collect();
-    for i in 1..=4 { // todo remove this and fix the process to make the connections correct
+    for i in 1..=1 { // todo remove this and fix the process to make the connections correct
         println!("combining relations iteration {}", i);
         let mut current_relations: Vec<Relation> = Vec::new();
         for (k, v) in &map {
@@ -525,15 +514,5 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     for set in &rawdata.sets {
         sets.push(process_set(set.clone().into(), &simpleindex, &rawdata, &source_keys));
     }
-    let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new();
-    for set in &sets {
-        linkable.insert(set.id.clone(), Box::new(set.preview.clone()));
-    }
-    for rel in &relations {
-        linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
-    }
-    for source in &sources {
-        linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
-    }
-    Data::new(sets, relations, linkable, sources, providers)
+    Data::new(sets, relations, sources, providers)
 }

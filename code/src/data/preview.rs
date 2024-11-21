@@ -2,10 +2,12 @@
 
 use crate::general::enums::{CpxInfo, Page, SourceKey};
 
+use serde::{Serialize, Deserialize};
+
 use super::data::{Date, Showed};
 
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub enum PreviewKind {
     Parameter,
     GraphClass,
@@ -28,14 +30,14 @@ impl PreviewSourceKey {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreviewSource {
     pub id: String,
     pub sourcekey: SourceKey,
     pub time: Date,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct PreviewSet {
     pub id: String,
     pub name: String,
@@ -44,7 +46,7 @@ pub struct PreviewSet {
     pub hidden: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PreviewRelation {
     pub id: String,
     pub subset: PreviewSet,
@@ -52,7 +54,7 @@ pub struct PreviewRelation {
     pub cpx: CpxInfo,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreviewTopic {
     pub id: String,
     pub name: String,

@@ -147,19 +147,22 @@ impl GeneratedPage for Source {
         match &self.sourcekey {
             SourceKey::Bibtex { key, entry } => {
                 res += &format!("# {}\n\n", key);
-                if let Some(val) = entry {
-                    if let Ok(doi) = val.doi() {
-                        let doi_url = format!("https://www.doi.org/{}", doi);
-                        res += &format!("[{}]({})\n\n", doi_url, doi_url);
-                    } else if let Ok(url) = val.url() {
-                        res += &format!("[{}]({})\n\n", url, url);
-                    }
-                    // todo print the original biblatex citation
-                    res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
-                } else {
-                    eprintln!("unable to load {} from main.bib", key);
-                    res += &format!("an error occured while loading the bibtex entry for `{}`", key);
+                if let Some(value) = entry{
+                    res += &format!("```bibtex\n{}\n```\n", value);
                 }
+                // if let Some(val) = entry { // todo retrieve and use biblatex entry
+                    // if let Ok(doi) = val.doi() {
+                        // let doi_url = format!("https://www.doi.org/{}", doi);
+                        // res += &format!("[{}]({})\n\n", doi_url, doi_url);
+                    // } else if let Ok(url) = val.url() {
+                        // res += &format!("[{}]({})\n\n", url, url);
+                    // }
+                    // // todo print the original biblatex citation
+                    // res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
+                // } else {
+                    // eprintln!("unable to load {} from main.bib", key);
+                    // res += &format!("an error occured while loading the bibtex entry for `{}`", key);
+                // }
             },
             SourceKey::Other { name, description } => {
                 res += &format!("# {}\n\n", name);
@@ -191,6 +194,7 @@ impl Linkable for Address {
 
 pub struct Markdown<'a> {
     pub data: &'a Data,
+    pub urls: HashMap<String, Box<dyn Linkable>>,
 }
 
 #[derive(Clone, Debug)]
@@ -201,8 +205,8 @@ pub enum Mappable {
 
 impl<'a> Markdown<'a> {
 
-    pub fn new(data: &'a Data) -> Markdown<'a> {
-        Markdown { data }
+    pub fn new(data: &'a Data, urls: HashMap<String, Box<dyn Linkable>>) -> Markdown<'a> {
+        Markdown { data, urls }
     }
 
     pub fn substitute_custom_markdown(&self, line: &String, map: &HashMap<&str, Mappable>) -> String {
@@ -232,7 +236,7 @@ impl<'a> Markdown<'a> {
     pub fn link_id(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let some_id = keys.pop_front();
         if let Some(id) = some_id {
-            if let Some(link) = self.data.urls.get(&id) {
+            if let Some(link) = self.urls.get(&id) {
                 Ok(format!("[{}]({})", link.get_name(), link.get_url()))
             } else {
                 Err(MarkdownError::ErrSubstitutingId(id.into()))
