@@ -64,6 +64,10 @@ mod output {
     pub mod table;
     pub mod to_markdown;
 }
+mod test {
+    pub mod collection;
+    pub mod all;
+}
 mod collection;
 
 fn build_page(page: &TargetPage,
@@ -158,6 +162,7 @@ enum ComputationPhases {
     PDFS,
     PAGES,
     TABLE,
+    MOCK,
 }
 
 struct Computation {
@@ -185,6 +190,7 @@ impl Computation {
                 "pdfs" => {args.insert(ComputationPhases::PDFS);},
                 "pages" => {args.insert(ComputationPhases::PAGES);},
                 "table" => {args.insert(ComputationPhases::TABLE);},
+                "mock" => {args.insert(ComputationPhases::MOCK);},
                 "all" => {
                     args.insert(ComputationPhases::PREPROCESS);
                     args.insert(ComputationPhases::PDFS);
@@ -225,8 +231,9 @@ impl Computation {
     }
 
     fn retrieve_and_process_data(&mut self) {
+        let mock = self.args.contains(&ComputationPhases::MOCK);
         let cch: Cache<Data> = Cache::new(&self.tmp_dir.join("data.json"));
-        if !self.args.contains(&ComputationPhases::PREPROCESS) {
+        if !mock && !self.args.contains(&ComputationPhases::PREPROCESS) {
             if let Some(mut res) = cch.load(){
                 println!("deserialized data");
                 res.recompute();
@@ -235,14 +242,19 @@ impl Computation {
             }
         }
         self.time.print("retrieving data collection");
-        let rawdata = collection::build_collection();
+        let rawdata = match mock {
+            false => collection::build_collection(),
+            true => test::collection::build_collection(),
+        };
         self.time.print("processing data");
         let res = process_raw_data(&rawdata, &self.bibliography_file);
-        match cch.save(&res){
-            Ok(()) => {},
-            Err(err) => println!("{:?}", err),
+        if !mock {
+            match cch.save(&res){
+                Ok(()) => {},
+                Err(err) => println!("{:?}", err),
+            }
         }
-        self.some_data = Some(res); // takes long
+        self.some_data = Some(res);
     }
 
     fn make_pdfs(&self) {

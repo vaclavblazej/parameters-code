@@ -8,5 +8,10 @@
     "alias": "run",
     "rel_path": "./.cmd/scripts/run.sh",
     "description": "Compile the source, build website, and run a server for it"
+  },
+  {
+    "alias": "test",
+    "rel_path": "./.cmd/scripts/test.sh",
+    "description": ""
   }
 ]
