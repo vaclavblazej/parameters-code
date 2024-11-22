@@ -131,18 +131,28 @@ pub struct Data {
     pub relation_idx: HashMap<(PreviewSet, PreviewSet), usize>,
 }
 
+pub fn compute_set_idx(sets: &Vec<Set>) -> HashMap<PreviewSet, usize> {
+    let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
+    for (idx, set) in sets.iter().enumerate() {
+        set_idx.insert(set.preview.clone(), idx);
+    }
+    set_idx
+}
+
+pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, PreviewSet), usize> {
+    let mut relation_idx: HashMap<(PreviewSet, PreviewSet), usize> = HashMap::new();
+    for (idx, relation) in relations.iter().enumerate() {
+        let pair = (relation.subset.clone(), relation.superset.clone());
+        assert!(!relation_idx.contains_key(&pair));
+        relation_idx.insert(pair, idx);
+    }
+    relation_idx
+}
+
 impl Data {
     pub fn new(sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>) -> Self {
-        let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
-        for (idx, set) in sets.iter().enumerate() {
-            set_idx.insert(set.preview.clone(), idx);
-        }
-        let mut relation_idx: HashMap<(PreviewSet, PreviewSet), usize> = HashMap::new();
-        for (idx, relation) in relations.iter().enumerate() {
-            let pair = (relation.subset.clone(), relation.superset.clone());
-            assert!(!relation_idx.contains_key(&pair));
-            relation_idx.insert(pair, idx);
-        }
+        let set_idx = compute_set_idx(&sets);
+        let relation_idx = compute_relation_idx(&relations);
         Self {
             sets,
             relations,
@@ -151,6 +161,11 @@ impl Data {
             set_idx,
             relation_idx,
         }
+    }
+
+    pub fn recompute(&mut self){
+        self.set_idx = compute_set_idx(&self.sets);
+        self.relation_idx = compute_relation_idx(&self.relations);
     }
 
     pub fn get_sets<I>(&self, key: I) -> Vec<&Set>

@@ -227,8 +227,9 @@ impl Computation {
     fn retrieve_and_process_data(&mut self) {
         let cch: Cache<Data> = Cache::new(&self.tmp_dir.join("data.json"));
         if !self.args.contains(&ComputationPhases::PREPROCESS) {
-            if let Some(res) = cch.load(){
+            if let Some(mut res) = cch.load(){
                 println!("deserialized data");
+                res.recompute();
                 self.some_data = Some(res);
                 return;
             }
