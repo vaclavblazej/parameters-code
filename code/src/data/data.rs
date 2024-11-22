@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
 use crate::data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource};
-use crate::general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey};
+use crate::general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey, TransferGroup};
 use crate::processing::processing::Sets;
 
 
@@ -200,8 +200,15 @@ pub struct Relation {
     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
     pub superset: PreviewSet,
     pub cpx: CpxInfo,
-    pub combined_from: Option<(PreviewRelation, PreviewRelation)>,
+    pub created_by: CreatedBy,
     pub essential: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CreatedBy {
+    Transitive(PreviewRelation, PreviewRelation),
+    TransferredFrom(TransferGroup, PreviewRelation),
+    Directly
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

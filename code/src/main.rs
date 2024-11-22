@@ -175,7 +175,7 @@ struct Computation {
     working_dir: PathBuf,
     html_dir: PathBuf,
     tmp_dir: PathBuf,
-    hide_nonrelevant_parameters_below: u32,
+    hide_irrelevant_parameters_below: u32,
     some_data: Option<Data>,
 }
 
@@ -218,7 +218,7 @@ impl Computation {
             working_dir,
             html_dir,
             tmp_dir,
-            hide_nonrelevant_parameters_below: 5,
+            hide_irrelevant_parameters_below: 5,
             some_data: None,
         }
     }
@@ -265,7 +265,7 @@ impl Computation {
         self.time.print("creating main page pdfs");
         let parameters: Vec<&Set> = data.sets.iter()
             .filter(|x|x.kind == PreviewKind::Parameter)
-            .filter(|x|x.preview.relevance >= self.hide_nonrelevant_parameters_below)
+            .filter(|x|x.preview.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
         self.time.print("drawing parameters");
         if let Ok(done_pdf) = make_drawing(&data, &self.working_dir, "parameters", &parameters, None){
@@ -344,7 +344,7 @@ impl Computation {
         let draw_sets: Vec<PreviewSet> = data.sets.iter()
             .map(|x|x.preview.clone())
             .filter(|x|x.kind==PreviewKind::Parameter)
-            .filter(|x|x.relevance >= self.hide_nonrelevant_parameters_below)
+            .filter(|x|x.relevance >= self.hide_irrelevant_parameters_below)
             .filter(|x|!x.hidden)
             .collect();
         if let Ok(done_pdf) = generate_relation_table(&data, draw_sets, &self.parent) { // todo generalize

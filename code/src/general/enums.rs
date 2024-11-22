@@ -16,7 +16,7 @@ pub enum Page{
 /// When a set is part of a transfer group T then we know that a relation between
 /// A and B where both belong to the group also happens between T(A) and T(B).
 // todo -- it is possible that the transfer assumption is too general and only inclusions should be transferred
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum TransferGroup {
     DistanceTo,
     EdgeCover,

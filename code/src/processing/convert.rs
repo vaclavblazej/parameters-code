@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use biblatex::Entry;
 
-use crate::data::data::{Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source};
+use crate::data::data::{Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, CreatedBy};
 use crate::general::enums::SourceKey;
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -88,7 +88,7 @@ impl Into<Relation> for RawRelation {
             subset: self.subset.clone().into(),
             superset: self.superset.clone().into(),
             cpx: self.cpx.clone(),
-            combined_from: None,
+            created_by: CreatedBy::Directly,
             essential: true,
         }
     }

@@ -4,7 +4,7 @@ use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Entry};
 use serde::{Serialize, Deserialize};
 
-use crate::{data::{data::{Data, Date, Linkable, Relation, Set, Showed, ShowedFact, Source, SourceSubset, Provider}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
+use crate::{data::{data::{CreatedBy, Data, Date, Linkable, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -337,7 +337,7 @@ fn combine_relations(sets: &Vec<PreviewSet>, first_relations: Vec<Relation>, tra
                         subset: preview.subset.clone(),
                         superset: preview.superset.clone(),
                         preview,
-                        combined_from: Some((ar_preview.clone(), br_preview.clone())),
+                        created_by: CreatedBy::Transitive(ar_preview.clone(), br_preview.clone()),
                         essential: true,
                     };
                     map.entry(res_key.clone()).and_modify(|x|{
@@ -373,7 +373,7 @@ fn combine_relations(sets: &Vec<PreviewSet>, first_relations: Vec<Relation>, tra
                         subset: preview.subset.clone(),
                         superset: preview.superset.clone(),
                         preview,
-                        combined_from: Some((ar_preview.clone(), br_preview.clone())),
+                        created_by: CreatedBy::Transitive(ar_preview.clone(), br_preview.clone()),
                         essential: true,
                     };
                     map.entry(res_key).and_modify(|x|{
@@ -415,7 +415,7 @@ impl Relation {
             superset: preview.superset.clone(),
             preview,
             cpx,
-            combined_from: Some((self.preview.clone(), other.preview.clone())),
+            created_by: CreatedBy::Transitive(self.preview.clone(), other.preview.clone()),
             essential: true,
         }
     }
@@ -451,7 +451,7 @@ fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<Pr
                                 superset: prev.superset.clone(),
                                 preview: prev,
                                 essential: false,
-                                combined_from: None, // todo signify that this relation was transferred
+                                created_by: CreatedBy::TransferredFrom(transfer_group.clone(), relation.preview.clone()),
                             };
                             transferred_relations.push(rel);
                         }
