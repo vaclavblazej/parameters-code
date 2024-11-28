@@ -30,7 +30,7 @@ pub fn build_collection() -> RawData {
     let cycle = create.intersection("Ti0asF", &connected, &cycles, "cycle", 2);
     let disjoint_cycles = create.graph_class("AGnF5Z", "disjoint cycles", 4);
     let grid = create.graph_class("lfYXuK", "grid", 6);
-    let disconnected = create.graph_class("lA0K71", "disconnected", 1);
+    // let disconnected = create.graph_class("lA0K71", "disconnected", 1);
     // let all_graphs = create.graph_class("TDTA85", "all graphs"); // hide
 
     create.unknown_source()
@@ -101,7 +101,7 @@ pub fn build_collection() -> RawData {
     let bandwidth = create.parameter("aP5a38", "bandwidth", 5);
     let topological_bandwidth = create.parameter("SnA7Eq", "topological bandwidth", 4);
     let bisection_bandwidth = create.parameter("wUdmUb", "bisection bandwidth", 4);
-    let reduced_bandwidth = create.reduced("reduced bandwidth", &bandwidth, 2);
+    // let reduced_bandwidth = create.reduced("reduced bandwidth", &bandwidth, 2);
     let max_degree = create.parameter("UyQ5yM", "maximum degree", 8);
     let c_closure = create.parameter("ou9VU1", "c-closure", 0);
     let feedback_vertex_set = create.parameter("GNOiyB", "feedback vertex set", 8);
@@ -166,7 +166,7 @@ pub fn build_collection() -> RawData {
     let dist_to_interval = create.distance_to(&interval, 3);
     let dist_to_max_degree = create.distance_to(&max_degree, 4);
     let dist_to_bounded_components = create.distance_to(&bounded_components, 4);
-    let dist_to_disconnected = create.distance_to(&disconnected, 2);
+    // let dist_to_disconnected = create.distance_to(&disconnected, 2);
 
     create.provider("ISGCI", "https://www.graphclasses.org/", Box::new(|id: &str|{
         format!(r"https://www.graphclasses.org/classes/par_{id}.html")
@@ -220,7 +220,7 @@ pub fn build_collection() -> RawData {
         .done();
 
     create.assumed_source().collective(NotApplicable, by_definition)
-            .showed("YOBod9", &vertex_connectivity, &dist_to_disconnected, Equivalence)
+            // .showed("YOBod9", &vertex_connectivity, &dist_to_disconnected, Equivalence)
             .showed("LTyhoG", &vertex_integrity, &dist_to_bounded_components, UpperBound(Linear))
             .showed("wgnjMg", &dist_to_bounded_components, &vertex_integrity, UpperBound(Linear))
             .showed("SyGwqT", &bandwidth, &topological_bandwidth, UpperBound(Linear))
@@ -740,11 +740,11 @@ pub fn build_collection() -> RawData {
         .showed("hoJGBX", Pp(35), &average_degree, &max_clique, Exclusion, "Proposition 3.35")
         .showed("JRqAlT", Pp(36), &average_degree, &chordality, Exclusion, "Proposition 3.36")
         .todo();
-    let reduced_edgeless = create.reduced("reduced edgeless", &edgeless, 0);
+    // let reduced_edgeless = create.reduced("reduced edgeless", &edgeless, 0);
     let twin_width_1_2021 = create.source("nyaOye", "twinWidthI2021")
         .defined("s5Ktq7", Pp(2), &twin_width, "... we consider a sequence of graphs $G_n,G_{n-1},\\dots,G_2,G_1$, where $G_n$ is the original graph $G$, $G_1$ is the one-vertex graph, $G_i$ has $i$ vertices, and $G_{i-1}$ is obtained from $G_i$ by performing a single contraction of two (non-necessarily adjacent) vertices. For every vertex $u \\in V(G_i)$, let us denote by $u(G)$ the vertices of $G$ which have been contracted to $u$ along the sequence $G_n,\\dots,G_i$. A pair of disjoint sets of vertices is \\emph{homogeneous} if, between these sets, there are either all possible edges or no edge at all. The red edges ... consist of all pairs $uv$ of vertices of $G_i$ such that $u(G)$ and $v(G)$ are not homogeneous in $G$. If the red degree of every $G_i$ is at most $d$, then $G_n,G_{n-1},\\dots,G_2,G_1$ is called a \\emph{sequence of $d$-contractions}, or \\emph{$d$-sequence}. The twin-width of $G$ is the minimum $d$ for which there exists a sequence of $d$-contractions.")
         .showed("0RiLv2", Pp(15), &grid, &twin_width, UpperBound(Constant), "Theorem 4.3. For every positive integers $d$ and $n$, the $d$-dimensional $n$-grid has twin-width at most $3d$.")
-        .showed("7p2TWN", Unknown, &cograph, &reduced_edgeless, Equivalence, "") // todo
+        // .showed("7p2TWN", Unknown, &cograph, &reduced_edgeless, Equivalence, "") // todo
         .todo();
     // let reduced_star = &create.reduced(&star, 0);
     // let twin_width_beyond_2022 = create.source("3B7Kvt", "twinWidthBeyond2022")

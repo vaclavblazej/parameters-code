@@ -206,9 +206,11 @@ pub struct Relation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CreatedBy {
-    Transitive(PreviewRelation, PreviewRelation),
+    TransitiveInclusion(PreviewRelation, PreviewRelation),
+    TransitiveExclusion(PreviewRelation, PreviewRelation),
     TransferredFrom(TransferGroup, PreviewRelation),
-    Directly
+    Directly,
+    Todo,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

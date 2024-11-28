@@ -21,16 +21,26 @@ mod tests {
     fn upper_bound_trnasitivity() {
         // == setup ============================================================
         let mut create = Builder::new();
-        let a = create.parameter("a", "a", 9);
-        let b = create.parameter("b", "b", 9);
-        let c = create.parameter("c", "c", 9);
-        create.assumed_source()
-            .showed("s_ab", NotApplicable, &a, &b, UpperBound(Linear), "")
-            .showed("s_bc", NotApplicable, &b, &c, UpperBound(Linear), "")
-            .done();
+        let mut arr = vec![];
+        let count = 10;
+        let sequence = [0,1,2,3,4,6,7,8,9,5];
+        for i in 0..=count {
+            let str = format!("{}", i);
+            arr.push(create.parameter(str.as_str(), str.as_str(), 9));
+        }
+        let mut source = create.assumed_source();
+        for i in sequence {
+            let id = format!("s_{}", i);
+            let this = &arr[i];
+            let next = &arr[i+1];
+            source = source.showed(&id, NotApplicable, this, next, UpperBound(Linear), "");
+        }
+        source.done();
         let data = process_raw_data(&create.build(), &bibfile());
         // == test =============================================================
-        let rel = data.get_relation(&a.into(), &c.into()).unwrap();
+        let first = arr.first().unwrap();
+        let last = arr.last().unwrap();
+        let rel = data.get_relation(&first.clone().into(), &last.clone().into()).unwrap();
         assert!(matches!(rel.cpx, Inclusion{ .. }));
         assert_eq!(rel.cpx, Inclusion{ mn: Constant, mx: Linear });
     }
@@ -50,6 +60,24 @@ mod tests {
         // == test =============================================================
         let rel = data.get_relation(&a.into(), &b.into()).unwrap();
         assert_eq!(rel.cpx, CpxInfo::Exclusion);
+    }
+
+    #[test]
+    fn equiv_inclusion_propagates() {
+        // == setup ============================================================
+        let mut create = Builder::new();
+        let a = create.parameter("a", "a", 9);
+        let b = create.parameter("b", "b", 9);
+        let c = create.parameter("c", "c", 9);
+        let bc = create.intersection("b+c", &b, &c, "b+c", 9);
+        create.assumed_source()
+            .showed("s_ab", NotApplicable, &a, &b, UpperBound(Linear), "")
+            .showed("s_bc", NotApplicable, &a, &c, Cpx::Equivalence, "")
+            .done();
+        let data = process_raw_data(&create.build(), &bibfile());
+        // == test =============================================================
+        let rel = data.get_relation(&a.into(), &bc.into()).unwrap();
+        assert!(matches!(rel.cpx, Inclusion{ .. }));
     }
 
     #[test]

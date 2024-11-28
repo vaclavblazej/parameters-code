@@ -164,12 +164,11 @@ impl Builder {
             hidden: false,
         };
         self.add_set(&res);
-        // todo polish how these structures are created this; perhaps
-        // add a global source that holds all things that are known by definition
-        let mut tmp_source = self.unknown_source();
+        let mut tmp_source = self.assumed_source();
         for s in &sets {
             tmp_source = tmp_source.showed("", Page::NotApplicable, &res, &s, upper_bound.clone(), "by definition");
         }
+        tmp_source.done();
         res
     }
 

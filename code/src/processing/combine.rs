@@ -127,4 +127,15 @@ impl CpxInfo {
         })
     }
 
+    pub fn combine_plus(&self, other: &Self) -> Self {
+        match (self, other) {
+            (Self::Unknown, _) | (_, Self::Unknown) => Self::Unknown,
+            (Self::Exclusion, _) | (_, Self::Exclusion) => Self::Exclusion,
+            (Self::Equivalence, a) | (a, Self::Equivalence) => a.clone(),
+            (Self::Inclusion { mn: _, mx: mxa }, Self::Inclusion { mn: _, mx: mxb })
+                => Self::Inclusion { mn: CpxTime::Constant, mx: mxa.combine_parallel_max(&mxb) },
+            (Self::LowerBound { .. }, _) | (_, Self::LowerBound { .. }) => Self::Unknown,
+        }
+    }
+
 }
