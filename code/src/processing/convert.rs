@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use biblatex::Entry;
 
-use crate::data::data::{Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, CreatedBy};
+use crate::data::data::{CreatedBy, Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, Topic};
 use crate::general::enums::SourceKey;
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -19,11 +19,11 @@ impl Into<PreviewSourceKey> for RawSourceKey {
     }
 }
 
-impl Into<PreviewKind> for RawKind {
-    fn into(self) -> PreviewKind {
+impl Into<PreviewType> for RawType {
+    fn into(self) -> PreviewType {
         match self {
-            Self::Parameter => PreviewKind::Parameter,
-            Self::GraphClass => PreviewKind::GraphClass,
+            Self::Parameter => PreviewType::Parameter,
+            Self::GraphClass => PreviewType::GraphClass,
         }
     }
 }
@@ -52,7 +52,7 @@ impl Into<PreviewSet> for RawSet {
         PreviewSet {
             id: self.id,
             name: self.name,
-            kind: self.kind.into(),
+            typ: self.typ.into(),
             relevance: self.relevance,
             hidden: self.hidden,
         }
@@ -90,6 +90,27 @@ impl Into<Relation> for RawRelation {
             cpx: self.cpx.clone(),
             created_by: CreatedBy::Directly,
             essential: true,
+        }
+    }
+}
+
+impl RawTopic {
+    pub fn preprocess(self, sets: Vec<PreviewSet>) -> Topic {
+        Topic {
+            preview: self.clone().into(),
+            id: self.id,
+            name: self.name,
+            description: self.description,
+            sets,
+        }
+    }
+}
+
+impl Into<PreviewTopic> for RawTopic {
+    fn into(self) -> PreviewTopic {
+        PreviewTopic {
+            id: self.id,
+            name: self.name,
         }
     }
 }

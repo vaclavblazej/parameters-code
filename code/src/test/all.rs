@@ -26,7 +26,7 @@ mod tests {
         let sequence = [0,1,2,3,4,6,7,8,9,5];
         for i in 0..=count {
             let str = format!("{}", i);
-            arr.push(create.parameter(str.as_str(), str.as_str(), 9));
+            arr.push(create.parameter(str.as_str(), str.as_str(), 9).done());
         }
         let mut source = create.assumed_source();
         for i in sequence {
@@ -49,9 +49,9 @@ mod tests {
     fn exclusion_inclusion_transfer() {
         // == setup ============================================================
         let mut create = Builder::new();
-        let a = create.parameter("a", "a", 9);
-        let b = create.parameter("b", "b", 9);
-        let c = create.parameter("c", "c", 9);
+        let a = create.parameter("a", "a", 9).done();
+        let b = create.parameter("b", "b", 9).done();
+        let c = create.parameter("c", "c", 9).done();
         create.assumed_source()
             .showed("s_ab", NotApplicable, &a, &c, Cpx::Exclusion, "")
             .showed("s_bc", NotApplicable, &b, &c, UpperBound(Linear), "")
@@ -63,30 +63,46 @@ mod tests {
     }
 
     #[test]
-    fn equiv_inclusion_propagates() {
+    fn equiv_correctly_created() {
         // == setup ============================================================
         let mut create = Builder::new();
-        let a = create.parameter("a", "a", 9);
-        let b = create.parameter("b", "b", 9);
-        let c = create.parameter("c", "c", 9);
-        let bc = create.intersection("b+c", &b, &c, "b+c", 9);
+        let a = create.parameter("a", "a", 9).done();
+        let b = create.parameter("b", "b", 9).done();
         create.assumed_source()
-            .showed("s_ab", NotApplicable, &a, &b, UpperBound(Linear), "")
-            .showed("s_bc", NotApplicable, &a, &c, Cpx::Equivalence, "")
+            .showed("s_ab", NotApplicable, &a, &b, Cpx::Equivalence, "")
             .done();
         let data = process_raw_data(&create.build(), &bibfile());
         // == test =============================================================
-        let rel = data.get_relation(&a.into(), &bc.into()).unwrap();
-        assert!(matches!(rel.cpx, Inclusion{ .. }));
+        assert!(matches!(data.get_relation(&a.clone().into(), &b.clone().into()).unwrap().cpx, CpxInfo::Equivalence));
+        assert!(matches!(data.get_relation(&b.clone().into(), &a.clone().into()).unwrap().cpx, CpxInfo::Equivalence));
+    }
+
+    #[test]
+    fn equiv_inclusion_propagates() {
+        // == setup ============================================================
+        let mut create = Builder::new();
+        let a = create.parameter("a", "a", 9).done();
+        let b = create.parameter("b", "b", 9).done();
+        let c = create.parameter("c", "c", 9).done();
+        let d = create.parameter("d", "d", 9).done();
+        create.assumed_source()
+            .showed("s_ab", NotApplicable, &a, &b, Cpx::Equivalence, "")
+            .showed("s_ac", NotApplicable, &a, &c, UpperBound(Linear), "")
+            .showed("s_db", NotApplicable, &d, &b, UpperBound(Linear), "")
+            .done();
+        let data = process_raw_data(&create.build(), &bibfile());
+        // == test =============================================================
+        assert!(matches!(data.get_relation(&b.clone().into(), &c.clone().into()).unwrap().cpx, Inclusion{ .. }));
+        assert!(matches!(data.get_relation(&d.clone().into(), &a.clone().into()).unwrap().cpx, Inclusion{ .. }));
     }
 
     #[test]
     fn combined_parameter_bound() {
         // == setup ============================================================
         let mut create = Builder::new();
-        let a = create.parameter("a", "a", 9);
-        let b = create.parameter("b", "b", 9);
-        let c = create.parameter("c", "c", 9);
+        let a = create.parameter("a", "a", 9).done();
+        let b = create.parameter("b", "b", 9).done();
+        let c = create.parameter("c", "c", 9).done();
         let bc = create.intersection("b+c", &b, &c, "b+c", 9);
         create.assumed_source()
             .showed("s_ab", NotApplicable, &a, &b, UpperBound(Linear), "")

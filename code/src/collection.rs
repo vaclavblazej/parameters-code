@@ -79,94 +79,98 @@ pub fn build_collection() -> RawData {
         .proper_graph_inclusion("1pdarO", &path, &grid)
         ;
 
-    let top_metric = create.topic("wpYsel", "metric", "Typically used in metric spaces.");
+    // let top_metric = create.topic("wpYsel", "metric", "Typically used in metric spaces.");
     let top_drawing = create.topic("lJJaYb", "drawing", "Closely tied to drawing the graph onto a topological space.");
 
-    let vertex_cover = create.parameter("4lp9Yj", "vertex cover", 9);
-    let max_matching = create.parameter("veU7Jf", "maximum matching", 3);
-    let vertex_integrity = create.parameter("KVhJFB", "vertex integrity", 6);
-    let treedepth = create.parameter("KEP2qM", "treedepth", 7);
-    let clique_cover_num = create.parameter("VomShB", "clique cover number", 5);
-    let max_independent_set = create.parameter("mHtXUU", "maximum independent set", 2);
-    let domination_num = create.parameter("Gq0onN", "domination number", 3);
-    let twin_cover_num = create.parameter("MUnHA0", "twin-cover number", 5);
-    let edge_clique_cover = create.parameter("nYQDv6", "edge clique cover number", 4);
-    let neighborhood_diversity = create.parameter("vMs3RS", "neighborhood diversity", 6);
-    let modular_width = create.parameter("4bj71L", "modular-width", 7);
-    let max_leaf_num = create.parameter("BN92vX", "maximum leaf number", 6);
-    let feedback_edge_set = create.parameter("HTk9PZ", "feedback edge set", 6);
-    let genus = create.parameter("gbaHdw", "genus", 2); // top_drawing
-    let cutwidth = create.parameter("TLx1pz", "cutwidth", 4);
-    let carving_width = create.parameter("dS6OgO", "carving-width", 3);
-    let bandwidth = create.parameter("aP5a38", "bandwidth", 5);
-    let topological_bandwidth = create.parameter("SnA7Eq", "topological bandwidth", 4);
-    let bisection_bandwidth = create.parameter("wUdmUb", "bisection bandwidth", 4);
-    // let reduced_bandwidth = create.reduced("reduced bandwidth", &bandwidth, 2);
-    let max_degree = create.parameter("UyQ5yM", "maximum degree", 8);
-    let c_closure = create.parameter("ou9VU1", "c-closure", 0);
-    let feedback_vertex_set = create.parameter("GNOiyB", "feedback vertex set", 8);
-    let shrub_depth = create.parameter("NTgNzT", "shrub-depth", 6);
-    let linear_clique_width = create.parameter("fQj3wU", "linear clique-width", 5);
-    let pathwidth = create.parameter("VHClqR", "pathwidth", 8);
+    let vertex_cover = create.parameter("4lp9Yj", "vertex cover", 9).done();
+    let max_matching = create.parameter("veU7Jf", "maximum matching", 3).done();
+    let vertex_integrity = create.parameter("KVhJFB", "vertex integrity", 6).done();
+    let treedepth = create.parameter("KEP2qM", "treedepth", 7).done();
+    let clique_cover_num = create.parameter("VomShB", "clique cover number", 5).done();
+    let max_independent_set = create.parameter("mHtXUU", "maximum independent set", 2).done();
+    let domination_num = create.parameter("Gq0onN", "domination number", 3).done();
+    let twin_cover_num = create.parameter("MUnHA0", "twin-cover number", 5).done();
+    let edge_clique_cover = create.parameter("nYQDv6", "edge clique cover number", 4).done();
+    let neighborhood_diversity = create.parameter("vMs3RS", "neighborhood diversity", 6).done();
+    let modular_width = create.parameter("4bj71L", "modular-width", 7).done();
+    let max_leaf_num = create.parameter("BN92vX", "maximum leaf number", 6).done();
+    let feedback_edge_set = create.parameter("HTk9PZ", "feedback edge set", 6).done();
+    let genus = create.parameter("gbaHdw", "genus", 2)
+        .topic(&top_drawing).done();
+    let cutwidth = create.parameter("TLx1pz", "cutwidth", 4).done();
+    let carving_width = create.parameter("dS6OgO", "carving-width", 3).done();
+    let bandwidth = create.parameter("aP5a38", "bandwidth", 5).done();
+    let topological_bandwidth = create.parameter("SnA7Eq", "topological bandwidth", 4).done();
+    let bisection_bandwidth = create.parameter("wUdmUb", "bisection bandwidth", 4).done();
+    // let reduced_bandwidth = create.reduced("reduced bandwidth", &bandwidth, 2).done();
+    let max_degree = create.parameter("UyQ5yM", "maximum degree", 8).done();
+    let c_closure = create.parameter("ou9VU1", "c-closure", 0).done();
+    let feedback_vertex_set = create.parameter("GNOiyB", "feedback vertex set", 8).done();
+    let shrub_depth = create.parameter("NTgNzT", "shrub-depth", 6).done();
+    let linear_clique_width = create.parameter("fQj3wU", "linear clique-width", 5).done();
+    let pathwidth = create.parameter("VHClqR", "pathwidth", 8).done();
     let pathwidth_maxdeg = create.intersection("6BWcgd", &pathwidth, &max_degree, "pathwidth+maxdegree", 3);
-    let d_path_free = create.parameter("s4EiWI", "d-path-free", 2); // todo
-    let treewidth = create.parameter("5Q7fuR", "treewidth", 9);
-    let branch_width = create.parameter("lIcmuR", "branch width", 5);
-    let clique_width = create.parameter("wg5HuV", "clique-width", 7);
-    let clique_tree_width = create.parameter("7P9WUz", "clique-tree-width", 2);
-    let rank_width = create.parameter("fojquT", "rank-width", 7);
-    let linear_rank_width = create.parameter("cHugsk", "linear rank-width", 2);
-    let boolean_width = create.parameter("A2jPWT", "boolean width", 5);
-    let inf_flip_width = create.parameter("nYXiuT", "inf-flip-width", 3);
+    let d_path_free = create.parameter("s4EiWI", "d-path-free", 2).done(); // todo
+    let treewidth = create.parameter("5Q7fuR", "treewidth", 9).done();
+    let branch_width = create.parameter("lIcmuR", "branch width", 5).done();
+    let clique_width = create.parameter("wg5HuV", "clique-width", 7).done();
+    let clique_tree_width = create.parameter("7P9WUz", "clique-tree-width", 2).done();
+    let rank_width = create.parameter("fojquT", "rank-width", 7).done();
+    let linear_rank_width = create.parameter("cHugsk", "linear rank-width", 2).done();
+    let boolean_width = create.parameter("A2jPWT", "boolean width", 5).done();
+    let inf_flip_width = create.parameter("nYXiuT", "inf-flip-width", 3).done();
     let degree_treewidth = create.intersection("nCWUh3", &max_degree, &treewidth, "degree treewidth", 6);
     let twin_width = create.reduced("twin-width", &max_degree, 8);
-    let r_flip_width = create.parameter("4DIiH0", "radius-r flip-width", 3);
-    let book_thickness = create.parameter("doijTS", "book thickness", 4); // top_drawing; a.k.a. stacknumber, pagenumber, fixed outerthickness
+    let r_flip_width = create.parameter("4DIiH0", "radius-r flip-width", 3).done();
+    let book_thickness = create.parameter("doijTS", "book thickness", 4)
+        .aka("stacknumber").aka("pagenumber").aka("fixed outerthickness")
+        .topic(&top_drawing).done();
     // .showed("1IL2wn", NotApplicable, &book_thickness, &create.edge_cover_by(&outerplanar), Equivalence, "") //but with fixed vertices
-    let hindex = create.parameter("GNTwUS", "h-index", 4);
-    let acyclic_chromatic_number = create.parameter("QGZuUW", "acyclic chromatic number", 5);
-    let odd_cycle_transversal = create.parameter("Ve5ruW", "odd cycle transversal", 6);
-    let degeneracy = create.parameter("VowkuW", "degeneracy", 6);
-    let chromatic_num = create.parameter("w7MmyW", "chromatic number", 5);
-    let average_degree = create.parameter("z0y4TW", "average degree", 2);
-    let min_degree = create.parameter("GPmOeT", "minimum degree", 0);
-    let max_clique = create.parameter("q7zHeT", "maximum clique", 5);
-    let edge_connectivity = create.parameter("JbqZoT", "edge connectivity", 2);
-    let vertex_connectivity = create.parameter("OyLUe4", "vertex connectivity", 2);
-    let boxicity = create.parameter("a7MpiT", "boxicity", 6);
-    let chordality = create.parameter("fTqo40", "chordality", 4);
-    let max_induced_matching = create.parameter("GzMYlT", "maximum induced matching", 3);
-    let diameter = create.parameter("p4bTjp", "diameter", 6);
-    let average_distance = create.parameter("zH8PpT", "average distance", 3);
-    let girth = create.parameter("BCwUeT", "girth", 1);
-    let domatic_num = create.parameter("KRV6tI", "domatic number", 3);
-    let arboricity = create.parameter("zgMenA", "arboricity", 5);
-    let star_arboricity = create.parameter("Mvz8MX", "star-arboricity", 1);
-    let mim_width = create.parameter("WmIFB1", "mim-width", 6);
-    let nlc_width = create.parameter("Xrpbv7", "NLC-width", 4);
-    let nlct_width = create.parameter("mOri44", "NLCT-width", 2);
-    let linear_nlc_width = create.parameter("v09DMY", "linear NLC-width", 2);
-    let thickness = create.parameter("sxTPYj", "thickness", 3);
-    let outerthickness = create.parameter("MIeOwU", "outerthickness", 1);
-    let bounded_components = create.parameter("t7c4mp", "bounded components", 3);
-    let dist_to_complete = create.distance_to(&complete, 6);
-    let dist_to_co_cluster = create.distance_to(&co_cluster, 5);
-    let dist_to_cograph = create.distance_to(&cograph, 5);
-    let dist_to_cluster = create.distance_to(&cluster, 5);
-    let dist_to_linear_forest = create.distance_to(&linear_forest, 4);
-    let dist_to_outerplanar = create.distance_to(&outerplanar, 3);
-    let dist_to_block = create.distance_to(&block, 4);
-    let dist_to_edgeless = create.distance_to(&edgeless, 1);
-    let dist_to_forest = create.distance_to(&forest, 5);
-    let dist_to_bipartite = create.distance_to(&bipartite, 6);
-    let dist_to_planar = create.distance_to(&planar, 4);
-    let dist_to_chordal = create.distance_to(&chordal, 4);
-    let dist_to_stars = create.distance_to(&stars, 3);
-    let dist_to_perfect = create.distance_to(&perfect, 4);
-    let dist_to_interval = create.distance_to(&interval, 3);
-    let dist_to_max_degree = create.distance_to(&max_degree, 4);
-    let dist_to_bounded_components = create.distance_to(&bounded_components, 4);
-    // let dist_to_disconnected = create.distance_to(&disconnected, 2);
+    let hindex = create.parameter("GNTwUS", "h-index", 4).done();
+    let acyclic_chromatic_number = create.parameter("QGZuUW", "acyclic chromatic number", 5).done();
+    let odd_cycle_transversal = create.parameter("Ve5ruW", "odd cycle transversal", 6).done();
+    let degeneracy = create.parameter("VowkuW", "degeneracy", 6).done();
+    let chromatic_num = create.parameter("w7MmyW", "chromatic number", 5).done();
+    let average_degree = create.parameter("z0y4TW", "average degree", 2).done();
+    let min_degree = create.parameter("GPmOeT", "minimum degree", 0).done();
+    let max_clique = create.parameter("q7zHeT", "maximum clique", 5).done();
+    let edge_connectivity = create.parameter("JbqZoT", "edge connectivity", 2).done();
+    let vertex_connectivity = create.parameter("OyLUe4", "vertex connectivity", 0).done();
+    let boxicity = create.parameter("a7MpiT", "boxicity", 6).done();
+    let chordality = create.parameter("fTqo40", "chordality", 4).done();
+    let max_induced_matching = create.parameter("GzMYlT", "maximum induced matching", 3).done();
+    let diameter = create.parameter("p4bTjp", "diameter", 6).done();
+    let average_distance = create.parameter("zH8PpT", "average distance", 3).done();
+    let girth = create.parameter("BCwUeT", "girth", 1).done();
+    let domatic_num = create.parameter("KRV6tI", "domatic number", 3).done();
+    let arboricity = create.parameter("zgMenA", "arboricity", 5).done();
+    let star_arboricity = create.parameter("Mvz8MX", "star-arboricity", 1).done();
+    let mim_width = create.parameter("WmIFB1", "mim-width", 6).done();
+    let nlc_width = create.parameter("Xrpbv7", "NLC-width", 4).done();
+    let nlct_width = create.parameter("mOri44", "NLCT-width", 2).done();
+    let linear_nlc_width = create.parameter("v09DMY", "linear NLC-width", 2).done();
+    // let crossing_number = create.parameter("zUv8EU", "crossing number", 4).done();
+    let thickness = create.parameter("sxTPYj", "thickness", 3).done();
+    let outerthickness = create.parameter("MIeOwU", "outerthickness", 1).done();
+    let bounded_components = create.parameter("t7c4mp", "bounded components", 3).done();
+    let dist_to_complete = create.distance_to("2LDMQ6", &complete, 6);
+    let dist_to_co_cluster = create.distance_to("hbfWwE", &co_cluster, 5);
+    let dist_to_cograph = create.distance_to("uDXX2i", &cograph, 5);
+    let dist_to_cluster = create.distance_to("aXw3Co", &cluster, 5);
+    let dist_to_linear_forest = create.distance_to("yk7XP0", &linear_forest, 4);
+    let dist_to_outerplanar = create.distance_to("lPHVWU", &outerplanar, 3);
+    let dist_to_block = create.distance_to("xNJnFb", &block, 4);
+    let dist_to_edgeless = create.distance_to("4INs10", &edgeless, 1);
+    let dist_to_forest = create.distance_to("hQZlLU", &forest, 5);
+    let dist_to_bipartite = create.distance_to("1yW82F", &bipartite, 6);
+    let dist_to_planar = create.distance_to("MLJMRH", &planar, 4);
+    let dist_to_chordal = create.distance_to("OdZQna", &chordal, 4);
+    let dist_to_stars = create.distance_to("Z10jME", &stars, 3);
+    let dist_to_perfect = create.distance_to("kJZKgd", &perfect, 4);
+    let dist_to_interval = create.distance_to("AVc2K6", &interval, 3);
+    let dist_to_max_degree = create.distance_to("kRR8zx", &max_degree, 4);
+    let dist_to_bounded_components = create.distance_to("RPTCxd", &bounded_components, 4);
+    // let dist_to_disconnected = create.distance_to("ZL7BOP", &disconnected, 2);
 
     create.provider("ISGCI", "https://www.graphclasses.org/", Box::new(|id: &str|{
         format!(r"https://www.graphclasses.org/classes/par_{id}.html")
@@ -218,6 +222,26 @@ pub fn build_collection() -> RawData {
         .link(&max_induced_matching, "14")
         .link(&diameter, "6")
         .done();
+
+    create.provider("PACE", "https://pacechallenge.org/", Box::new(|id: &str|{
+        format!(r"https://pacechallenge.org/{id}/")
+    }))
+        .link(&domination_num, "2025")
+        // .link(&hitting_set, "2025")
+        // .link(&one_sided_crossing_minimization, "2024")
+        // .link(&twin_width, "2023")
+        // .link(&directed_feedback_vertex_set, "2022")
+        // .link(&cluster_editing, "2021")
+        .link(&treedepth, "2020")
+        .link(&vertex_cover, "2019")
+        // .link(&hypertree_width, "2019")
+        // .link(&steiner_tree, "2018")
+        .link(&treewidth, "2017")
+        // .link(&add_edges_to_chordal, "2017")
+        .link(&treewidth, "2016")
+        .link(&feedback_vertex_set, "2016")
+        .done();
+
 
     create.assumed_source().collective(NotApplicable, by_definition)
             // .showed("YOBod9", &vertex_connectivity, &dist_to_disconnected, Equivalence)
@@ -278,9 +302,8 @@ pub fn build_collection() -> RawData {
         .showed("CyAMhs", Unknown, &acyclic_chromatic_number, &boxicity, UpperBound(Exists), "")
         .showed("pUfoGn", Unknown, &hindex, &dist_to_max_degree, UpperBound(Linear), "Remove the $h$ vertices of degree at least $h$ to get a graph that has maximum degree $h$.")
         .showed("8ZzI5w", Unknown, &dist_to_max_degree, &hindex, UpperBound(Linear), "Removal of $k$ vertices yielding a graph with maximum degree $c$ means that there were $k$ vertices of arbitrary degree and the remaining vertices had degree at most $k+c$. Hence, $h$-index is no more than $k+c$.")
-        .showed("Bzw7GY", Unknown, &dist_to_cograph, &clique_width, UpperBound(Exists), "")
-        .showed("fedm1t", Unknown, &dist_to_cograph, &chordality, UpperBound(Exists), "")
-        .showed("rGMb0t", Unknown, &dist_to_cograph, &diameter, UpperBound(Exists), "")
+        .showed("fedm1t", Unknown, &dist_to_cograph, &chordality, UpperBound(Linear), "")
+        .showed("rGMb0t", Unknown, &dist_to_cograph, &diameter, UpperBound(Linear), "")
         .showed("Er0L5w", Unknown, &book_thickness, &acyclic_chromatic_number, UpperBound(Exists), "")
         // .showed("03kKbA", Unknown, &dist_to_planar, &acyclic_chromatic_number, UpperBound(Exists), "") // idk
         .showed("wJkzlI", Unknown, &average_distance, &girth, UpperBound(Exists), "")
@@ -879,22 +902,3 @@ pub fn build_collection() -> RawData {
 // rmHBsY
 // GiDjOm
 // 8io8sJ
-// ZL7BOP
-// RPTCxd
-// kRR8zx
-// AVc2K6
-// kJZKgd
-// Z10jME
-// OdZQna
-// MLJMRH
-// 1yW82F
-// hQZlLU
-// 4INs10
-// xNJnFb
-// lPHVWU
-// yk7XP0
-// aXw3Co
-// uDXX2i
-// hbfWwE
-// 2LDMQ6
-// zUv8EU

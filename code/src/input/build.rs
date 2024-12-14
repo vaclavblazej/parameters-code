@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::general::enums::{Page, TransferGroup, CpxTime::{Linear, Constant}, Cpx::UpperBound};
-use super::raw::{Composition, RawData, RawKind, RawProvider, RawSet, RawSource, RawSourceKey, RawTopic};
+use super::{parameter::SetBuilder, raw::{Composition, RawData, RawType, RawProvider, RawSet, RawSource, RawSourceKey, RawTopic}};
 use super::source::{RawDataSource, RawDataProvider};
 
 pub struct Builder {
@@ -49,7 +49,7 @@ impl Builder {
     }
 
     /// Adds set to the collection while making a few sanity checks.
-    fn add_set(&mut self, set: &RawSet) {
+    pub fn add_set(&mut self, set: &RawSet) {
         if self.id_sanity_map.contains(&set.id) {
             panic!("id {} used multiple times", set.id);
         }
@@ -75,53 +75,49 @@ impl Builder {
     /// This typically represents a defined named parameter.
     /// For ambiguous names we have no clear solution yet. (todo)
     /// For parameters with more names each can be defined as
-    /// a separate parameter and then united with Equavilence.
+    /// a separate parameter and then united with Equivalence.
     /// Equivalent parameters whose equivalence is to some degree surprising
     /// their definitions may be kept separate.
-    pub fn parameter(&mut self, id: &str, name: &str, relevance: u32) -> RawSet {
-        let res = RawSet {
-            id: id.into(),
-            name: name.into(),
-            kind: RawKind::Parameter,
-            composed: None,
+    pub fn parameter(&mut self, id: &str, name: &str, relevance: u32) -> SetBuilder {
+        let res = RawSet::new(
+            id.into(),
+            name.into(),
+            RawType::Parameter,
+            Composition::None,
             relevance,
-            hidden: false,
-        };
-        self.add_set(&res);
-        res
+        );
+        SetBuilder::new(res, self)
     }
 
     /// Add a parameter defined as bounded function of the red degree created
-    /// via a contraction sequence.
+    /// via a contraction sequence. // todo think about
     pub fn reduced(&mut self, name: &str, set: &RawSet, relevance: u32) -> RawSet {
-        let res = RawSet {
-            id: format!("reduced_{}", set.id.clone()),
-            name: name.to_string(),
-            kind: RawKind::Parameter,
-            composed: None,
+        let res = RawSet::new(
+            format!("reduced_{}", set.id.clone()),
+            name.to_string(),
+            RawType::Parameter,
+            Composition::None,
             relevance,
-            hidden: false,
-        };
+        );
         self.add_set(&res);
         res
     }
 
     /// Add a parameter defined as the number of vertices to be removed
     /// until the remaining graph falls in the given set.
-    pub fn distance_to(&mut self, set: &RawSet, relevance: u32) -> RawSet {
-        let res = RawSet {
-            id: format!("distance_to_{}", set.id.clone()),
-            name: format!("distance to {}", set.name.clone()),
-            kind: RawKind::Parameter,
-            composed: None,
+    pub fn distance_to(&mut self, id: &str, set: &RawSet, relevance: u32) -> RawSet {
+        let res = RawSet::new(
+            id.into(),
+            format!("distance to {}", set.name.clone()),
+            RawType::Parameter,
+            Composition::None,
             relevance,
-            hidden: false,
-        };
+        );
         self.add_set(&res);
-        let mut tmp_source = self.unknown_source();
-        match set.kind {
-            RawKind::Parameter => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Linear), "by definition"),
-            RawKind::GraphClass => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition"),
+        let mut tmp_source = self.assumed_source();
+        match set.typ {
+            RawType::Parameter => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Linear), "by definition"),
+            RawType::GraphClass => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition"),
         };
         self.transfers_bound_to(TransferGroup::DistanceTo, &set, &res);
         res
@@ -130,14 +126,13 @@ impl Builder {
     /// Add a parameter defined as the minimum number of graphs from another set required
     /// to cover the edges of the input graph.
     pub fn edge_cover_by(&mut self, set: &RawSet, relevance: u32) -> RawSet {
-        let res = RawSet {
-            id: format!("edge_cover_by_{}", set.id.clone()),
-            name: format!("edge cover by {}", set.name.clone()),
-            kind: RawKind::Parameter,
-            composed: None,
+        let res = RawSet::new(
+            format!("edge_cover_by_{}", set.id.clone()),
+            format!("edge cover by {}", set.name.clone()),
+            RawType::Parameter,
+            Composition::None,
             relevance,
-            hidden: false,
-        };
+        );
         self.add_set(&res);
         let mut tmp_source = self.unknown_source();
         tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
@@ -150,19 +145,18 @@ impl Builder {
     /// we may understand the intersection as a sum of parameters.
     pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str, relevance: u32) -> RawSet {
         let sets = vec![set_a.clone(), set_b.clone()];
-        let (kind, upper_bound) = if sets.iter().all(|x|x.kind == RawKind::GraphClass) {
-            (RawKind::GraphClass, UpperBound(Constant))
+        let (typ, upper_bound) = if sets.iter().all(|x|x.typ == RawType::GraphClass) {
+            (RawType::GraphClass, UpperBound(Constant))
         } else {
-            (RawKind::Parameter, UpperBound(Linear))
+            (RawType::Parameter, UpperBound(Linear))
         };
-        let res = RawSet {
-            id: id.into(),
-            name: name.into(),
-            kind,
-            composed: Some(Composition::Intersection(sets.clone())),
+        let res = RawSet::new(
+            id.into(),
+            name.into(),
+            typ,
+            Composition::Intersection(sets.clone()),
             relevance,
-            hidden: false,
-        };
+        );
         self.add_set(&res);
         let mut tmp_source = self.assumed_source();
         for s in &sets {
@@ -176,14 +170,13 @@ impl Builder {
     /// classes in the database but only those that are very relevant
     /// to the field of parameterized complexity.
     pub fn graph_class(&mut self, id: &str, name: &str, relevance: u32) -> RawSet {
-        let res = RawSet {
-            id: id.into(),
-            name: name.into(),
-            kind: RawKind::GraphClass,
-            composed: None,
+        let res = RawSet::new(
+            id.into(),
+            name.into(),
+            RawType::GraphClass,
+            Composition::None,
             relevance,
-            hidden: false,
-        };
+        );
         self.add_set(&res);
         res
     }

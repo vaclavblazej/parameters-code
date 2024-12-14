@@ -23,14 +23,16 @@ fn inclusion_edge_style(mx: &CpxTime) -> String {
 }
 
 pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_sets: &Vec<&Set>, color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> anyhow::Result<PathBuf> {
-    println!("generating a dot pdf {:?} {}", target_dir, name);
-    let mut displayed_sets_preview: HashSet<PreviewSet> = displayed_sets.into_iter().map(|x|x.preview.clone()).collect();
+    println!("generating dot pdf {:?} {}", target_dir, name);
+    let mut displayed_sets_preview: HashSet<PreviewSet> = displayed_sets.iter().map(|x|x.preview.clone()).collect();
     let mut remove_sets_preview: HashSet<PreviewSet> = HashSet::new();
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset) && displayed_sets_preview.contains(&relation.superset) {
             match &relation.cpx {
                 CpxInfo::Equivalence => {
-                    if relation.subset.relevance < relation.superset.relevance {
+                    if relation.subset.relevance < relation.superset.relevance
+                        || (relation.subset.relevance == relation.superset.relevance
+                            && relation.subset.id < relation.superset.id) {
                         remove_sets_preview.insert(relation.subset.clone());
                     }
                 },
@@ -84,7 +86,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
 
 pub fn make_focus_drawing(data: &Data, set: &Set, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     let set_distance_to_draw = bfs_limit_distance(set, &data, distance);
-    let preview_sets_to_draw: Vec<PreviewSet> = set_distance_to_draw.iter().map(|(a,_)|a.clone()).filter(|x|x.kind == set.kind).collect();
+    let preview_sets_to_draw: Vec<PreviewSet> = set_distance_to_draw.iter().map(|(a,_)|a.clone()).filter(|x|x.typ == set.typ).collect();
     let sets_to_draw = data.get_sets(preview_sets_to_draw);
     let filename = &format!("local_{}", set.id);
     make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_distance(set_distance_to_draw, distance)))
@@ -92,11 +94,11 @@ pub fn make_focus_drawing(data: &Data, set: &Set, distance: usize, target_dir: &
 
 pub fn make_subset_drawing(data: &Data, set: &Set, sets_to_draw: Vec<&Set>, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     let filename = &format!("inclusions_{}", set.id);
-    match set.kind { // todo polish this hacky solution
-        crate::data::preview::PreviewKind::Parameter => {
+    match set.typ { // todo polish this hacky solution
+        crate::data::preview::PreviewType::Parameter => {
             make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_subset(set)))
         },
-        crate::data::preview::PreviewKind::GraphClass => {
+        crate::data::preview::PreviewType::GraphClass => {
             make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_superset(set)))
         },
     }

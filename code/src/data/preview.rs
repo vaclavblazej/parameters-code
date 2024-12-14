@@ -8,7 +8,7 @@ use super::data::{Date, Showed};
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-pub enum PreviewKind {
+pub enum PreviewType {
     Parameter,
     GraphClass,
 }
@@ -41,7 +41,7 @@ pub struct PreviewSource {
 pub struct PreviewSet {
     pub id: String,
     pub name: String,
-    pub kind: PreviewKind,
+    pub typ: PreviewType,
     pub relevance: u32,
     pub hidden: bool,
 }

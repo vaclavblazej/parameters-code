@@ -19,7 +19,7 @@ use general::enums::CpxInfo;
 use general::enums::CpxTime;
 use output::markdown::Mappable;
 
-use crate::data::preview::PreviewKind;
+use crate::data::preview::PreviewType;
 use crate::data::preview::PreviewSet;
 use crate::output::diagram::make_drawing;
 use crate::output::markdown::Address;
@@ -52,6 +52,7 @@ mod processing {
 }
 mod input {
     pub mod build;
+    pub mod parameter;
     pub mod raw;
     pub mod source;
 }
@@ -136,7 +137,7 @@ fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappabl
     altered_content
 }
 
-fn generate_relation_table(data: &Data, draw_sets: Vec<PreviewSet>,  parent: &Path) -> anyhow::Result<PathBuf> {
+fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>,  parent: &Path) -> anyhow::Result<PathBuf> {
     let table_folder = parent.join("scripts").join("table_tikz");
     let table_file = render_table(&data, draw_sets, &table_folder).unwrap();
     Ok(table_file)
@@ -176,6 +177,7 @@ struct Computation {
     html_dir: PathBuf,
     tmp_dir: PathBuf,
     hide_irrelevant_parameters_below: u32,
+    simplified_hide_irrelevant_parameters_below: u32,
     some_data: Option<Data>,
 }
 
@@ -218,7 +220,8 @@ impl Computation {
             working_dir,
             html_dir,
             tmp_dir,
-            hide_irrelevant_parameters_below: 5,
+            hide_irrelevant_parameters_below: 1,
+            simplified_hide_irrelevant_parameters_below: 5,
             some_data: None,
         }
     }
@@ -264,21 +267,25 @@ impl Computation {
         let data = self.get_data();
         self.time.print("creating main page pdfs");
         let parameters: Vec<&Set> = data.sets.iter()
-            .filter(|x|x.kind == PreviewKind::Parameter)
+            .filter(|x|x.typ == PreviewType::Parameter)
             .filter(|x|x.preview.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
-        self.time.print("drawing parameters");
-        if let Ok(done_pdf) = make_drawing(&data, &self.working_dir, "parameters", &parameters, None){
-            let final_pdf = self.html_dir.join("parameters.pdf");
-            println!("copy the pdf to {:?}", &final_pdf);
-            fs::copy(&done_pdf, &final_pdf);
-        }
-        self.time.print("drawing graphs");
-        let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.kind == PreviewKind::GraphClass).collect();
-        if let Ok(done_pdf) = make_drawing(&data, &self.working_dir, "graphs", &graphs, None){
-            let final_pdf = self.html_dir.join("graphs.pdf");
-            println!("copy the pdf to {:?}", &final_pdf);
-            fs::copy(&done_pdf, &final_pdf);
+        let simplified_parameters: Vec<&Set> = data.sets.iter()
+            .filter(|x|x.typ == PreviewType::Parameter)
+            .filter(|x|x.preview.relevance >= self.simplified_hide_irrelevant_parameters_below)
+            .collect();
+        let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.typ == PreviewType::GraphClass).collect();
+        self.time.print("drawing parameters & graphs");
+        for (name, set) in [
+            ("parameter", &parameters),
+            ("graphs", &graphs),
+            ("parameter_simplified", &simplified_parameters),
+        ] {
+            if let Ok(done_pdf) = make_drawing(&data, &self.working_dir, name, set, None){
+                let final_pdf = self.html_dir.join(format!("{}.pdf", name));
+                println!("copy pdf to {:?}", &final_pdf);
+                fs::copy(&done_pdf, &final_pdf);
+            }
         }
     }
 
@@ -298,10 +305,14 @@ impl Computation {
         for source in &data.sources {
             linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
         }
+        for topic in &data.topics {
+            linkable.insert(topic.id.clone(), Box::new(topic.preview.clone()));
+        }
         let markdown = Markdown::new(&data, linkable);
         let mut generated_pages = HashMap::new();
         add_content(&data.sets, &self.final_dir, &mut generated_pages);
         add_content(&data.sources, &self.final_dir, &mut generated_pages);
+        add_content(&data.topics, &self.final_dir, &mut generated_pages);
         self.time.print("fetching handcrafted pages");
         let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
         for source in file::iterate_folder_recursively(&self.handcrafted_dir) {
@@ -340,17 +351,28 @@ impl Computation {
             return;
         }
         let data = self.get_data();
-        self.time.print("generating relation table");
-        let draw_sets: Vec<PreviewSet> = data.sets.iter()
+        self.time.print("generating relation tables");
+        let table_sets: Vec<PreviewSet> = data.sets.iter()
             .map(|x|x.preview.clone())
-            .filter(|x|x.kind==PreviewKind::Parameter)
+            .filter(|x|x.typ==PreviewType::Parameter)
             .filter(|x|x.relevance >= self.hide_irrelevant_parameters_below)
             .filter(|x|!x.hidden)
             .collect();
-        if let Ok(done_pdf) = generate_relation_table(&data, draw_sets, &self.parent) { // todo generalize
-            let final_pdf = self.final_dir.join("html").join("table.pdf");
-            println!("copy the pdf to {:?}", &final_pdf);
-            fs::copy(&done_pdf, &final_pdf);
+        let simplified_table_sets: Vec<PreviewSet> = data.sets.iter()
+            .map(|x|x.preview.clone())
+            .filter(|x|x.typ==PreviewType::Parameter)
+            .filter(|x|x.relevance >= self.hide_irrelevant_parameters_below)
+            .filter(|x|!x.hidden)
+            .collect();
+        for (name, set) in [
+            ("table", &table_sets),
+            ("table_simplified", &simplified_table_sets),
+        ] {
+            if let Ok(done_pdf) = generate_relation_table(&data, set, &self.parent) { // todo generalize
+                let final_pdf = self.final_dir.join("html").join(format!("{}.pdf", name));
+                println!("copy the pdf to {:?}", &final_pdf);
+                fs::copy(&done_pdf, &final_pdf);
+            }
         }
     }
 

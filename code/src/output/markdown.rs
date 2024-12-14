@@ -10,8 +10,8 @@ use std::process::Command;
 
 use regex::Regex;
 
-use crate::data::data::{Data, Linkable, Set, Showed, ShowedFact, Source};
-use crate::data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey};
+use crate::data::data::{Data, Linkable, ProviderLink, Set, Showed, ShowedFact, Source, Topic};
+use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTopic, PreviewType};
 use crate::general::enums::{Page, SourceKey};
 use crate::file;
 
@@ -49,9 +49,18 @@ fn progress(value: u32, maxval: u32) -> String {
     let filledstr = "█".repeat(value as usize);
     let emptystr = "░".repeat((maxval-value) as usize);
     let mut res = String::new();
-    res.push_str(filledstr.as_str());
-    res.push_str(emptystr.as_str());
+    res.push_str(&filledstr);
+    res.push_str(&emptystr);
     res
+}
+
+impl Linkable for ProviderLink {
+    fn get_url(&self) -> String {
+        self.url.clone()
+    }
+    fn get_name(&self) -> String {
+        self.provider.name.clone()
+    }
 }
 
 impl Linkable for PreviewRelation {
@@ -60,6 +69,15 @@ impl Linkable for PreviewRelation {
     }
     fn get_name(&self) -> String {
         format!("{} → {}", self.subset.name, self.superset.name)
+    }
+}
+
+impl Linkable for PreviewTopic {
+    fn get_url(&self) -> String {
+        base(&self.id)
+    }
+    fn get_name(&self) -> String {
+        self.name.clone()
     }
 }
 
@@ -75,14 +93,14 @@ impl Linkable for PreviewSet {
 impl Linkable for PreviewSource {
     fn get_url(&self) -> String {
         match &self.sourcekey {
-            SourceKey::Bibtex { key: _, entry: _ } => base(&self.id),
+            SourceKey::Bibtex { key: _, name: _, entry: _ } => base(&self.id),
             SourceKey::Online { url } => url.clone(),
             SourceKey::Other { name: _, description: _ } => base(&self.id),
         }
     }
     fn get_name(&self) -> String {
         match &self.sourcekey {
-            SourceKey::Bibtex { key, entry: _ } => key.clone(),
+            SourceKey::Bibtex { key, name, entry: _ } => name.clone().unwrap_or(key.clone()),
             SourceKey::Online { url } => url.clone(),
             SourceKey::Other { name, description: _ } => name.into(),
         }
@@ -107,35 +125,96 @@ impl GeneratedPage for Set {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
         res += &format!("# {}\n\n", self.name);
+        if !self.aka.is_empty() {
+            res += &format!("aka: {}\n\n", self.aka.join(", "));
+        }
+        if !self.topics.is_empty() {
+            let topic_strings: Vec<String> = self.topics.iter().map(|x|builder.linkto(x)).collect();
+            res += &format!("topics: {}\n\n", topic_strings.join(", "));
+        }
+        if !self.equivsets.is_empty() {
+            let equivalent_strings: Vec<String> = self.equivsets.iter().map(|x|builder.linkto(x)).collect();
+            res += &format!("equivalent to: {}\n\n", equivalent_strings.join(", "));
+        }
+        if !self.providers.is_empty() {
+            let provider_strings: Vec<String> = self.providers.iter().map(|x|builder.linkto(x)).collect();
+            res += &format!("providers: {}\n\n", provider_strings.join(", "));
+        }
         res += "[[handcrafted]]\n\n";
-        res += &match make_focus_drawing(&builder.data, self, 2, working_dir) {
-            Ok(result_pdf_file) => {
-                copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
-                let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
-                format!("[[pdf ../{}]]", filename)
-            },
-            Err(e) => {
-                eprintln!("{:?}", e);
-                format!("{:?}", e)
-            },
-        };
-        let drawn_sets = builder.data.sets.iter().filter(|x| x.kind != self.kind).collect();
-        res += &match make_subset_drawing(&builder.data, self, drawn_sets, working_dir) {
-            Ok(result_pdf_file) => {
-                copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
-                let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
-                format!("[[pdf ../{}]]", filename)
-            },
-            Err(e) => {
-                eprintln!("{:?}", e);
-                format!("{:?}", e)
-            },
-        };
-        // make_subset_drawing
-        for source in &self.timeline {
-            if let Some(val) = source.to_markdown(builder){
-                res += &val;
+        // todo focused drawings with smaller deployed size
+        // res += &match make_focus_drawing(&builder.data, self, 2, working_dir) {
+            // Ok(result_pdf_file) => {
+                // copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
+                // let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
+                // format!("[[pdf ../{}]]", filename)
+            // },
+            // Err(e) => {
+                // eprintln!("{:?}", e);
+                // format!("{:?}", e)
+            // },
+        // };
+        // let drawn_sets = builder.data.sets.iter().filter(|x| x.typ != self.typ).collect();
+        // res += &match make_subset_drawing(&builder.data, self, drawn_sets, working_dir) {
+            // Ok(result_pdf_file) => {
+                // copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
+                // let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
+                // format!("[[pdf ../{}]]", filename)
+            // },
+            // Err(e) => {
+                // eprintln!("{:?}", e);
+                // format!("{:?}", e)
+            // },
+        // };
+        // todo - having parameters and graphs both as sets means maximal doesn't show what was expected
+        // let subs = &self.subsets.maximal;
+        // if !subs.is_empty() {
+            // res += &format!("## Maximal subsets\n\n");
+            // for s in subs {
+                // res += &format!("* {}\n", builder.linkto(s));
+            // }
+            // res += "\n";
+        // }
+        // let sups = &self.supersets.minimal;
+        // if !sups.is_empty() {
+            // res += &format!("## Minimal supersets\n\n");
+            // for s in sups {
+                // res += &format!("* {}\n", builder.linkto(s));
+            // }
+            // res += "\n";
+        // }
+        res += &format!("## Relations\n\n");
+        let mut relation_table = Table::new(vec!["Other", "Relation from", "Relation to"]);
+        for set in &builder.data.sets {
+            if set.preview == self.preview {
+                continue;
             }
+            let relation_fr = match builder.data.get_relation(&set.preview, &self.preview){
+                None => None,
+                Some(rel) => rel.preview.short_description(builder),
+            };
+            let relation_to = match builder.data.get_relation(&self.preview, &set.preview){
+                None => None,
+                Some(rel) => rel.preview.short_description(builder),
+            };
+            relation_table.add(
+                vec![
+                builder.linkto(&set.preview),
+                relation_fr.unwrap_or("unknown to HOPS".into()),
+                relation_to.unwrap_or("unknown to HOPS".into()),
+                ]);
+        }
+        res += builder.make_table(relation_table).as_str();
+        res += "\n";
+        // make_subset_drawing
+        let sources_timeline = &self.timeline;
+        if !sources_timeline.is_empty() {
+            res += &format!("## Results\n\n");
+            for source in sources_timeline {
+                if let Some(val) = source.to_markdown(builder){
+                    res += &val;
+                }
+            }
+            res += "\n";
         }
         res
     }
@@ -145,10 +224,10 @@ impl GeneratedPage for Source {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
         match &self.sourcekey {
-            SourceKey::Bibtex { key, entry } => {
+            SourceKey::Bibtex { key, name, entry } => {
                 res += &format!("# {}\n\n", key);
                 if let Some(value) = entry{
-                    res += &format!("```bibtex\n{}\n```\n", value);
+                    res += &format!("```bibtex\n{}\n```\n\n", value);
                 }
                 // if let Some(val) = entry { // todo retrieve and use biblatex entry
                     // if let Ok(doi) = val.doi() {
@@ -179,6 +258,38 @@ impl GeneratedPage for Source {
             }
         }
         res
+    }
+}
+
+impl GeneratedPage for Topic {
+    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
+        let mut res = String::new();
+        res += &format!("# {}\n\n", self.name);
+        res += &format!("{}\n\n", self.description);
+        let mut table = Table::new(vec!["has this topic"]);
+        for w in &self.sets {
+            table.add(vec![builder.linkto(w)]);
+        }
+        res += builder.make_table(table).as_str();
+        res
+    }
+}
+
+pub struct Table {
+    pub head: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
+
+impl Table {
+    pub fn new(head: Vec<&str>) -> Self {
+        Self {
+            head: head.iter().map(|x|(*x).into()).collect(),
+            rows: vec![],
+        }
+    }
+    pub fn add(&mut self, row: Vec<String>) {
+        assert_eq!(row.len(), self.head.len());
+        self.rows.push(row);
     }
 }
 
@@ -251,33 +362,39 @@ impl<'a> Markdown<'a> {
         if let Some(key) = keys.pop_front() {
             match key.as_str() {
                 "parameters" => {
-                    let mut pars = self.data.sets.iter().filter(|&s| s.kind == PreviewKind::Parameter).collect::<Vec<&Set>>();
+                    let mut pars = self.data.sets.iter().filter(|&s| s.typ == PreviewType::Parameter).collect::<Vec<&Set>>();
                     pars.sort_by_key(|x|x.name.to_lowercase());
-                    content += "| Parameter ⮁ | Relevance ⮁ |\n";
-                    content += "| ----------- | ----------- |\n";
+                    let mut table = Table::new(vec!["Parameter", "Relevance"]);
                     for set in &pars {
                         let relstring = progress(set.preview.relevance, 9);
-                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), relstring);
+                        table.add(vec![self.linkto(&set.preview), relstring]);
                     }
+                    content += self.make_table(table).as_str();
                 }
                 "graphs" => {
-                    let mut graphs = self.data.sets.iter().filter(|&s| s.kind == PreviewKind::GraphClass).collect::<Vec<&Set>>();
+                    let mut graphs = self.data.sets.iter().filter(|&s| s.typ == PreviewType::GraphClass).collect::<Vec<&Set>>();
                     graphs.sort_by_key(|x|&x.name);
-                    content += "| Graph class ⮁ | Relevance ⮁ |\n";
-                    content += "| ------------- | ----------- |\n";
-                    for set in graphs {
+                    let mut table = Table::new(vec!["Graph class", "Relevance"]);
+                    for set in &graphs {
                         let relstring = progress(set.preview.relevance, 9);
-                        content += &format!("| {} | {} |\n", self.linkto(&set.preview), relstring);
+                        table.add(vec![self.linkto(&set.preview), relstring]);
                     }
+                    content += self.make_table(table).as_str();
                 },
                 "sources" => {
-                    content += "| Order ⮁ | Source ⮁ |\n";
-                    content += "| ------- |--------- |\n";
+                    let mut table = Table::new(vec!["Order", "Year", "Source"]);
                     for (index, source) in self.data.sources.iter().enumerate() {
-                        if let SourceKey::Bibtex { key, entry } = &source.sourcekey {
-                            content += &format!("| {:0>3} | {} |\n", index, self.linkto(&source.preview));
+                        if let SourceKey::Bibtex { key, name, entry } = &source.sourcekey {
+                            table.add(vec![format!("{:0>3}", index), source.time.to_string(), self.linkto(&source.preview)]);
                         }
                     }
+                    content += self.make_table(table).as_str();
+                },
+                "topics" => {
+                    for topic in &self.data.topics {
+                        content += &format!("* {}\n", self.linkto(&topic.preview));
+                    }
+                    content += "\n\n";
                 },
                 unknown => {
                     return Err(MarkdownError::IdNotFound(unknown.into()));
@@ -319,6 +436,24 @@ impl<'a> Markdown<'a> {
         format!("[{}]({})", linkable.get_name(), linkable.get_url())
     }
 
+    pub fn make_row(&self, row: &Vec<String>) -> String {
+        let mut content = String::new();
+        content += "|";
+        for cell in row { content += &format!(r" {cell} |"); }
+        content += "\n";
+        content
+    }
+
+    pub fn make_table(&self, table: Table) -> String {
+        let mut content = String::new();
+        content += &self.make_row(&table.head);
+        content += &self.make_row(&table.head.iter().map(|x|format!("---")).collect());
+        for row in table.rows {
+            content += &self.make_row(&row.iter().map(|x|x.into()).collect());
+        }
+        content
+    }
+
     pub fn embed_pdf(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let name: String = keys.pop_front().unwrap().into();
         let default = 480;
@@ -331,21 +466,6 @@ impl<'a> Markdown<'a> {
             </object>\n\n",
             name, height, name, name
             ))
-    }
-
-    pub fn format_set(&self, set: &PreviewSet) -> String {
-        let mut content = String::new();
-        content += &format!("## {}", set.name);
-        content += "\n";
-        // todo
-        // if !set.notes.is_empty() {
-        // for note in &set.notes {
-        // content += &format_note(note);
-        // }
-        // }
-        // content += &embed_pdf(&format!("../local_{}", set.id), 480);
-        // content += &embed_pdf(&format!("../{}", set.id), 480);
-        content
     }
 
     pub fn make_page(&self, pagename: &str, content: String) {

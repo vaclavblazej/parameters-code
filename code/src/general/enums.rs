@@ -27,6 +27,7 @@ pub enum TransferGroup {
 pub enum SourceKey {
     Bibtex {
         key: String,
+        name: Option<String>,
         entry: Option<String>,
     },
     Online {

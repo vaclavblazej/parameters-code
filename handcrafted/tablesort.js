@@ -21,7 +21,9 @@ function makeSortable(table) {
     if (th) i = th.length;
     else return; // if no `<thead>` then do nothing
     while (--i >= 0) (function (i) {
-        var dir = 1;
+        var dir = 0;
+        if (i) dir = 1;
+        th[i].innerHTML += ' ⮁';
         th[i].addEventListener('click', function () {sortTable(table, i, (dir = 1 - dir))});
     }(i));
 }

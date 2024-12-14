@@ -40,9 +40,7 @@ impl SimpleIndex {
                 self.first_not_subset_of_second.insert(element);
             },
             CpxInfo::Equivalence => {
-                let (a, b) = element.clone();
                 self.first_subset_of_second.insert(element);
-                self.first_subset_of_second.insert((b, a));
             },
             CpxInfo::Unknown => {},
         }

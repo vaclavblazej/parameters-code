@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::data::preview::{PreviewKind, PreviewRelation, PreviewSet, PreviewSource};
+use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTopic};
 use crate::general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey, TransferGroup};
 use crate::processing::processing::Sets;
 
@@ -21,6 +21,7 @@ pub trait HasId {
 }
 impl HasId for Set { fn id(&self) -> String { self.id.clone() } }
 impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
+impl HasId for Topic { fn id(&self) -> String { self.id.clone() } }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 pub struct Date {
@@ -45,7 +46,7 @@ impl fmt::Display for Date {
         if let Some(y) = self.year {
             result.push_str(&y.to_string());
         } else {
-            return write!(f, "{}", result)
+            return write!(f, "unknown")
         }
         if let Some(m) = self.month {
             result.push('/');
@@ -85,7 +86,9 @@ pub struct Set {
     pub preview: PreviewSet,
     pub id: String,
     pub name: String,
-    pub kind: PreviewKind,
+    pub typ: PreviewType,
+    pub aka: Vec<String>,
+    pub topics: Vec<PreviewTopic>,
     pub providers: Vec<ProviderLink>,
     pub timeline: Vec<SourceSubset>,
     pub equivsets: Vec<PreviewSet>,
@@ -111,6 +114,15 @@ pub struct ProviderLink {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Topic {
+    pub preview: PreviewTopic,
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub sets: Vec<PreviewSet>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Source {
     pub preview: PreviewSource,
     pub id: String,
@@ -125,6 +137,7 @@ pub struct Data {
     pub relations: Vec<Relation>,
     pub sources: Vec<Source>,
     pub providers: Vec<Provider>,
+    pub topics: Vec<Topic>,
     #[serde(skip)]
     pub set_idx: HashMap<PreviewSet, usize>,
     #[serde(skip)]
@@ -150,7 +163,7 @@ pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, P
 }
 
 impl Data {
-    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>) -> Self {
+    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, topics: Vec<Topic>) -> Self {
         let set_idx = compute_set_idx(&sets);
         let relation_idx = compute_relation_idx(&relations);
         Self {
@@ -158,6 +171,7 @@ impl Data {
             relations,
             sources,
             providers,
+            topics,
             set_idx,
             relation_idx,
         }

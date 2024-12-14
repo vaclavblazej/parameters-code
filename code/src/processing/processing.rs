@@ -1,7 +1,7 @@
 //! Given raw data this module enriches and interconnects it.
 
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
-use biblatex::{Bibliography, Entry};
+use biblatex::{Bibliography, Chunk, DateValue, Entry, PermissiveType, Person, Spanned};
 use serde::{Serialize, Deserialize};
 
 use crate::{data::{data::{CreatedBy, Data, Date, Linkable, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
@@ -68,7 +68,7 @@ pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashMap<Pr
 }
 
 /// Given a RawSet create a full Set with all the information.
-pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources: &HashMap<RawSource, Source>) -> Set {
+pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &HashMap<RawSource, Source>) -> Set {
     let mut timeline_map: HashMap<RawSource, Vec<RawShowed>> = HashMap::new();
     for (raw_source, showed) in &data.factoids {
         let should_save = match &showed.fact {
@@ -97,10 +97,11 @@ pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources:
     .collect();
     timeline.sort_by_key(|subset| subset.time.clone());
     timeline.reverse();
-    let subsets = help.get_subsets(&set);
-    let supersets = help.get_supersets(&set);
-    let sub_exclusions = help.get_antisubsets(&set);
-    let super_exclusions = help.get_antisupersets(&set);
+    let preview = set.clone().into();
+    let subsets = help.get_subsets(&preview);
+    let supersets = help.get_supersets(&preview);
+    let sub_exclusions = help.get_antisubsets(&preview);
+    let super_exclusions = help.get_antisupersets(&preview);
     let mut unknown_map: HashSet<PreviewSet> = HashSet::new();
     for par in &data.sets {
         unknown_map.insert(par.clone().into());
@@ -116,21 +117,23 @@ pub fn process_set(set: PreviewSet, help: &SimpleIndex, data: &RawData, sources:
     for (rawprovider, links) in &data.provider_links {
         let provider : Provider = rawprovider.clone().into();
         for link in links {
-            if *set.id == *link.set.id {
+            if *preview.id == *link.set.id {
                 providers.push(link.clone().preprocess(&provider));
             }
         }
     }
     // let transfers = HashMap::new(); // todo
     Set{
-        preview: set.clone().into(),
-        id: set.id.clone(),
-        name: set.name.clone(),
-        kind: set.kind.clone().into(),
+        preview: preview.clone().into(),
+        id: preview.id.clone(),
+        name: preview.name.clone(),
+        typ: preview.typ.clone().into(),
         providers,
         timeline,
+        aka: set.aka.clone(),
+        topics: set.topics.iter().map(|x|x.clone().into()).collect(),
         // transfers,
-        equivsets: help.get_equiv(&set),
+        equivsets: help.get_equiv(&preview),
         subsets: prepare_extremes(subsets, help),
         supersets: prepare_extremes(supersets, help),
         sub_exclusions: prepare_extremes(sub_exclusions, help),
@@ -144,9 +147,50 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
     let mut time = Date::empty();
     match &source.rawsourcekey {
         RawSourceKey::Bibtex { key } => {
+            let mut name: Option<String> = None;
             let entry = match bibliography {
                 Some(bib) => {
-                    if let Some(e) = bib.get(&key) { // todo fixme
+                    if let Some(e) = bib.get(&key) {
+                        if let Ok(title) = e.title() {
+                            let title_str: String = title.iter().map(|Spanned { v: chunk, span: _ }|{
+                                match chunk {
+                                    Chunk::Normal(value) => value.clone(),
+                                    Chunk::Verbatim(value) => format!("`{}`", value),
+                                    Chunk::Math(value) => format!("${}$", value),
+                                }
+                            }).fold("".into(), |mut a, b| { a.push_str(&b); a });
+                            name = Some(match name {
+                                Some(mut q) => { q.push_str(&title_str); q },
+                                None => title_str
+                            });
+                        }
+                        if let Ok(fauthors) = e.author() {
+                            let sauthors: Vec<String> = fauthors.iter().map(|x|x.name.clone()).collect();
+                            let authors = sauthors.join(", ");
+                            name = Some(match name {
+                                Some(mut q) => { q.push_str(&format!(" by {}", authors)); q },
+                                None => authors
+                            });
+                        }
+                        if let Ok(dt) = e.date() {
+                            match dt{
+                                PermissiveType::Typed(t) => {
+                                    match t.value {
+                                        DateValue::At(d) => {time = Date {
+                                            year: Some(d.year),
+                                            month: None,
+                                            day: None,
+                                        }},
+                                        DateValue::After(d) => {panic!("unknown date type")},
+                                        DateValue::Before(d) => {panic!("unknown date type")},
+                                        DateValue::Between(s, e) => {panic!("unknown date type")},
+                                    }
+                                },
+                                PermissiveType::Chunks(chunks) => {
+                                    panic!("unknown date type")
+                                },
+                            }
+                        }
                         Some(format!("{}", e.to_biblatex_string()))
                     } else {
                         None
@@ -156,7 +200,7 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
                     None
                 },
             };
-            sourcekey = SourceKey::Bibtex { key: key.clone(), entry };
+            sourcekey = SourceKey::Bibtex { key: key.clone(), name, entry };
         },
         RawSourceKey::Online { url } => {
             sourcekey = SourceKey::Online { url: url.clone() };
@@ -237,6 +281,22 @@ fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
     }
 }
 
+fn add_and_update(
+    relation_map: &mut HashMap<(PreviewSet, PreviewSet), Relation>,
+    changed_relation: (PreviewSet, PreviewSet),
+    result: Relation,
+    updated_relations: &mut VecDeque<PreviewRelation>,
+    ) {
+    if let Some(mut x) = relation_map.get_mut(&changed_relation) {
+        if x.combine_parallel(&result) {
+            updated_relations.push_back(result.preview.clone());
+        }
+    } else {
+        updated_relations.push_back(result.preview.clone());
+        relation_map.insert(changed_relation, result);
+    }
+}
+
 fn process_relations(sets: &Vec<PreviewSet>,
                      composed_sets: &Vec<(PreviewSet, Vec<PreviewSet>)>,
                      raw_relations: Vec<RawRelation>,
@@ -271,23 +331,35 @@ fn process_relations(sets: &Vec<PreviewSet>,
                     continue;
                 }
                 // equivalence ab copies the new relation cd into ef
-                for (a,b,c,d,e,f) in vec![
-                    (relation.subset.clone(), relation.superset.clone(), set.clone(), relation.superset.clone(), set.clone(), relation.subset.clone()),
-                    (relation.subset.clone(), relation.superset.clone(), set.clone(), relation.subset.clone(), set.clone(), relation.superset.clone()),
-                    (relation.subset.clone(), relation.superset.clone(), relation.superset.clone(), set.clone(), relation.subset.clone(), set.clone()),
-                    (relation.subset.clone(), relation.superset.clone(), relation.subset.clone(), set.clone(), relation.superset.clone(), set.clone()),
+                let xx = relation.subset.clone();
+                let yy = relation.superset.clone();
+                let zz = set.clone();
+                for (x,y,z) in vec![
+                    (xx.clone(), yy.clone(), zz.clone()),
+                    (xx.clone(), zz.clone(), yy.clone()),
+                    (yy.clone(), xx.clone(), zz.clone()),
+                    (yy.clone(), zz.clone(), xx.clone()),
+                    (zz.clone(), xx.clone(), yy.clone()),
+                    (zz.clone(), yy.clone(), xx.clone()),
                 ] {
-                    let Some(ab) = res.get(&(a.clone(), b.clone())) else { continue };
-                    let Some(cd) = res.get(&(c.clone(), d.clone())) else { continue };
+                    let Some(ab) = res.get(&(x.clone(), y.clone())) else { continue };
                     match &ab.cpx {
                         CpxInfo::Equivalence => {},
                         _ => continue,
                     }
-                    let ac = (a.clone(), c.clone());
-                    let mut result = Relation::new(&e, &f, cd.cpx.clone(), CreatedBy::Todo);
-                    res.entry((e, f)).and_modify(|x|{
-                        x.combine_parallel(&result);
-                    }).or_insert(result);
+                    for (c,d,e,f) in vec![
+                        (z.clone(), x.clone(), z.clone(), y.clone()),
+                        (z.clone(), y.clone(), z.clone(), x.clone()),
+                        (x.clone(), z.clone(), y.clone(), z.clone()),
+                        (y.clone(), z.clone(), x.clone(), z.clone()),
+                    ] {
+                        let Some(cd) = res.get(&(c.clone(), d.clone())) else { continue };
+                        let result = Relation::new(&e, &f, cd.cpx.clone(), CreatedBy::Todo);
+                        add_and_update(&mut res, (e, f), result, &mut updated_relations);
+                        // res.entry((result.subset.clone(), result.superset.clone())).and_modify(|x|{
+                            // x.combine_parallel(&result);
+                        // }).or_insert(result);
+                    }
                 }
                 // inclusion ab and inclusion bc imply inclusion ac
                 for (a,b,c) in vec![
@@ -298,14 +370,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                     let Some(bc) = res.get(&(b.clone(), c.clone())) else { continue };
                     let ac = (a.clone(), c.clone());
                     let result = ab.combine_serial(bc);
-                    if let Some(mut x) = res.get_mut(&ac) {
-                        if x.combine_parallel(&result) {
-                            updated_relations.push_back(result.preview.clone());
-                        }
-                    } else {
-                        updated_relations.push_back(result.preview.clone());
-                        res.insert(ac, result);
-                    }
+                    add_and_update(&mut res, ac, result, &mut updated_relations);
                 }
                 // inclusion ab and exclusion cd implies exclusion ef
                 for (a,b,c,d,e,f) in vec![
@@ -317,27 +382,18 @@ fn process_relations(sets: &Vec<PreviewSet>,
                     let Some(ab) = res.get(&(a.clone(), b.clone())) else { continue };
                     let Some(cd) = res.get(&(c.clone(), d.clone())) else { continue };
                     match (&ab.cpx, &cd.cpx) {
-                        (CpxInfo::Inclusion { .. } | CpxInfo::Equivalence, CpxInfo::Exclusion) => {},
+                        (CpxInfo::Inclusion { .. }, CpxInfo::Exclusion) => {},
                         _ => continue,
                     }
-                    let mut result = Relation::new(&e, &f, CpxInfo::Exclusion, CreatedBy::Todo);
-                    res.entry((e, f)).and_modify(|x|{
-                        x.combine_parallel(&result);
-                    }).or_insert(result);
+                    let result = Relation::new(&e, &f, CpxInfo::Exclusion, CreatedBy::Todo);
+                    add_and_update(&mut res, (e, f), result, &mut updated_relations);
                 }
             }
             // inclusion ab implies inclusion f(a)f(b) for a transfer f
             let new_relations = apply_transfers(transfers, &relation);
             for result in new_relations {
                 let key = (result.subset.clone(), result.superset.clone());
-                if let Some(mut x) = res.get_mut(&key) {
-                    if x.combine_parallel(&result) {
-                        updated_relations.push_back(result.preview.clone());
-                    }
-                } else {
-                    updated_relations.push_back(result.preview.clone());
-                    res.insert(key, result);
-                }
+                add_and_update(&mut res, key, result, &mut updated_relations);
             }
             // inclusion ab and ac imply inclusion a(b+c)
             for (composed_set, elements) in composed_sets {
@@ -351,7 +407,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                         let a = relation.subset.clone();
                         let Some(ab) = res.get(&(a, element.clone())) else { okay = false; break };
                         match &ab.cpx {
-                            CpxInfo::Inclusion { .. } | CpxInfo::Equivalence => {},
+                            CpxInfo::Inclusion { .. } => {},
                             _ => { okay = false; break },
                         }
                         result = result.combine_plus(ab);
@@ -504,7 +560,7 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     }
     let mut composed_sets: Vec<(PreviewSet, Vec<PreviewSet>)> = vec![];
     for set in &rawdata.sets {
-        if let Some(Composition::Intersection(ref vec)) = set.composed {
+        if let Composition::Intersection(ref vec) = set.composed {
             let comp_preview: Vec<PreviewSet> = vec.iter().map(|x|x.clone().into()).collect();
             composed_sets.push((set.clone().into(), comp_preview));
         }
@@ -512,6 +568,11 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     let mut providers = vec![];
     for (raw_provider, _) in &rawdata.provider_links {
         providers.push(raw_provider.clone().into());
+    }
+    let mut topics = vec![];
+    for raw_topic in &rawdata.topics {
+        let sets = rawdata.sets.iter().filter(|x|x.topics.contains(raw_topic)).map(|x|x.clone().into()).collect();
+        topics.push(raw_topic.clone().preprocess(sets));
     }
     let mut transfers: HashMap::<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>> = HashMap::new();
     for (key, raw_pairs) in &rawdata.transfer {
@@ -543,7 +604,7 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     let simpleindex = SimpleIndex::new(&relations);
     let mut sets = vec![];
     for set in &rawdata.sets {
-        sets.push(process_set(set.clone().into(), &simpleindex, &rawdata, &source_keys));
+        sets.push(process_set(set, &simpleindex, &rawdata, &source_keys));
     }
-    Data::new(sets, relations, sources, providers)
+    Data::new(sets, relations, sources, providers, topics)
 }

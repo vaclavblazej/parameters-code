@@ -102,7 +102,7 @@ impl<'a> RawDataSource<'a> {
             Cpx::Exactly(a) => vec![RawRelation::new(subset, superset, Inclusion{mn: a.clone(), mx: a.clone()})],
             Cpx::UpperBound(b) => vec![RawRelation::new(subset, superset, Inclusion{mn: CpxTime::Constant, mx: b.clone()})],
             Cpx::Todo => vec![RawRelation::new(subset, superset, Inclusion { mn: CpxTime::Constant, mx: CpxTime::Exists })],
-            Cpx::Equivalence => vec![RawRelation::new(subset, superset, Equivalence)],
+            Cpx::Equivalence => vec![RawRelation::new(subset, superset, Equivalence), RawRelation::new(superset, subset, Equivalence)],
             Cpx::Exclusion => vec![RawRelation::new(subset, superset, Exclusion)],
             Cpx::Incomparable => vec![
                 RawRelation::new(subset, superset, Exclusion),

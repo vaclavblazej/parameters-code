@@ -11,13 +11,14 @@ pub trait Id{
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub enum RawKind {
+pub enum RawType {
     Parameter,
     GraphClass,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Composition {
+    None,
     Intersection(Vec<RawSet>),
 }
 
@@ -48,10 +49,27 @@ pub struct RawSource {
 pub struct RawSet {
     pub id: String,
     pub name: String,
-    pub kind: RawKind,
-    pub composed: Option<Composition>,
-    pub relevance: u32, // from 0 to 9 for easier sorting
+    pub typ: RawType,
+    pub composed: Composition,
+    pub relevance: u32, // from 0 to 9
     pub hidden: bool,
+    pub topics: Vec<RawTopic>,
+    pub aka: Vec<String>,
+}
+
+impl RawSet {
+    pub fn new(id: String, name: String, typ: RawType, composed: Composition, relevance: u32) -> Self {
+        Self {
+            id,
+            name,
+            typ,
+            composed,
+            relevance,
+            hidden: false,
+            topics: vec![],
+            aka: vec![],
+        }
+    }
 }
 
 impl Id for RawSet {
@@ -87,7 +105,7 @@ impl Id for RawRelation {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct RawTopic {
     pub id: String,
     pub name: String,

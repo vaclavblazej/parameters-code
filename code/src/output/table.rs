@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::data::data::{Data, Set};
-use crate::data::preview::{PreviewKind, PreviewSet};
+use crate::data::preview::{PreviewType, PreviewSet};
 use crate::general::enums::{CpxTime, CpxInfo::*};
 
 
@@ -17,10 +17,10 @@ fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
     format!("\\cpxlink{{{}}}{{{}}}{{{}}}{{../{}}}", ai, bi, status, link)
 }
 
-fn order_sets_from_sources(data: &Data, sets: Vec<PreviewSet>) -> Vec<PreviewSet> {
+fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSet> {
     let mut predecesors: HashMap<PreviewSet, usize> = HashMap::new();
     let sets_set: HashSet<PreviewSet> = HashSet::from_iter(sets.iter().cloned());
-    for preview in sets {
+    for preview in sets.clone() {
         let set = data.get_set(&preview);
         let number_of_predecesors = HashSet::from_iter(set.subsets.all.iter().cloned()).intersection(&sets_set).count();
         predecesors.insert(preview, number_of_predecesors);
@@ -34,7 +34,7 @@ fn order_sets_from_sources(data: &Data, sets: Vec<PreviewSet>) -> Vec<PreviewSet
     let mut result = Vec::new();
     while let Some(current) = queue.pop() { // todo prioritize mutually bounded parameters
         result.push(current.clone());
-        let children: Vec<&PreviewSet> = data.get_set(&current).supersets.all.iter().filter(|x|x.kind == PreviewKind::Parameter).collect();
+        let children: Vec<&PreviewSet> = data.get_set(&current).supersets.all.iter().filter(|x|x.typ == PreviewType::Parameter).collect();
         for neighbor in children {
             if predecesors.contains_key(neighbor){
                 *predecesors.get_mut(neighbor).unwrap() -= 1;
@@ -47,7 +47,7 @@ fn order_sets_from_sources(data: &Data, sets: Vec<PreviewSet>) -> Vec<PreviewSet
     result
 }
 
-pub fn render_table(data: &Data, draw_sets: Vec<PreviewSet>, table_folder: &PathBuf) -> io::Result<PathBuf> {
+pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &PathBuf) -> io::Result<PathBuf> {
     let size_str = format!("\\def\\parlen{{{}}}\n", draw_sets.len());
     let ordered_pars = order_sets_from_sources(data, draw_sets);
 
