@@ -10,10 +10,11 @@ use std::process::Command;
 
 use regex::Regex;
 
-use crate::data::data::{Data, Linkable, ProviderLink, Set, Showed, ShowedFact, Source, Topic};
-use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTopic, PreviewType};
+use crate::data::data::{Data, Linkable, ProviderLink, Set, Showed, ShowedFact, Source, Tag};
+use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType};
 use crate::general::enums::{Page, SourceKey};
 use crate::file;
+use crate::general::progress;
 
 use super::diagram::{make_focus_drawing, make_subset_drawing};
 use super::to_markdown::ToMarkdown;
@@ -45,15 +46,6 @@ fn base(id: &String) -> String {
     format!("{{{{< base >}}}}html/{}", id)
 }
 
-fn progress(value: u32, maxval: u32) -> String {
-    let filledstr = "█".repeat(value as usize);
-    let emptystr = "░".repeat((maxval-value) as usize);
-    let mut res = String::new();
-    res.push_str(&filledstr);
-    res.push_str(&emptystr);
-    res
-}
-
 impl Linkable for ProviderLink {
     fn get_url(&self) -> String {
         self.url.clone()
@@ -72,7 +64,7 @@ impl Linkable for PreviewRelation {
     }
 }
 
-impl Linkable for PreviewTopic {
+impl Linkable for PreviewTag {
     fn get_url(&self) -> String {
         base(&self.id)
     }
@@ -128,9 +120,9 @@ impl GeneratedPage for Set {
         if !self.aka.is_empty() {
             res += &format!("aka: {}\n\n", self.aka.join(", "));
         }
-        if !self.topics.is_empty() {
-            let topic_strings: Vec<String> = self.topics.iter().map(|x|builder.linkto(x)).collect();
-            res += &format!("topics: {}\n\n", topic_strings.join(", "));
+        if !self.tags.is_empty() {
+            let tag_strings: Vec<String> = self.tags.iter().map(|x|builder.linkto(x)).collect();
+            res += &format!("tags: {}\n\n", tag_strings.join(", "));
         }
         if !self.equivsets.is_empty() {
             let equivalent_strings: Vec<String> = self.equivsets.iter().map(|x|builder.linkto(x)).collect();
@@ -141,30 +133,29 @@ impl GeneratedPage for Set {
             res += &format!("providers: {}\n\n", provider_strings.join(", "));
         }
         res += "[[handcrafted]]\n\n";
-        // todo focused drawings with smaller deployed size
-        // res += &match make_focus_drawing(&builder.data, self, 2, working_dir) {
-            // Ok(result_pdf_file) => {
-                // copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
-                // let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
-                // format!("[[pdf ../{}]]", filename)
-            // },
-            // Err(e) => {
-                // eprintln!("{:?}", e);
-                // format!("{:?}", e)
-            // },
-        // };
-        // let drawn_sets = builder.data.sets.iter().filter(|x| x.typ != self.typ).collect();
-        // res += &match make_subset_drawing(&builder.data, self, drawn_sets, working_dir) {
-            // Ok(result_pdf_file) => {
-                // copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
-                // let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
-                // format!("[[pdf ../{}]]", filename)
-            // },
-            // Err(e) => {
-                // eprintln!("{:?}", e);
-                // format!("{:?}", e)
-            // },
-        // };
+        res += &match make_focus_drawing(&builder.data, self, 2, working_dir) {
+            Ok(result_dot_file) => {
+                copy_file_to_final_location(&result_dot_file, &final_dir.join("html"));
+                let filename = result_dot_file.file_name().unwrap().to_string_lossy();
+                format!("[[dot ../{}]]", filename)
+            },
+            Err(e) => {
+                eprintln!("{:?}", e);
+                format!("{:?}", e)
+            },
+        };
+        let drawn_sets = builder.data.sets.iter().filter(|x| x.typ != self.typ).collect();
+        res += &match make_subset_drawing(&builder.data, self, drawn_sets, working_dir) {
+            Ok(result_pdf_file) => {
+                copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
+                let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
+                format!("[[dot ../{}]]", filename)
+            },
+            Err(e) => {
+                eprintln!("{:?}", e);
+                format!("{:?}", e)
+            },
+        };
         // todo - having parameters and graphs both as sets means maximal doesn't show what was expected
         // let subs = &self.subsets.maximal;
         // if !subs.is_empty() {
@@ -182,7 +173,7 @@ impl GeneratedPage for Set {
             // }
             // res += "\n";
         // }
-        res += &format!("## Relations\n\n");
+        res += &format!("---\n\n## Relations\n\n");
         let mut relation_table = Table::new(vec!["Other", "Relation from", "Relation to"]);
         for set in &builder.data.sets {
             if set.preview == self.preview {
@@ -208,7 +199,7 @@ impl GeneratedPage for Set {
         // make_subset_drawing
         let sources_timeline = &self.timeline;
         if !sources_timeline.is_empty() {
-            res += &format!("## Results\n\n");
+            res += &format!("---\n\n## Results\n\n");
             for source in sources_timeline {
                 if let Some(val) = source.to_markdown(builder){
                     res += &val;
@@ -225,7 +216,7 @@ impl GeneratedPage for Source {
         let mut res = String::new();
         match &self.sourcekey {
             SourceKey::Bibtex { key, name, entry } => {
-                res += &format!("# {}\n\n", key);
+                res += &format!("# {}\n\n", self.preview.get_name());
                 if let Some(value) = entry{
                     res += &format!("```bibtex\n{}\n```\n\n", value);
                 }
@@ -261,12 +252,12 @@ impl GeneratedPage for Source {
     }
 }
 
-impl GeneratedPage for Topic {
+impl GeneratedPage for Tag {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
         res += &format!("# {}\n\n", self.name);
         res += &format!("{}\n\n", self.description);
-        let mut table = Table::new(vec!["has this topic"]);
+        let mut table = Table::new(vec!["has this tag"]);
         for w in &self.sets {
             table.add(vec![builder.linkto(w)]);
         }
@@ -366,7 +357,7 @@ impl<'a> Markdown<'a> {
                     pars.sort_by_key(|x|x.name.to_lowercase());
                     let mut table = Table::new(vec!["Parameter", "Relevance"]);
                     for set in &pars {
-                        let relstring = progress(set.preview.relevance, 9);
+                        let relstring = progress::bar(set.preview.relevance, 9);
                         table.add(vec![self.linkto(&set.preview), relstring]);
                     }
                     content += self.make_table(table).as_str();
@@ -376,7 +367,7 @@ impl<'a> Markdown<'a> {
                     graphs.sort_by_key(|x|&x.name);
                     let mut table = Table::new(vec!["Graph class", "Relevance"]);
                     for set in &graphs {
-                        let relstring = progress(set.preview.relevance, 9);
+                        let relstring = progress::bar(set.preview.relevance, 9);
                         table.add(vec![self.linkto(&set.preview), relstring]);
                     }
                     content += self.make_table(table).as_str();
@@ -390,9 +381,9 @@ impl<'a> Markdown<'a> {
                     }
                     content += self.make_table(table).as_str();
                 },
-                "topics" => {
-                    for topic in &self.data.topics {
-                        content += &format!("* {}\n", self.linkto(&topic.preview));
+                "tags" => {
+                    for tag in &self.data.tags {
+                        content += &format!("* {}\n", self.linkto(&tag.preview));
                     }
                     content += "\n\n";
                 },
@@ -414,6 +405,7 @@ impl<'a> Markdown<'a> {
         if let Some(first_word) = words.pop_front() {
             match first_word.as_str() {
                 "list" => self.process_list_key(&mut words),
+                "dot" => self.embed_dot(&mut words),
                 "pdf" => self.embed_pdf(&mut words),
                 unknown => {
                     if let Some(res) = map.get(unknown) {
@@ -452,6 +444,24 @@ impl<'a> Markdown<'a> {
             content += &self.make_row(&row.iter().map(|x|x.into()).collect());
         }
         content
+    }
+
+    pub fn embed_dot(&self, keys: &mut LinkedList<String>) -> Result<String> {
+        let filename: String = keys.pop_front().unwrap().into();
+        Ok(format!(
+            "<div id=\"{}\"></div>\
+            <script>\
+            Viz.instance().then(function(viz) {{\
+                fetch('{}')\
+                    .then(response => response.text())\
+                    .then((data) => {{\
+                        var svg = viz.renderSVGElement(data);\
+                        document.getElementById(\"{}\").appendChild(svg);\
+                    }})\
+            }});\
+            </script>\n\n",
+            filename, filename, filename
+        ))
     }
 
     pub fn embed_pdf(&self, keys: &mut LinkedList<String>) -> Result<String> {

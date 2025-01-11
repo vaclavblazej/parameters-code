@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -19,22 +19,48 @@ fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
 
 fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSet> {
     let mut predecesors: HashMap<PreviewSet, usize> = HashMap::new();
+    let mut equivalent: HashSet<PreviewSet> = HashSet::new();
     let sets_set: HashSet<PreviewSet> = HashSet::from_iter(sets.iter().cloned());
-    for preview in sets.clone() {
+    for preview in sets {
+        predecesors.insert(preview.clone(), 0);
+    }
+    for preview in sets {
         let set = data.get_set(&preview);
-        let number_of_predecesors = HashSet::from_iter(set.subsets.all.iter().cloned()).intersection(&sets_set).count();
-        predecesors.insert(preview, number_of_predecesors);
+        for subset in &set.supersets.all {
+            if let Some(el) = predecesors.get_mut(subset) {
+                *el += 1;
+            }
+        }
     }
     let mut queue: Vec<PreviewSet> = Vec::new();
+    let mut eqqueue: Vec<PreviewSet> = Vec::new();
     for (set, count) in &predecesors {
         if *count == 0 {
             queue.push(set.clone());
         }
     }
+    let mut resolved: HashSet<String> = HashSet::new();
     let mut result = Vec::new();
-    while let Some(current) = queue.pop() { // todo prioritize mutually bounded parameters
+    loop {
+        let current = match eqqueue.pop() {
+            Some(c) => c,
+            None => match queue.pop() {
+                Some(c) => c,
+                None => break,
+            },
+        };
+        if resolved.contains(&current.id) {
+            continue;
+        }
+        resolved.insert(current.id.clone());
         result.push(current.clone());
-        let children: Vec<&PreviewSet> = data.get_set(&current).supersets.all.iter().filter(|x|x.typ == PreviewType::Parameter).collect();
+        let set = data.get_set(&current);
+        for elem in &set.equivsets {
+            if predecesors.contains_key(elem) {
+                eqqueue.push(elem.clone());
+            }
+        }
+        let children: Vec<&PreviewSet> = set.supersets.all.iter().filter(|x|x.typ == PreviewType::Parameter).collect();
         for neighbor in children {
             if predecesors.contains_key(neighbor){
                 *predecesors.get_mut(neighbor).unwrap() -= 1;
@@ -44,6 +70,7 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
             }
         }
     }
+    assert_eq!(resolved.len(), sets.len());
     result
 }
 
@@ -63,7 +90,7 @@ pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &Pat
             } else {
                 if let Some(relation) = data.get_relation(&a, &b) {
                     match &relation.cpx {
-                        Inclusion { mx: _, mn: _ } | Equivalence => "bounded",
+                        Inclusion { mx: _, mn: _ } | Equal => "bounded",
                         Exclusion => "unbounded",
                         _ => "unknown",
                     }

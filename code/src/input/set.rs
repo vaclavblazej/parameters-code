@@ -1,5 +1,5 @@
-use super::{build::Builder, raw::{RawData, RawSet, RawTopic}};
-
+use super::{build::Builder, raw::{RawData, RawSet, RawTag}};
+use crate::general::enums::Page::NotApplicable;
 
 pub struct SetBuilder<'a> {
     set: RawSet,
@@ -17,8 +17,18 @@ impl<'a> SetBuilder<'a> {
         self
     }
 
-    pub fn topic(mut self, topic: &RawTopic) -> Self {
-        self.set.topics.push(topic.clone());
+    pub fn tag(mut self, tag: &RawTag) -> Self {
+        self.set.tags.push(tag.clone());
+        self
+    }
+
+    pub fn defined(mut self, id: &str, text: &str) -> Self {
+        self.builder.assumed_source().defined(id, NotApplicable, &self.set, text);
+        self
+    }
+
+    pub fn hide(mut self) -> Self {
+        self.set.hidden = true;
         self
     }
 
@@ -26,5 +36,6 @@ impl<'a> SetBuilder<'a> {
         self.builder.add_set(&self.set);
         self.set
     }
+
 }
 

@@ -69,12 +69,12 @@ mod tests {
         let a = create.parameter("a", "a", 9).done();
         let b = create.parameter("b", "b", 9).done();
         create.assumed_source()
-            .showed("s_ab", NotApplicable, &a, &b, Cpx::Equivalence, "")
+            .showed("s_ab", NotApplicable, &a, &b, Cpx::Equal, "")
             .done();
         let data = process_raw_data(&create.build(), &bibfile());
         // == test =============================================================
-        assert!(matches!(data.get_relation(&a.clone().into(), &b.clone().into()).unwrap().cpx, CpxInfo::Equivalence));
-        assert!(matches!(data.get_relation(&b.clone().into(), &a.clone().into()).unwrap().cpx, CpxInfo::Equivalence));
+        assert!(matches!(data.get_relation(&a.clone().into(), &b.clone().into()).unwrap().cpx, CpxInfo::Equal));
+        assert!(matches!(data.get_relation(&b.clone().into(), &a.clone().into()).unwrap().cpx, CpxInfo::Equal));
     }
 
     #[test]
@@ -86,7 +86,7 @@ mod tests {
         let c = create.parameter("c", "c", 9).done();
         let d = create.parameter("d", "d", 9).done();
         create.assumed_source()
-            .showed("s_ab", NotApplicable, &a, &b, Cpx::Equivalence, "")
+            .showed("s_ab", NotApplicable, &a, &b, Cpx::Equal, "")
             .showed("s_ac", NotApplicable, &a, &c, UpperBound(Linear), "")
             .showed("s_db", NotApplicable, &d, &b, UpperBound(Linear), "")
             .done();

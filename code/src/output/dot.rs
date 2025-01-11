@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::data::{data::Set, preview::PreviewRelation};
 
@@ -102,6 +102,11 @@ impl Graph {
     }
 
     pub fn to_dot(&self) -> String {
+        let test_set: HashSet<String> = HashSet::from_iter(self.nodes.iter().map(|n|n.id.clone()));
+        for edge in &self.edges {
+            assert!(test_set.contains(&edge.from));
+            assert!(test_set.contains(&edge.to));
+        }
         let mut dot = String::new();
         dot.push_str("digraph unix {\n");
         dot.push_str("\tnode [color=lightblue2 style=filled]\n");

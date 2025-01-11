@@ -4,7 +4,7 @@ use crate::{data::{data::{Data, Relation, Set}, preview::PreviewSet}, general::h
 use crate::general::enums::{CpxInfo, CpxTime};
 use crate::output::dot::{Edge, Graph};
 use crate::file;
-use std::{thread, time, fs};
+use std::{time, fs};
 
 use super::markdown::Markdown;
 
@@ -29,7 +29,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset) && displayed_sets_preview.contains(&relation.superset) {
             match &relation.cpx {
-                CpxInfo::Equivalence => {
+                CpxInfo::Equal => {
                     if relation.subset.relevance < relation.superset.relevance
                         || (relation.subset.relevance == relation.superset.relevance
                             && relation.subset.id < relation.superset.id) {
@@ -60,7 +60,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
         }
     }
     // hiding cannot be global as it is implied by the set of items shown in the drawing
-    let mut drawn_relations = filter_hidden(potential_relations, &displayed_sets.iter().map(|x|x.preview.clone()).collect());
+    let drawn_relations = filter_hidden(potential_relations, &displayed_sets.iter().map(|x|x.preview.clone()).collect());
     for relation in drawn_relations {
         if let CpxInfo::Inclusion { mn, mx } = &relation.cpx {
             let style = inclusion_edge_style(&mx);
@@ -78,10 +78,10 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
     let dot_target_file = target_dir.join(format!("{}.dot", name));
     fs::create_dir_all(&target_dir);
     file::write_file_content(&dot_target_file, &dot_str)?;
-    let pdf_target_file = target_dir.join(format!("{}.pdf", name));
-    Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).output().expect("dot command failed");
-    assert!(pdf_target_file.exists());
-    Ok(pdf_target_file)
+    // let pdf_target_file = target_dir.join(format!("{}.pdf", name));
+    // Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).output().expect("dot command failed");
+    // assert!(pdf_target_file.exists());
+    Ok(dot_target_file)
 }
 
 pub fn make_focus_drawing(data: &Data, set: &Set, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {

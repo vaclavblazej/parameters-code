@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use biblatex::Entry;
 
-use crate::data::data::{CreatedBy, Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, Topic};
+use crate::data::data::{CreatedBy, Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, Tag};
 use crate::general::enums::SourceKey;
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -94,9 +94,9 @@ impl Into<Relation> for RawRelation {
     }
 }
 
-impl RawTopic {
-    pub fn preprocess(self, sets: Vec<PreviewSet>) -> Topic {
-        Topic {
+impl RawTag {
+    pub fn preprocess(self, sets: Vec<PreviewSet>) -> Tag {
+        Tag {
             preview: self.clone().into(),
             id: self.id,
             name: self.name,
@@ -106,9 +106,9 @@ impl RawTopic {
     }
 }
 
-impl Into<PreviewTopic> for RawTopic {
-    fn into(self) -> PreviewTopic {
-        PreviewTopic {
+impl Into<PreviewTag> for RawTag {
+    fn into(self) -> PreviewTag {
+        PreviewTag {
             id: self.id,
             name: self.name,
         }

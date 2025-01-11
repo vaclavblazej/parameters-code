@@ -47,7 +47,7 @@ enum RelDescription {
     LowerBound{bound: CpxTime},
     BothBounds{bound: CpxTime},
     UpperLowerBound{lower_bound: CpxTime, upper_bound: CpxTime},
-    Equivalence,
+    Equal,
     GraphBoundedPar,
     GraphUnboundedPar,
     BoundedParGraph,
@@ -87,7 +87,7 @@ fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescrip
             }
         },
         CpxInfo::LowerBound { mn } => RelDescription::LowerBound { bound: mn.clone() },
-        CpxInfo::Equivalence => RelDescription::Equivalence,
+        CpxInfo::Equal => RelDescription::Equal,
         CpxInfo::Exclusion => {
             match (&rel.subset.typ, &rel.superset.typ) {
                 (PreviewType::Parameter, PreviewType::Parameter) => {
@@ -121,7 +121,7 @@ impl PreviewRelation {
             RelDescription::GraphBoundedPar => Some(format!("graph class {} has constant {}", subset_string, superset_string)),
             RelDescription::BoundedParGraph => Some(format!("graphs with bounded {} are included in graph class {}", subset_string, superset_string)),
             RelDescription::GraphInclusion => Some(format!("graph class {} is included in graph class {}", subset_string, superset_string)),
-            RelDescription::Equivalence => Some(format!("{} is equivalent to {}", subset_string, superset_string)),
+            RelDescription::Equal => Some(format!("{} is equivalent to {}", subset_string, superset_string)),
             RelDescription::Unknown => None,
             RelDescription::ParExclusion => Some(format!("bounded {} does not imply bounded {}", subset_string, superset_string)),
             RelDescription::GraphUnboundedPar => Some(format!("graph class {} has unbounded {}", subset_string, superset_string)),
@@ -141,7 +141,7 @@ impl PreviewRelation {
             RelDescription::GraphBoundedPar => Some(format!("constant")),
             RelDescription::BoundedParGraph => Some(format!("inclusion")),
             RelDescription::GraphInclusion => Some(format!("inclusion")),
-            RelDescription::Equivalence => Some(format!("equivalence")),
+            RelDescription::Equal => Some(format!("equal")),
             RelDescription::ParExclusion => Some(format!("exclusion")),
             RelDescription::GraphUnboundedPar => Some(format!("unbounded")),
             RelDescription::ParExcludesGraph => Some(format!("exclusion")),

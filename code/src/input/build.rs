@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::general::enums::{Page, TransferGroup, CpxTime::{Linear, Constant}, Cpx::UpperBound};
-use super::{parameter::SetBuilder, raw::{Composition, RawData, RawType, RawProvider, RawSet, RawSource, RawSourceKey, RawTopic}};
+use super::{set::SetBuilder, raw::{Composition, RawData, RawType, RawProvider, RawSet, RawSource, RawSourceKey, RawTag}};
 use super::source::{RawDataSource, RawDataProvider};
 
 pub struct Builder {
@@ -89,23 +89,9 @@ impl Builder {
         SetBuilder::new(res, self)
     }
 
-    /// Add a parameter defined as bounded function of the red degree created
-    /// via a contraction sequence. // todo think about
-    pub fn reduced(&mut self, name: &str, set: &RawSet, relevance: u32) -> RawSet {
-        let res = RawSet::new(
-            format!("reduced_{}", set.id.clone()),
-            name.to_string(),
-            RawType::Parameter,
-            Composition::None,
-            relevance,
-        );
-        self.add_set(&res);
-        res
-    }
-
     /// Add a parameter defined as the number of vertices to be removed
     /// until the remaining graph falls in the given set.
-    pub fn distance_to(&mut self, id: &str, set: &RawSet, relevance: u32) -> RawSet {
+    pub fn distance_to(&mut self, id: &str, set: &RawSet, relevance: u32) -> SetBuilder {
         let res = RawSet::new(
             id.into(),
             format!("distance to {}", set.name.clone()),
@@ -113,37 +99,19 @@ impl Builder {
             Composition::None,
             relevance,
         );
-        self.add_set(&res);
         let mut tmp_source = self.assumed_source();
         match set.typ {
             RawType::Parameter => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Linear), "by definition"),
             RawType::GraphClass => tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition"),
         };
         self.transfers_bound_to(TransferGroup::DistanceTo, &set, &res);
-        res
-    }
-
-    /// Add a parameter defined as the minimum number of graphs from another set required
-    /// to cover the edges of the input graph.
-    pub fn edge_cover_by(&mut self, set: &RawSet, relevance: u32) -> RawSet {
-        let res = RawSet::new(
-            format!("edge_cover_by_{}", set.id.clone()),
-            format!("edge cover by {}", set.name.clone()),
-            RawType::Parameter,
-            Composition::None,
-            relevance,
-        );
-        self.add_set(&res);
-        let mut tmp_source = self.unknown_source();
-        tmp_source.showed("", Page::NotApplicable, &set, &res, UpperBound(Constant), "by definition");
-        self.transfers_bound_to(TransferGroup::EdgeCover, &set, &res);
-        res
+        SetBuilder::new(res, self)
     }
 
     /// Create a new set that represents intersection of sets.
     /// From a view point of classical parameterized complexity
     /// we may understand the intersection as a sum of parameters.
-    pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str, relevance: u32) -> RawSet {
+    pub fn intersection(&mut self, id: &str, set_a: &RawSet, set_b: &RawSet, name: &str, relevance: u32) -> SetBuilder {
         let sets = vec![set_a.clone(), set_b.clone()];
         let (typ, upper_bound) = if sets.iter().all(|x|x.typ == RawType::GraphClass) {
             (RawType::GraphClass, UpperBound(Constant))
@@ -157,19 +125,18 @@ impl Builder {
             Composition::Intersection(sets.clone()),
             relevance,
         );
-        self.add_set(&res);
         let mut tmp_source = self.assumed_source();
         for s in &sets {
             tmp_source = tmp_source.showed("", Page::NotApplicable, &res, &s, upper_bound.clone(), "by definition");
         }
         tmp_source.done();
-        res
+        SetBuilder::new(res, self)
     }
 
     /// Defines a new graph class. We do not aim to have all graph
     /// classes in the database but only those that are very relevant
     /// to the field of parameterized complexity.
-    pub fn graph_class(&mut self, id: &str, name: &str, relevance: u32) -> RawSet {
+    pub fn graph_class(&mut self, id: &str, name: &str, relevance: u32) -> SetBuilder {
         let res = RawSet::new(
             id.into(),
             name.into(),
@@ -177,8 +144,7 @@ impl Builder {
             Composition::None,
             relevance,
         );
-        self.add_set(&res);
-        res
+        SetBuilder::new(res, self)
     }
 
     pub fn assumed_source(&mut self) -> RawDataSource {
@@ -209,15 +175,14 @@ impl Builder {
         RawDataProvider::new(&mut self.data, RawProvider{name: name.into(), url: url.into()}, format_url)
     }
 
-    /// Define a topic or property that some parameters share so they
-    /// can be listed by them.
-    pub fn topic(&mut self, id: &str, name: &str, description: &str) -> RawTopic {
-        let res = RawTopic {
+    /// Define a tag that some sets share so they can be grouped.
+    pub fn tag(&mut self, id: &str, name: &str, description: &str) -> RawTag {
+        let res = RawTag {
             id: id.into(),
             name: name.into(),
             description: description.into(),
         };
-        self.data.topics.push(res.clone());
+        self.data.tags.push(res.clone());
         res
     }
 

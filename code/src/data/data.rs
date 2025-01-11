@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTopic};
+use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTag};
 use crate::general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey, TransferGroup};
 use crate::processing::processing::Sets;
 
@@ -21,7 +21,7 @@ pub trait HasId {
 }
 impl HasId for Set { fn id(&self) -> String { self.id.clone() } }
 impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
-impl HasId for Topic { fn id(&self) -> String { self.id.clone() } }
+impl HasId for Tag { fn id(&self) -> String { self.id.clone() } }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 pub struct Date {
@@ -88,7 +88,7 @@ pub struct Set {
     pub name: String,
     pub typ: PreviewType,
     pub aka: Vec<String>,
-    pub topics: Vec<PreviewTopic>,
+    pub tags: Vec<PreviewTag>,
     pub providers: Vec<ProviderLink>,
     pub timeline: Vec<SourceSubset>,
     pub equivsets: Vec<PreviewSet>,
@@ -114,8 +114,8 @@ pub struct ProviderLink {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Topic {
-    pub preview: PreviewTopic,
+pub struct Tag {
+    pub preview: PreviewTag,
     pub id: String,
     pub name: String,
     pub description: String,
@@ -137,7 +137,7 @@ pub struct Data {
     pub relations: Vec<Relation>,
     pub sources: Vec<Source>,
     pub providers: Vec<Provider>,
-    pub topics: Vec<Topic>,
+    pub tags: Vec<Tag>,
     #[serde(skip)]
     pub set_idx: HashMap<PreviewSet, usize>,
     #[serde(skip)]
@@ -163,7 +163,8 @@ pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, P
 }
 
 impl Data {
-    pub fn new(sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, topics: Vec<Topic>) -> Self {
+    pub fn new(mut sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, tags: Vec<Tag>) -> Self {
+        sets.sort_by_key(|x|x.name.clone());
         let set_idx = compute_set_idx(&sets);
         let relation_idx = compute_relation_idx(&relations);
         Self {
@@ -171,7 +172,7 @@ impl Data {
             relations,
             sources,
             providers,
-            topics,
+            tags,
             set_idx,
             relation_idx,
         }

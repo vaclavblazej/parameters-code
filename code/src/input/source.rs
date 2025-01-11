@@ -102,7 +102,10 @@ impl<'a> RawDataSource<'a> {
             Cpx::Exactly(a) => vec![RawRelation::new(subset, superset, Inclusion{mn: a.clone(), mx: a.clone()})],
             Cpx::UpperBound(b) => vec![RawRelation::new(subset, superset, Inclusion{mn: CpxTime::Constant, mx: b.clone()})],
             Cpx::Todo => vec![RawRelation::new(subset, superset, Inclusion { mn: CpxTime::Constant, mx: CpxTime::Exists })],
-            Cpx::Equivalence => vec![RawRelation::new(subset, superset, Equivalence), RawRelation::new(superset, subset, Equivalence)],
+            Cpx::Equal => vec![RawRelation::new(subset, superset, Equal), RawRelation::new(superset, subset, Equal)],
+            Cpx::Equivalent(a, b) => vec![
+                RawRelation::new(subset, superset, Inclusion { mn: CpxTime::Constant, mx: a }), RawRelation::new(superset, subset, Inclusion { mn: CpxTime::Constant, mx: b }),
+            ],
             Cpx::Exclusion => vec![RawRelation::new(subset, superset, Exclusion)],
             Cpx::Incomparable => vec![
                 RawRelation::new(subset, superset, Exclusion),
@@ -123,6 +126,11 @@ impl<'a> RawDataSource<'a> {
             };
             self.data.factoids.push((self.source.clone(), showed));
         }
+        self
+    }
+
+    pub fn asked(self, id: &str, page: Page, subset: &RawSet, superset: &RawSet, text: &str) -> Self {
+        // todo
         self
     }
 
@@ -151,7 +159,8 @@ impl<'a> RawDataSource<'a> {
         self
     }
 
-    pub fn todo(self) -> RawSource {
+    pub fn todo_rest(self) -> RawSource {
+        eprintln!("todo: rest of the source {} should be processed", self.source.id);
         self.source
     }
 

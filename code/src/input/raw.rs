@@ -53,7 +53,7 @@ pub struct RawSet {
     pub composed: Composition,
     pub relevance: u32, // from 0 to 9
     pub hidden: bool,
-    pub topics: Vec<RawTopic>,
+    pub tags: Vec<RawTag>,
     pub aka: Vec<String>,
 }
 
@@ -66,7 +66,7 @@ impl RawSet {
             composed,
             relevance,
             hidden: false,
-            topics: vec![],
+            tags: vec![],
             aka: vec![],
         }
     }
@@ -106,7 +106,7 @@ impl Id for RawRelation {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct RawTopic {
+pub struct RawTag {
     pub id: String,
     pub name: String,
     pub description: String,
@@ -129,7 +129,7 @@ pub struct RawData {
     pub factoids: Vec<(RawSource, RawShowed)>,
     pub sources: Vec<RawSource>,
     pub provider_links: HashMap<RawProvider, Vec<RawProviderLink>>,
-    pub topics: Vec<RawTopic>,
+    pub tags: Vec<RawTag>,
     pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
 }
 
@@ -140,7 +140,7 @@ impl RawData {
             factoids: Vec::new(),
             sources: Vec::new(),
             provider_links: HashMap::new(),
-            topics: Vec::new(),
+            tags: Vec::new(),
             transfer: HashMap::new(),
         }
     }

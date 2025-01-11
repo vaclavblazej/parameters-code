@@ -55,7 +55,7 @@ pub struct PreviewRelation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PreviewTopic {
+pub struct PreviewTag {
     pub id: String,
     pub name: String,
 }

@@ -4,7 +4,7 @@ use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Chunk, DateValue, Entry, PermissiveType, Person, Spanned};
 use serde::{Serialize, Deserialize};
 
-use crate::{data::{data::{CreatedBy, Data, Date, Linkable, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden}};
+use crate::{data::{data::{CreatedBy, Data, Date, Linkable, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden, progress::ProgressDisplay}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -131,9 +131,9 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
         providers,
         timeline,
         aka: set.aka.clone(),
-        topics: set.topics.iter().map(|x|x.clone().into()).collect(),
+        tags: set.tags.iter().map(|x|x.clone().into()).collect(),
         // transfers,
-        equivsets: help.get_equiv(&preview),
+        equivsets: help.get_eqsets(&preview),
         subsets: prepare_extremes(subsets, help),
         supersets: prepare_extremes(supersets, help),
         sub_exclusions: prepare_extremes(sub_exclusions, help),
@@ -304,6 +304,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                      ) -> Vec<Relation> {
     let relations: Vec<Relation> = raw_relations.into_iter().map(|x|x.into()).collect();
     let mut res: HashMap<(PreviewSet, PreviewSet), Relation> = HashMap::new();
+    let mut progress = ProgressDisplay::new("processing", 21329);
     for relation in relations {
         let pair = (relation.subset.clone(), relation.superset.clone());
         let mut updated_relations: VecDeque<PreviewRelation> = VecDeque::new();
@@ -344,7 +345,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                 ] {
                     let Some(ab) = res.get(&(x.clone(), y.clone())) else { continue };
                     match &ab.cpx {
-                        CpxInfo::Equivalence => {},
+                        CpxInfo::Equal => {},
                         _ => continue,
                     }
                     for (c,d,e,f) in vec![
@@ -356,9 +357,6 @@ fn process_relations(sets: &Vec<PreviewSet>,
                         let Some(cd) = res.get(&(c.clone(), d.clone())) else { continue };
                         let result = Relation::new(&e, &f, cd.cpx.clone(), CreatedBy::Todo);
                         add_and_update(&mut res, (e, f), result, &mut updated_relations);
-                        // res.entry((result.subset.clone(), result.superset.clone())).and_modify(|x|{
-                            // x.combine_parallel(&result);
-                        // }).or_insert(result);
                     }
                 }
                 // inclusion ab and inclusion bc imply inclusion ac
@@ -413,18 +411,18 @@ fn process_relations(sets: &Vec<PreviewSet>,
                         result = result.combine_plus(ab);
                     }
                     if !okay { continue }
-                    res.entry((result.subset.clone(), result.superset.clone())).and_modify(|x|{
-                        x.combine_parallel(&result);
-                    }).or_insert(result);
+                    add_and_update(&mut res, (result.subset.clone(), result.superset.clone()), result, &mut updated_relations);
                 }
             }
         }
-        println!("improved {} relations", improved_relations);
+        progress.increase(improved_relations);
     }
+    progress.done();
     res.into_values().collect()
 }
 
 impl Relation {
+
     pub fn new(subset: &PreviewSet, superset: &PreviewSet, cpx: CpxInfo, created_by: CreatedBy) -> Self{
         let preview = PreviewRelation {
             id: format!("{}_{}", subset.id, superset.id),
@@ -442,6 +440,7 @@ impl Relation {
             essential: true,
         }
     }
+
     // todo this should be changed to find the simplest way to find the resulting complexity
     pub fn combine_parallel(&mut self, other: &Relation) -> bool {
         assert_eq!(self.superset, other.superset);
@@ -464,6 +463,7 @@ impl Relation {
             }
         }
     }
+
     pub fn combine_serial(&self, other: &Relation) -> Relation {
         assert_eq!(self.superset, other.subset);
         let cpx = self.cpx.combine_serial(&other.cpx);
@@ -483,6 +483,7 @@ impl Relation {
             essential: true,
         }
     }
+
     pub fn combine_plus(&self, other: &Relation) -> Relation {
         assert_eq!(self.subset, other.subset); // expected to be used for combined parameters only
         let cpx = self.cpx.combine_plus(&other.cpx);
@@ -498,10 +499,11 @@ impl Relation {
             superset: preview.superset.clone(),
             preview,
             cpx,
-            created_by: CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone()),
+            created_by: CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone()), // todo check
             essential: true,
         }
     }
+
 }
 
 fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>, relation: &PreviewRelation) -> Vec<Relation> {
@@ -569,10 +571,10 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     for (raw_provider, _) in &rawdata.provider_links {
         providers.push(raw_provider.clone().into());
     }
-    let mut topics = vec![];
-    for raw_topic in &rawdata.topics {
-        let sets = rawdata.sets.iter().filter(|x|x.topics.contains(raw_topic)).map(|x|x.clone().into()).collect();
-        topics.push(raw_topic.clone().preprocess(sets));
+    let mut tags = vec![];
+    for raw_tag in &rawdata.tags {
+        let sets = rawdata.sets.iter().filter(|x|x.tags.contains(raw_tag)).map(|x|x.clone().into()).collect();
+        tags.push(raw_tag.clone().preprocess(sets));
     }
     let mut transfers: HashMap::<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>> = HashMap::new();
     for (key, raw_pairs) in &rawdata.transfer {
@@ -606,5 +608,5 @@ pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data 
     for set in &rawdata.sets {
         sets.push(process_set(set, &simpleindex, &rawdata, &source_keys));
     }
-    Data::new(sets, relations, sources, providers, topics)
+    Data::new(sets, relations, sources, providers, tags)
 }

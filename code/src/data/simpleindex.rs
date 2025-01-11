@@ -39,7 +39,7 @@ impl SimpleIndex {
             CpxInfo::Exclusion {} => {
                 self.first_not_subset_of_second.insert(element);
             },
-            CpxInfo::Equivalence => {
+            CpxInfo::Equal => {
                 self.first_subset_of_second.insert(element);
             },
             CpxInfo::Unknown => {},
@@ -60,7 +60,7 @@ impl SimpleIndex {
             .collect()
     }
 
-    pub fn get_equiv(&self, a: &PreviewSet) -> Vec<PreviewSet> {
+    pub fn get_eqsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a).into_iter());
         let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_supersets(a).into_iter());
         let res: Vec<PreviewSet> = seta.intersection(&setb).into_iter().cloned().collect();
@@ -69,13 +69,13 @@ impl SimpleIndex {
 
     pub fn get_subsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a).into_iter());
-        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_equiv(a).into_iter());
+        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_eqsets(a).into_iter());
         seta.difference(&setb).into_iter().cloned().collect()
     }
 
     pub fn get_supersets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_supersets(a).into_iter());
-        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_equiv(a).into_iter());
+        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_eqsets(a).into_iter());
         seta.difference(&setb).into_iter().cloned().collect()
     }
 

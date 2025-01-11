@@ -46,7 +46,8 @@ pub enum Cpx {
     UpperBound(CpxTime),
     StrictUpperBound(CpxTime),
     Exactly(CpxTime),
-    Equivalence,
+    Equivalent(CpxTime, CpxTime),
+    Equal,
     Exclusion,
     Incomparable,
     Todo,
@@ -72,8 +73,8 @@ pub enum CpxInfo {
     /// Value of B is not bounded by any function of A.
     Exclusion,
     /// Values are the same, B = A; this relation is symmetric.
-    /// Equivalence is a more refined Inclusion{Linear, Linear}.
-    Equivalence,
+    /// Equal is a more refined Inclusion{Linear, Linear}.
+    Equal,
     /// Value of B is at least mn(A) but upper bound is unknown.
     /// LowerBound can be further refined to Inclusion or Exclusion.
     LowerBound{mn: CpxTime},

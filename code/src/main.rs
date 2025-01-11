@@ -38,10 +38,11 @@ mod data {
     pub mod simpleindex;
 }
 mod general {
+    pub mod cache;
     pub mod enums;
     pub mod file;
     pub mod hide;
-    pub mod cache;
+    pub mod progress;
 }
 mod processing {
     pub mod combine;
@@ -52,8 +53,8 @@ mod processing {
 }
 mod input {
     pub mod build;
-    pub mod parameter;
     pub mod raw;
+    pub mod set;
     pub mod source;
 }
 mod output {
@@ -160,7 +161,7 @@ impl Timer {
 #[derive(Hash, PartialEq, Eq)]
 enum ComputationPhases {
     PREPROCESS,
-    PDFS,
+    DOTS,
     PAGES,
     TABLE,
     MOCK,
@@ -186,20 +187,21 @@ impl Computation {
     fn new() -> Self {
         let rawargs: Vec<String> = env::args().collect();
         let mut args = HashSet::new();
-        for arg in rawargs {
+        for (i, arg) in rawargs.iter().enumerate() {
+            if i == 0 { continue; }
             match arg.as_str() {
                 "preprocess" => {args.insert(ComputationPhases::PREPROCESS);},
-                "pdfs" => {args.insert(ComputationPhases::PDFS);},
+                "dots" => {args.insert(ComputationPhases::DOTS);},
                 "pages" => {args.insert(ComputationPhases::PAGES);},
                 "table" => {args.insert(ComputationPhases::TABLE);},
                 "mock" => {args.insert(ComputationPhases::MOCK);},
                 "all" => {
                     args.insert(ComputationPhases::PREPROCESS);
-                    args.insert(ComputationPhases::PDFS);
+                    args.insert(ComputationPhases::DOTS);
                     args.insert(ComputationPhases::PAGES);
                     args.insert(ComputationPhases::TABLE);
                 },
-                _ => (),
+                other => eprintln!("unknown parameter: '{}'", other),
             }
         }
         let current = env::current_dir().unwrap();
@@ -260,12 +262,12 @@ impl Computation {
         self.some_data = Some(res);
     }
 
-    fn make_pdfs(&self) {
-        if !self.args.contains(&ComputationPhases::PDFS) {
+    fn make_dots(&self) {
+        if !self.args.contains(&ComputationPhases::DOTS) {
             return;
         }
         let data = self.get_data();
-        self.time.print("creating main page pdfs");
+        self.time.print("creating main page dots");
         let parameters: Vec<&Set> = data.sets.iter()
             .filter(|x|x.typ == PreviewType::Parameter)
             .filter(|x|x.preview.relevance >= self.hide_irrelevant_parameters_below)
@@ -277,14 +279,14 @@ impl Computation {
         let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.typ == PreviewType::GraphClass).collect();
         self.time.print("drawing parameters & graphs");
         for (name, set) in [
-            ("parameter", &parameters),
+            ("parameters", &parameters),
             ("graphs", &graphs),
-            ("parameter_simplified", &simplified_parameters),
+            ("parameters_simplified", &simplified_parameters),
         ] {
-            if let Ok(done_pdf) = make_drawing(&data, &self.working_dir, name, set, None){
-                let final_pdf = self.html_dir.join(format!("{}.pdf", name));
-                println!("copy pdf to {:?}", &final_pdf);
-                fs::copy(&done_pdf, &final_pdf);
+            if let Ok(done_dot) = make_drawing(&data, &self.working_dir, name, set, None){
+                let final_dot = self.html_dir.join(format!("{}.dot", name));
+                println!("copy dot to {:?}", &final_dot);
+                fs::copy(&done_dot, &final_dot);
             }
         }
     }
@@ -305,14 +307,14 @@ impl Computation {
         for source in &data.sources {
             linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
         }
-        for topic in &data.topics {
-            linkable.insert(topic.id.clone(), Box::new(topic.preview.clone()));
+        for tag in &data.tags {
+            linkable.insert(tag.id.clone(), Box::new(tag.preview.clone()));
         }
         let markdown = Markdown::new(&data, linkable);
         let mut generated_pages = HashMap::new();
         add_content(&data.sets, &self.final_dir, &mut generated_pages);
         add_content(&data.sources, &self.final_dir, &mut generated_pages);
-        add_content(&data.topics, &self.final_dir, &mut generated_pages);
+        add_content(&data.tags, &self.final_dir, &mut generated_pages);
         self.time.print("fetching handcrafted pages");
         let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
         for source in file::iterate_folder_recursively(&self.handcrafted_dir) {
@@ -361,7 +363,7 @@ impl Computation {
         let simplified_table_sets: Vec<PreviewSet> = data.sets.iter()
             .map(|x|x.preview.clone())
             .filter(|x|x.typ==PreviewType::Parameter)
-            .filter(|x|x.relevance >= self.hide_irrelevant_parameters_below)
+            .filter(|x|x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .filter(|x|!x.hidden)
             .collect();
         for (name, set) in [
@@ -381,7 +383,7 @@ impl Computation {
 fn main() {
     let mut computation = Computation::new();
     computation.retrieve_and_process_data();
-    computation.make_pdfs();
+    computation.make_dots();
     computation.make_pages();
     computation.make_relation_table();
 }

@@ -64,7 +64,7 @@ impl CpxInfo {
     pub fn combine_serial(&self, other: &Self) -> Self {
         match (self, other) {
             // (a = other) and (other rel c) => (a rel c)
-            (Self::Equivalence, a) | (a, Self::Equivalence) => a.clone(),
+            (Self::Equal, a) | (a, Self::Equal) => a.clone(),
             // No matter what, nothing can be deduced.
             (Self::Unknown, _) | (_, Self::Unknown) => Self::Unknown,
             // Lower bounds are existential, i.e., there exists a graph
@@ -83,22 +83,22 @@ impl CpxInfo {
             // Prefer anything before taking Unknown.
             (Self::Unknown, a) | (a, Self::Unknown) => a.clone(),
             // Check equivalence is compatible with the other bound and if so, keep it.
-            (Self::Equivalence, Self::Equivalence) => Self::Equivalence,
-            (Self::Equivalence, Self::LowerBound { mn }) | (Self::LowerBound { mn }, Self::Equivalence) => {
+            (Self::Equal, Self::Equal) => Self::Equal,
+            (Self::Equal, Self::LowerBound { mn }) | (Self::LowerBound { mn }, Self::Equal) => {
                 match mn {
-                    CpxTime::Constant | CpxTime::Linear => Self::Equivalence,
+                    CpxTime::Constant | CpxTime::Linear => Self::Equal,
                     _ => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
                 }
             },
-            (Self::Equivalence, Self::Inclusion { mn, mx }) | (Self::Inclusion { mn, mx }, Self::Equivalence) => {
+            (Self::Equal, Self::Inclusion { mn, mx }) | (Self::Inclusion { mn, mx }, Self::Equal) => {
                 match (mn, mx) {
                     (CpxTime::Constant | CpxTime::Linear,
                      CpxTime::Linear | CpxTime::Polynomial | CpxTime::Exponential | CpxTime::Tower | CpxTime::Exists)
-                        => Self::Equivalence,
+                        => Self::Equal,
                         (_, _) => return Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
                 }
             },
-            (Self::Exclusion, Self::Equivalence) | (Self::Equivalence, Self::Exclusion) => panic!("impossible"),
+            (Self::Exclusion, Self::Equal) | (Self::Equal, Self::Exclusion) => panic!("impossible"),
             // If both are inclusions or lower bounds we can nicely combine them.
             (Self::Inclusion { mn: mna, mx: mxa }, Self::Inclusion { mn: mnb, mx: mxb })
                 => Self::Inclusion {
@@ -131,7 +131,7 @@ impl CpxInfo {
         match (self, other) {
             (Self::Unknown, _) | (_, Self::Unknown) => Self::Unknown,
             (Self::Exclusion, _) | (_, Self::Exclusion) => Self::Exclusion,
-            (Self::Equivalence, a) | (a, Self::Equivalence) => a.clone(),
+            (Self::Equal, a) | (a, Self::Equal) => a.clone(),
             (Self::Inclusion { mn: _, mx: mxa }, Self::Inclusion { mn: _, mx: mxb })
                 => Self::Inclusion { mn: CpxTime::Constant, mx: mxa.combine_parallel_max(&mxb) },
             (Self::LowerBound { .. }, _) | (_, Self::LowerBound { .. }) => Self::Unknown,
