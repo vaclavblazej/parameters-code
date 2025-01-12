@@ -9,8 +9,10 @@ use std::process::Command;
 use std::time::Instant;
 
 use anyhow::Result;
+use biblatex::Bibliography;
 use data::data::Linkable;
 use general::cache::Cache;
+use processing::bibliography::load_bibliography;
 use rayon::prelude::*;
 use data::data::Data;
 use data::data::Relation;
@@ -45,6 +47,7 @@ mod general {
     pub mod progress;
 }
 mod processing {
+    pub mod bibliography;
     pub mod combine;
     pub mod compare;
     pub mod convert;
@@ -173,6 +176,7 @@ struct Computation {
     parent: PathBuf,
     handcrafted_dir: PathBuf,
     bibliography_file: PathBuf,
+    bibliography: Option<Bibliography>,
     final_dir: PathBuf,
     working_dir: PathBuf,
     html_dir: PathBuf,
@@ -218,6 +222,7 @@ impl Computation {
             parent: parent.to_path_buf(),
             handcrafted_dir,
             bibliography_file,
+            bibliography: None,
             final_dir,
             working_dir,
             html_dir,
@@ -237,6 +242,7 @@ impl Computation {
 
     fn retrieve_and_process_data(&mut self) {
         let mock = self.args.contains(&ComputationPhases::MOCK);
+        self.bibliography = load_bibliography(&self.bibliography_file);
         let cch: Cache<Data> = Cache::new(&self.tmp_dir.join("data.json"));
         if !mock && !self.args.contains(&ComputationPhases::PREPROCESS) {
             if let Some(mut res) = cch.load(){
@@ -252,7 +258,7 @@ impl Computation {
             true => test::collection::build_collection(),
         };
         self.time.print("processing data");
-        let res = process_raw_data(&rawdata, &self.bibliography_file);
+        let res = process_raw_data(&rawdata, &self.bibliography);
         if !mock {
             match cch.save(&res){
                 Ok(()) => {},
@@ -310,7 +316,7 @@ impl Computation {
         for tag in &data.tags {
             linkable.insert(tag.id.clone(), Box::new(tag.preview.clone()));
         }
-        let markdown = Markdown::new(&data, linkable);
+        let markdown = Markdown::new(&data, linkable, &self.bibliography);
         let mut generated_pages = HashMap::new();
         add_content(&data.sets, &self.final_dir, &mut generated_pages);
         add_content(&data.sources, &self.final_dir, &mut generated_pages);

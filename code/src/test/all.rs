@@ -36,7 +36,7 @@ mod tests {
             source = source.showed(&id, NotApplicable, this, next, UpperBound(Linear), "");
         }
         source.done();
-        let data = process_raw_data(&create.build(), &bibfile());
+        let data = process_raw_data(&create.build(), &None);
         // == test =============================================================
         let first = arr.first().unwrap();
         let last = arr.last().unwrap();
@@ -56,7 +56,7 @@ mod tests {
             .showed("s_ab", NotApplicable, &a, &c, Cpx::Exclusion, "")
             .showed("s_bc", NotApplicable, &b, &c, UpperBound(Linear), "")
             .done();
-        let data = process_raw_data(&create.build(), &bibfile());
+        let data = process_raw_data(&create.build(), &None);
         // == test =============================================================
         let rel = data.get_relation(&a.into(), &b.into()).unwrap();
         assert_eq!(rel.cpx, CpxInfo::Exclusion);
@@ -71,7 +71,7 @@ mod tests {
         create.assumed_source()
             .showed("s_ab", NotApplicable, &a, &b, Cpx::Equal, "")
             .done();
-        let data = process_raw_data(&create.build(), &bibfile());
+        let data = process_raw_data(&create.build(), &None);
         // == test =============================================================
         assert!(matches!(data.get_relation(&a.clone().into(), &b.clone().into()).unwrap().cpx, CpxInfo::Equal));
         assert!(matches!(data.get_relation(&b.clone().into(), &a.clone().into()).unwrap().cpx, CpxInfo::Equal));
@@ -90,7 +90,7 @@ mod tests {
             .showed("s_ac", NotApplicable, &a, &c, UpperBound(Linear), "")
             .showed("s_db", NotApplicable, &d, &b, UpperBound(Linear), "")
             .done();
-        let data = process_raw_data(&create.build(), &bibfile());
+        let data = process_raw_data(&create.build(), &None);
         // == test =============================================================
         assert!(matches!(data.get_relation(&b.clone().into(), &c.clone().into()).unwrap().cpx, Inclusion{ .. }));
         assert!(matches!(data.get_relation(&d.clone().into(), &a.clone().into()).unwrap().cpx, Inclusion{ .. }));
@@ -103,12 +103,12 @@ mod tests {
         let a = create.parameter("a", "a", 9).done();
         let b = create.parameter("b", "b", 9).done();
         let c = create.parameter("c", "c", 9).done();
-        let bc = create.intersection("b+c", &b, &c, "b+c", 9);
+        let bc = create.intersection("b+c", &b, &c, "b+c", 9).done();
         create.assumed_source()
             .showed("s_ab", NotApplicable, &a, &b, UpperBound(Linear), "")
             .showed("s_bc", NotApplicable, &a, &c, UpperBound(Linear), "")
             .done();
-        let data = process_raw_data(&create.build(), &bibfile());
+        let data = process_raw_data(&create.build(), &None);
         // == test =============================================================
         let rel = data.get_relation(&a.into(), &bc.into()).unwrap();
         assert!(matches!(rel.cpx, Inclusion{ .. }));

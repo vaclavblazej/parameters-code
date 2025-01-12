@@ -208,7 +208,11 @@ impl ToMarkdown for Showed {
 impl ToMarkdown for SourceSubset {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         let mut res = String::new();
-        res += &format!("* {} [[{}]]\n", self.time.to_string(), &self.id);
+        res += "*";
+        if self.time.year != None {
+            res += &format!(" {}", self.time.to_string());
+        };
+        res += &format!(" [[{}]]\n", &self.id);
         for showed in &self.showed {
             res += &format!("    * {}\n", showed.to_markdown(&builder).unwrap());
         }

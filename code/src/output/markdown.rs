@@ -8,6 +8,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use biblatex::Bibliography;
 use regex::Regex;
 
 use crate::data::data::{Data, Linkable, ProviderLink, Set, Showed, ShowedFact, Source, Tag};
@@ -217,22 +218,21 @@ impl GeneratedPage for Source {
         match &self.sourcekey {
             SourceKey::Bibtex { key, name, entry } => {
                 res += &format!("# {}\n\n", self.preview.get_name());
-                if let Some(value) = entry{
-                    res += &format!("```bibtex\n{}\n```\n\n", value);
+                if let Some(somebib) = builder.bibliography {
+                    if let Some(val) = somebib.get(key) {
+                        if let Ok(doi) = val.doi() {
+                            let doi_url = format!("https://www.doi.org/{}", doi);
+                            res += &format!("[{}]({})\n\n", doi_url, doi_url);
+                        } else if let Ok(url) = val.url() {
+                            res += &format!("[{}]({})\n\n", url, url);
+                        }
+                        // todo print the original (unformatted) biblatex citation
+                        res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
+                    } else {
+                        eprintln!("unable to load {} from main.bib", key);
+                        res += &format!("an error occured while loading the bibtex entry for `{}`", key);
+                    }
                 }
-                // if let Some(val) = entry { // todo retrieve and use biblatex entry
-                    // if let Ok(doi) = val.doi() {
-                        // let doi_url = format!("https://www.doi.org/{}", doi);
-                        // res += &format!("[{}]({})\n\n", doi_url, doi_url);
-                    // } else if let Ok(url) = val.url() {
-                        // res += &format!("[{}]({})\n\n", url, url);
-                    // }
-                    // // todo print the original biblatex citation
-                    // res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
-                // } else {
-                    // eprintln!("unable to load {} from main.bib", key);
-                    // res += &format!("an error occured while loading the bibtex entry for `{}`", key);
-                // }
             },
             SourceKey::Other { name, description } => {
                 res += &format!("# {}\n\n", name);
@@ -297,6 +297,7 @@ impl Linkable for Address {
 pub struct Markdown<'a> {
     pub data: &'a Data,
     pub urls: HashMap<String, Box<dyn Linkable>>,
+    pub bibliography: &'a Option<Bibliography>,
 }
 
 #[derive(Clone, Debug)]
@@ -307,8 +308,8 @@ pub enum Mappable {
 
 impl<'a> Markdown<'a> {
 
-    pub fn new(data: &'a Data, urls: HashMap<String, Box<dyn Linkable>>) -> Markdown<'a> {
-        Markdown { data, urls }
+    pub fn new(data: &'a Data, urls: HashMap<String, Box<dyn Linkable>>, bibliography: &'a Option<Bibliography>) -> Markdown<'a> {
+        Markdown { data, urls, bibliography }
     }
 
     pub fn substitute_custom_markdown(&self, line: &String, map: &HashMap<&str, Mappable>) -> String {
@@ -449,14 +450,22 @@ impl<'a> Markdown<'a> {
     pub fn embed_dot(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let filename: String = keys.pop_front().unwrap().into();
         Ok(format!(
-            "<div id=\"{}\"></div>\
+            "<p><div id=\"{}\" class=\"svg-diagram\"></div></p>\
             <script>\
             Viz.instance().then(function(viz) {{\
                 fetch('{}')\
                     .then(response => response.text())\
                     .then((data) => {{\
                         var svg = viz.renderSVGElement(data);\
+                        svg.setAttribute(\"width\", \"100%\");\
+                        svg.setAttribute(\"height\", \"300pt\");\
                         document.getElementById(\"{}\").appendChild(svg);\
+                        svgPanZoom(svg, {{\
+                            zoomEnabled: true,\
+                            zoomScaleSensitivity: 0.3,\
+                            minZoom: 0.9,\
+                            maxZoom: 6,\
+                        }});\
                     }})\
             }});\
             </script>\n\n",

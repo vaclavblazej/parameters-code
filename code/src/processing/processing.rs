@@ -267,20 +267,6 @@ pub fn prepare_extremes(preview_set: Vec<PreviewSet>, data: &SimpleIndex) -> Set
     Sets { minimal, maximal, all }
 }
 
-fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
-    let bibliography_res = file::read_file_content(&bibliography_file);
-    match bibliography_res {
-        Ok(bibliography_str) => {
-            Some(Bibliography::parse(&bibliography_str).unwrap())
-        },
-        Err(error) => {
-            println!("cannot load bibliography from {:?}", bibliography_file);
-            println!("{:?}", error);
-            None
-        }
-    }
-}
-
 fn add_and_update(
     relation_map: &mut HashMap<(PreviewSet, PreviewSet), Relation>,
     changed_relation: (PreviewSet, PreviewSet),
@@ -546,8 +532,7 @@ fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<Pr
     transferred_relations
 }
 
-pub fn process_raw_data(rawdata: &RawData, bibliography_file: &PathBuf) -> Data {
-    let bibliography = load_bibliography(&bibliography_file);
+pub fn process_raw_data(rawdata: &RawData, bibliography: &Option<Bibliography>) -> Data {
     let mut sources = vec![];
     let mut source_keys: HashMap<RawSource, Source> = HashMap::new();
     for rawsource in &rawdata.sources {

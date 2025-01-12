@@ -17,7 +17,7 @@ impl IntoDot for Node {
     fn to_dot(&self) -> String{
         let mut res: String = String::new();
         res.push_str(&format!(
-                "\t\"n_{}\" [label=\"{}\" URL=\"{}\" color=\"{}\" {}]\n",
+                "\t\"n_{}\" [label=\"{}\" URL=\"/parameters/html/{}\" color=\"{}\" {}]\n", // todo remove the hardcoded '/parameters'
                 self.id,
                 self.label,
                 self.id,
@@ -74,6 +74,7 @@ impl Into<Edge> for &PreviewRelation {
 }
 
 pub struct Graph {
+    pub name: String,
     pub color_fn: Option<Box<dyn Fn(&Set) -> String>>,
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
@@ -81,8 +82,9 @@ pub struct Graph {
 
 impl Graph {
 
-    pub fn new(color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> Graph {
+    pub fn new(name: &str, color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> Graph {
         Graph {
+            name: name.into(),
             color_fn,
             nodes: Vec::new(),
             edges: Vec::new(),
@@ -108,7 +110,7 @@ impl Graph {
             assert!(test_set.contains(&edge.to));
         }
         let mut dot = String::new();
-        dot.push_str("digraph unix {\n");
+        dot.push_str(&format!("digraph {} {{\n", self.name));
         dot.push_str("\tnode [color=lightblue2 style=filled]\n");
         dot.push_str("\tmargin=0.04 size=\"6,6\"\n");
         for node in &self.nodes {
@@ -139,6 +141,7 @@ fn main() {
         "gray".into()
     };
     let graph = Graph {
+        name: "test".into(),
         color_fn: Some(Box::new(color_fn)),
         nodes,
         edges: vec![

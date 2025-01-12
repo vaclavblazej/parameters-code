@@ -23,7 +23,7 @@ fn inclusion_edge_style(mx: &CpxTime) -> String {
 }
 
 pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_sets: &Vec<&Set>, color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> anyhow::Result<PathBuf> {
-    println!("generating dot pdf {:?} {}", target_dir, name);
+    println!("generating dot {:?} {}", target_dir, name);
     let mut displayed_sets_preview: HashSet<PreviewSet> = displayed_sets.iter().map(|x|x.preview.clone()).collect();
     let mut remove_sets_preview: HashSet<PreviewSet> = HashSet::new();
     for relation in &data.relations {
@@ -43,7 +43,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
     for r in remove_sets_preview {
         displayed_sets_preview.remove(&r);
     }
-    let mut graph = Graph::new(color_fn);
+    let mut graph = Graph::new(name, color_fn);
     for displayed_set_preview in &displayed_sets_preview {
         let set = data.get_set(&displayed_set_preview);
         graph.add_node(set);
