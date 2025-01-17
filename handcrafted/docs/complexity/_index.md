@@ -6,7 +6,7 @@ title: "Parameterized complexity"
 # Complexity theory
 
 This short section is meant to only introduce a few key notions used on this website.
-The reader is encouraged to read up on topics further, possibly in one of the following sources.
+The reader is encouraged to read up on these topics further, possibly in one of the following sources.
 
 * [Parameterized Algorithms](https://www.mimuw.edu.pl/~malcin/book/parameterized-algorithms.pdf) by Marek Cygan, Fedor V. Fomin, Łukasz Kowalik, Daniel Lokshtanov, Dániel Marx, Marcin Pilipczuk, Michał Pilipczuk, and Saket Saurabh
 * [Computational Complexity](https://www.cambridge.org/core/books/computational-complexity/3453CAFDEB0B4820B186FE69A64E1086) by Sanjeev Arora and Boaz Barak
@@ -40,7 +40,7 @@ We are asked to decide whether the graph contains $k$ vertices that are all pair
 The clique problem is known to be NP-hard but for some graph classes it is solvable in polynomial time.
 For example, we know that [planar graphs](https://en.wikipedia.org/wiki/Planar_graph) cannot contain a clique on 5 vertices.
 So if $k$ is 5 or more, we can answer immediately NO.
-Otherwise, we can check all quadruplets of vertices, so we have an algorithm that runs in $n^4$ time.
+Otherwise, we can check all quadruplets of vertices, so we have an algorithm that runs in $\mathcal O(n^4)$ time.
 
 It is clear that the above example can be generalized.
 If we are guaranteed that the input does not contain a clique of size $h+1$, then we can solve the problem in roughly $\binom nh \le n^h$ by trying every $h$-tuplet of vertices.

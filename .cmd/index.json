@@ -13,5 +13,10 @@
     "alias": "test",
     "rel_path": "./.cmd/scripts/test.sh",
     "description": ""
+  },
+  {
+    "alias": "testp",
+    "rel_path": "./.cmd/scripts/testp.sh",
+    "description": ""
   }
 ]

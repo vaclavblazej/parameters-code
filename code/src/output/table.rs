@@ -8,6 +8,8 @@ use crate::data::data::{Data, Set};
 use crate::data::preview::{PreviewType, PreviewSet};
 use crate::general::enums::{CpxTime, CpxInfo::*};
 
+use super::color::{relation_color, Color};
+
 
 fn table_format_par(i: usize, a: &PreviewSet) -> String {
     format!("\\parname{{{}}}{{{}}}{{../{}}}", i + 1, a.name, a.id)
@@ -85,21 +87,10 @@ pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &Pat
 
     for (ai, a) in ordered_pars.iter().enumerate() {
         for (bi, b) in ordered_pars.iter().enumerate() {
-            let status = if a.id == b.id {
-                "diagonal"
-            } else {
-                if let Some(relation) = data.get_relation(&a, &b) {
-                    match &relation.cpx {
-                        Inclusion { mx: _, mn: _ } | Equal => "bounded",
-                        Exclusion => "unbounded",
-                        _ => "unknown",
-                    }
-                    // todo bounded_derived and unbounded_derived
-                } else {
-                    "unknown"
-                }
-            };
-            content.push(table_format_link(ai, bi, &status, "todo"));
+            let sa = data.get_set(a);
+            let sb = data.get_set(b);
+            let color = relation_color(sa, sb);
+            content.push(table_format_link(ai, bi, &color.name(), "todo"));
         }
     }
     let template = File::open(table_folder.join("template.tex"))?;
@@ -107,7 +98,11 @@ pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &Pat
     let mut res = Vec::new();
     for line in template_reader.lines() {
         let line = line?;
-        if line == "%SIZE" {
+        if line == "%COLORS" {
+            for color in Color::list() {
+                res.push(format!("\\tikzset{{{}/.style={{fill={}}}}}", color.name(), color.tikz()));
+            }
+        } else if line == "%SIZE" {
             res.push(size_str.clone());
         } else if line == "%CONTENT" {
             res.extend(content.iter().map(|x| format!("    {}", x)));

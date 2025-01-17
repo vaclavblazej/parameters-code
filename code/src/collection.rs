@@ -10,14 +10,14 @@ pub fn build_collection() -> RawData {
     let tag_topology = create.tag("lJJaYb", "topology", "A graph is planar if it can be embedded into a plane without edges crossings. Related sets include those which restrict the embedding (e.g. geometric intersection graphs), consider other surfaces (e.g. toroid), or allow crossings (e.g. upper bound the total number of crossings).");
     let tag_coloring = create.tag("szWO2M", "coloring", "Coloring of a graph is its partition where each part is an independent set. Each part is considered to be a color so in a properly colored graph every edge goes between two differently colored vertices.");
     let tag_vertex_removal = create.tag("e26LM8", "vertex removal", "Some vertices of the graph may completely describe the complex structure of the graph, and the remainder may fall into a simple graph class. This includes variants of removing the vertices such as removing a set of vertices all at once (vertex cover), or removing vertices one by one (treedepth), resulting in a simple or a complex graph class (e.g. distance to X and elimination distance to X).");
-    let tag_edge_removal = create.tag("hnX8tG", "edge removal", "The complexity of a graph may be described by the number of edges that we need to remove to get a simple graph class. This often means removing edges to that a forbidden structure is not contained in the graph, e.g., a cycle ([[HTk9PZ]]) or an odd cycle (odd cycle transversal). Hitting each structure X is also called X-transversal.");
+    let tag_edge_removal = create.tag("hnX8tG", "edge removal", "The complexity of a graph may be described by the number of edges that we need to remove to get a simple graph class. This often means removing edges to that a forbidden structure is not contained in the graph, e.g., a cycle ([[HTk9PZ]]) or an odd cycle ([[Ve5ruW]]). Hitting each structure X is also called X-transversal.");
     let tag_edge_cover = create.tag("tK4S1r", "covering edges", "Take a graph and create a cover of its edges by graphs from a well-understood graph class.");
     let tag_vertex_cover = create.tag("TgTiqK", "covering vertices", "Partition vertices of the graph into smaller graph from a well-understood graph class.");
     let tag_vertex_order = create.tag("O1poSV", "vertex order", "Take an appropriate order of graph vertices to get a definition or a decomposition. Typical for some graph parameters (e.g. degeneracy) and graphs (e.g. chordal).");
     let tag_modules = create.tag("ZtdvKW", "module", "Module of a graph is its vertex set which has the same neighborhood with all vertices outside of it. As modules have a very regular structure they were used to create useful graph decompositions.");
     let tag_linear = create.tag("nAjQi4", "linear variant", "Graph decompositions often end up being trees, but still, some problems remain hard on those decompositions. Restricting the decomposition to be a path (or to be linearized in some other way) gives bigger power to the decomposition and makes some problems tractable.");
     let tree_decomposition = create.tag("bzffn0", "tree decomposition", "The classical tree decomposition is tied to the treewidth which measures maximum size of a bag. There are parameters use different bag measures and there are graphs that are closely tied to tree decompositions.");
-    // let branch_decomposition = create.tag("", "branch decomposition", "");
+    // let branch_decomposition = create.tag("KaLXjx", "branch decomposition", "");
 
     let connected = create.graph_class("KlMP0i", "connected", 2)
         .defined("mIBYMD", "A graph is connected if there is a path between any pair of its vertices.")
@@ -82,8 +82,6 @@ pub fn build_collection() -> RawData {
         .done();
     let grid = create.graph_class("lfYXuK", "grid", 6)
         .defined("sp6LGE", "Cartesian product of two paths.")
-        .done();
-    let line = create.graph_class("Iaf2d1", "line graph", 4)
         .done();
     // let disconnected = create.graph_class("lA0K71", "disconnected", 1).done();
     // let all_graphs = create.graph_class("TDTA85", "all graphs").done(); // hide
@@ -154,6 +152,9 @@ pub fn build_collection() -> RawData {
         .tag(&tag_modules)
         .done();
     let modular_width = create.parameter("4bj71L", "modular-width", 7)
+        .tag(&tag_modules)
+        .done();
+    let iterated_type_partitions = create.parameter("G1Cwmc", "iterated type partitions", 3)
         .tag(&tag_modules)
         .done();
     let max_leaf_num = create.parameter("BN92vX", "maximum leaf number", 6)
@@ -784,7 +785,7 @@ pub fn build_collection() -> RawData {
         .showed("FY0U1r", Pp(8), &treewidth, &book_thickness, UpperBound(Linear), "The maximum book thickness ... of a graph $\\mathcal T_k$ (ed: $k$-tree) satisfy ... $=k$ for $k \\le 2$, $=k+1$ for $k \\ge 3$.")
         .todo_rest();
     let delavina_waller2008 = create.source("C5cBsd", "spanningTreesManyLeaves2008")
-        .showed("", Pp(5), &average_distance, &bipartite_number, UpperBound(Linear), "Theorem 9 (Main Theorem). Let $G$ be a graph. Then $\\bar{D} < \\frac b2 + \\frac 12$. ...")
+        .showed("Pbg2ga", Pp(5), &average_distance, &bipartite_number, UpperBound(Linear), "Theorem 9 (Main Theorem). Let $G$ be a graph. Then $\\bar{D} < \\frac b2 + \\frac 12$. ...")
         // .showed("ZXINaY", Unknown, &max_leaf_num, &feedback_vertex_set, UpperBound(Linear), "")
         .done();
     let gradnesetril2008 = create.source("kXDDmb", "gradnesetril2008")
@@ -1051,6 +1052,11 @@ pub fn build_collection() -> RawData {
     let twwsurfaces2024 = create.source("lgJ2j7", "twwsurfaces2024")
         .showed("3iR4qs", Pp(18), &genus, &twin_width, UpperBound(Linear), "The twin-width of every graph $G$ of Euler genus $g \\ge 1$ is at most ... $18 \\sqrt{47g}+O(1)$.") // todo sqrt
         .todo_rest();
+    let itp_introduced2024 = create.source("oBcMqr", "iteratedTypePartitions2024")
+        .defined("", Pp(3), &iterated_type_partitions, "two nodes have the same type iff $N(v) \\setminus \\{u\\} = N(u) \\setminus \\{v\\}$ ... [ed. paraphrased] let $\\mathcal V = \\{V_1,\\dots,V_t\\}$ be a partition of graph vertices such that each $V_i$ is a clique or an independent set and $t$ is minimized ... we can see each element of $\\mathcal V$ as a \\emph{metavertex} of a new graph $H$, called \\emph{type graph} of $G$ ... We say that $G$ is a \\emph{prime graph} if it matches its type graph ... let $H^{(0)}=G$ and $H^{(i)}$ denote the type graph of $H^{(i-1)}$, for $i \\ge 1$. Let $d$ be the smallest integer such that $H^{(d)}$ is a \\emph{prime graph}. The \\emph{iterated type partition} number of $G$, denoted by $\\mathrm{itp}(G)$, is the number of nodes of $H^{(d)}$.")
+        .showed("LUQLaI", Pp(3), &neighborhood_diversity, &iterated_type_partitions, StrictUpperBound(Linear), "... $itp(G) \\le nd(G)$. Actually $itp(G)$ can be arbitrarily smaller than $nd(G)$.")
+        .showed("Lh05uc", Pp(3), &iterated_type_partitions, &modular_width, UpperBound(Linear), by_definition)
+        .todo_rest();
 
     create.build()
 }
@@ -1161,9 +1167,3 @@ pub fn build_collection() -> RawData {
 // 4lmvZK
 // LlWzhg
 // 9JAQC7
-// Lh05uc
-// LUQLaI
-// KaLXjx
-// oBcMqr
-// Pbg2ga
-// G1Cwmc

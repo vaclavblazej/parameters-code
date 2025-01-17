@@ -17,6 +17,7 @@ use crate::general::enums::{Page, SourceKey};
 use crate::file;
 use crate::general::progress;
 
+use super::color::Color;
 use super::diagram::{make_focus_drawing, make_subset_drawing};
 use super::to_markdown::ToMarkdown;
 
@@ -145,18 +146,22 @@ impl GeneratedPage for Set {
                 format!("{:?}", e)
             },
         };
-        let drawn_sets = builder.data.sets.iter().filter(|x| x.typ != self.typ).collect();
-        res += &match make_subset_drawing(&builder.data, self, drawn_sets, working_dir) {
-            Ok(result_pdf_file) => {
-                copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
-                let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
-                format!("[[dot ../{}]]", filename)
-            },
-            Err(e) => {
-                eprintln!("{:?}", e);
-                format!("{:?}", e)
-            },
-        };
+        for (name, drawn_sets) in [
+            (&format!("dif_inclusions_{}", self.id), builder.data.sets.iter().filter(|x| x.typ != self.typ).collect()),
+            (&format!("same_inclusions_{}", self.id), builder.data.sets.iter().filter(|x| x.typ == self.typ).collect()),
+        ]{
+            res += &match make_subset_drawing(name, &builder.data, self, drawn_sets, working_dir) {
+                Ok(result_pdf_file) => {
+                    copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
+                    let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
+                    format!("[[dot ../{}]]", filename)
+                },
+                Err(e) => {
+                    eprintln!("{:?}", e);
+                    format!("{:?}", e)
+                },
+            };
+        }
         // todo - having parameters and graphs both as sets means maximal doesn't show what was expected
         // let subs = &self.subsets.maximal;
         // if !subs.is_empty() {
@@ -408,6 +413,7 @@ impl<'a> Markdown<'a> {
                 "list" => self.process_list_key(&mut words),
                 "dot" => self.embed_dot(&mut words),
                 "pdf" => self.embed_pdf(&mut words),
+                "color" => self.color(&mut words),
                 unknown => {
                     if let Some(res) = map.get(unknown) {
                         match res {
@@ -485,6 +491,12 @@ impl<'a> Markdown<'a> {
             </object>\n\n",
             name, height, name, name
             ))
+    }
+
+    pub fn color(&self, keys: &mut LinkedList<String>) -> Result<String> {
+        let colorname: String = keys.pop_front().unwrap().into();
+        let color = Color::from_str(&colorname);
+        Ok(format!("<span style=\"color:{}\">■</span>", color.hex()))
     }
 
     pub fn make_page(&self, pagename: &str, content: String) {

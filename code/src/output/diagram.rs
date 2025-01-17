@@ -6,8 +6,7 @@ use crate::output::dot::{Edge, Graph};
 use crate::file;
 use std::{time, fs};
 
-use super::markdown::Markdown;
-
+use super::{color::{relation_color, Color}, markdown::Markdown};
 
 fn inclusion_edge_style(mx: &CpxTime) -> String {
     let mut res: String = "decorate=true lblstyle=\"above, sloped\"".into();
@@ -92,16 +91,8 @@ pub fn make_focus_drawing(data: &Data, set: &Set, distance: usize, target_dir: &
     make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_distance(set_distance_to_draw, distance)))
 }
 
-pub fn make_subset_drawing(data: &Data, set: &Set, sets_to_draw: Vec<&Set>, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
-    let filename = &format!("inclusions_{}", set.id);
-    match set.typ { // todo polish this hacky solution
-        crate::data::preview::PreviewType::Parameter => {
-            make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_subset(set)))
-        },
-        crate::data::preview::PreviewType::GraphClass => {
-            make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_superset(set)))
-        },
-    }
+pub fn make_subset_drawing(filename: &str, data: &Data, set: &Set, sets_to_draw: Vec<&Set>, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
+    make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_inclusions(set)))
 }
 
 fn mark_by_distance(distances: HashMap<PreviewSet, usize>, max_dist: usize) -> Box<dyn Fn(&Set) -> String> {
@@ -113,28 +104,12 @@ fn mark_by_distance(distances: HashMap<PreviewSet, usize>, max_dist: usize) -> B
     })
 }
 
-fn mark_by_subset(origin_set: &Set) -> Box<dyn Fn(&Set) -> String> {
-    let oset_copy = origin_set.clone();
-    Box::new(move |set: &Set| -> String {
-        if oset_copy.subsets.all.contains(&set.preview) {
-            "#bbffbb".into()
-        } else if oset_copy.sub_exclusions.all.contains(&set.preview) {
-            "#ffbbbb".into()
-        } else {
-            "#dddddd".into()
-        }
-    })
-}
-
-fn mark_by_superset(origin_set: &Set) -> Box<dyn Fn(&Set) -> String> {
-    let oset_copy = origin_set.clone();
-    Box::new(move |set: &Set| -> String {
-        if oset_copy.supersets.all.contains(&set.preview) {
-            "#bbffbb".into()
-        } else if oset_copy.super_exclusions.all.contains(&set.preview) {
-            "#ffbbbb".into()
-        } else {
-            "#dddddd".into()
+fn mark_by_inclusions(origin_set: &Set) -> Box<dyn Fn(&Set) -> String> {
+    let aset = origin_set.clone();
+    Box::new(move |bset: &Set| -> String {
+        match relation_color(&aset, &bset) {
+            Color::Gray => Color::Gray.hex(),
+            color => color.light(),
         }
     })
 }

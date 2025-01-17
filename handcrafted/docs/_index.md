@@ -7,42 +7,48 @@ title: "Documentation"
 
 This website uses several things that deserve to be explained in detail.
 
-* [Legend for diagrams](./legend/)
+* [Legend for website's graphical elements](./legend/)
 * [Website controls](./controls/)
 * [Intro to relevant complexity theory](./complexity/)
+* [About the project](./about/)
 
 ## Structure of HOPS
 
 This website contains a collection of parameters, some relevant graph classes, their relations, and sources which established the results.
-One may view parameters in several different ways, making the terminology little complicated -- let us first introduce these viewpoints.
+As one may view parameters in several different ways let us introduce our viewpoint.
 
-### Fixed graph view
+### Parameters
 
-If we take a fixed graph $G$, then we can measure value of various parameters on it.
-In this view, we call a parameter $A$ "smaller" then $B$ if for any graph it is guaranteed that $A=f(B)$ for some computable function $f$.
-We observe that it is not necessarily a smaller value, but the point is that $B$ bounds $A$ so $A$ cannot grow arbitrarily big while $B$ is not changing.
+*Parameterized problem* is a decision problem along with a natural number *parameter*.
+In our case, the input is a graph $G$ and parameter which tells us something about the graph -- e.g. size of its vertex cover.
+Note that the input instance is not guaranteed to have the correct parameter value, e.g. the vertex cover parameter is way smaller than the actual vertex cover size.
+However, for inputs with an incorrect parameter value we may return an incorrect answer; so we assume correct value and answer arbitrarily if along the way we reach a contradiction.
 
-On this page, we depict smaller parameters as being (generally) the ones below.
+For the sake of simplicity, let us fix the parameter to be the vertex cover in the following discussion.
+Any fixed graph $G$ has a fixed value of its minimum vertex cover.
+We can extend this notion also to graph classes, saying that $\mathcal G$ has bounded vertex cover if there is a number $p$ such that all graphs $G \in \mathcal G$ have bounded vertex cover $vc(G) \le p$.
+This relation can also be viewed from the other side -- fix value of a parameter $p$, and let $\mathcal G_p$ be all graphs with vertex cover at most $p$.
+Naturally, this creates a sequence of graphs $\mathcal G_1,\mathcal G_2,\dots,\mathcal G_P$ where $P$ is maximal reasonable value (could be $\infty$).
+For vertex cover, we observe that $\mathcal G_i \subseteq \mathcal G_{i+1}$ as bigger vertex cover is "stronger".
+This relation is typical for parameters, however, is not necessarily required and it is feasible to have parameters that do not satisfy it, e.g. girth satisfies the inverse inclusion.
 
-### Graph class view
+### Parameter relations
 
-For this viewpoint let us assume that the dependency of an algorithm is proportional to size of the parameter.
-Each parameter can be thought of as a sequence of graph classes, one class for each value of the parameter.
-Then the parameter relations are about inclusions of these sequences.
-In other words, if we fix $k$ and take the class created by all graphs with parameter $A \le k$, is there some $f$ such that all graphs that have parameter $B \le f(k)$ is its graph superclass?
-In some sense, this view fixes the parameters and compares sizes of respective graph classes.
-Here, "smaller" could refer to the size of graph classes -- which is exactly the opposite direction of the "smaller" explained above.
-To distringuish these two notions we call a smaller graph class to be more "restrictive" or "stronger" instead.
+We say that a parameter $A$ is "smaller" than $B$ on a graph class $\mathcal G$ if $A(G) \le f(B(G))$ for every $G \in \mathcal G$ for some computable function $f$.
+This is same as saying that if $B$ is bounded on $\mathcal G$, then $A$ is bounded on $\mathcal G$.
+Usually, we consider $\mathcal G$ to be the graph class of bounded $A$, so the assumption is trivially true.
+However, some parameters are defined well just for a fixed graph class and one cannot define a graph class that contains all elements with a bounded parameter value (e.g. [shrub-depth](/html/NTgNzT/)).
 
-So more restrictive or strong parameters are generally bigger, less restrictive or weaker parameters are generally smaller.
+Observe that if $A$ is "smaller" than $B$ it does not mean that its value is smaller arithmetically.
+The point is that bounded $B$ implies bounded $A$, so $A$ cannot grow arbitrarily big when $B$ is not changing.
+On this page, we depict smaller parameters as being (generally) the ones on the bottom.
 
-## Relations among parameters and graphs
+### Relations among parameters and graphs
 
-Having parameters $A$ and $B$, we say that $A$ upper bounds $B$ if for any instance that has $A \le k$ we know it has $B \le f(k)$ for some computable function $f$.
-As parameters can be thought of as graph classes, for the purposes of the inference we consider graph classes to be trivial parameters whose class does not depend on the parameter.
-Hence, if a parameter is fixed for a graph class, then we conclude $B \le O(1)$ for $A \le k$.
-
-There are many diagrams that try to convey the parameter relations, read [the legend](./legend/) for notation.
+As a degenerate case of parameter relations, we may consider $A$ to be a fixed graph class $\mathcal G$.
+If $\mathcal G$ has bounded value of parameter $B$ then indeed $B \le f(A) = \text{constant}$.
+On the other hand, we can show that a graph class contains a sequence of graphs where the parameter value grows arbitrarily high so the graph class has unbounded $A$.
+This website contains diagrams that convey the graph-parameter relations, read [the legend](./legend/) for notation.
 
 ### Inference of relations
 
@@ -56,7 +62,7 @@ Both of these inferences are shown in the following picture.
     <img class="svg" src="pars.svg" alt="Parameter relations"/>
 </div>
 
-We see that showing the inferred relations in Hasse diagrams makes them harder to read so we hide those.
+Showing the inferred relations in Hasse diagrams makes them harder to read, so we hide the transitive relations.
 We also hide the incomparabilities as there is just too many of them.
 Instead, all the pairwise relations are shown in separate relation tables.
 

@@ -10,20 +10,22 @@ This page lists:
 * [parameters](#parameters)
 * [graph classes](#graph-classes)
 * [sources](#sources)
+* [tags](#tags)
 
 ---
 
 ## Parameters
 
-### Simplified hierarchy
+* [Hasse hierarchy DOT](parameters.dot)
+* [Simplified Hasse hierarchy DOT](parameters_simplified.dot)
+* [Comparison table PDF](table.pdf)
+* [Simplified comparison table PDF](table_simplified.pdf)
 
-[Simplified Hasse hierarchy PDF](parameters.pdf)
-
-[[pdf parameters.pdf]]
-
-[Simplified comparison table PDF](table.pdf)
+[[dot parameters.dot]]
 
 [[pdf table.pdf]]
+
+---
 
 ### All parameters in HOPS
 
@@ -41,9 +43,9 @@ We assume that all of the graph class inclusions are proper.
 We aim to have here only the graph classes that influence parameter inclusions.
 Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](https://www.graphclasses.org/) for an exhaustive list of graph classes and their inclusions.
 
-[Graph hierarchy PDF](graphs)
+[Graph hierarchy DOT](graphs.dot)
 
-[[pdf graphs.pdf]]
+[[dot graphs.dot]]
 
 [[list graphs]]
 
@@ -52,3 +54,10 @@ Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](h
 ## Sources
 
 [[list sources]]
+
+---
+
+## Tags
+
+[[list tags]]
+

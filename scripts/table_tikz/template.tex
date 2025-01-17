@@ -1,0 +1,23 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\usepackage[hidelinks]{hyperref}
+
+%COLORS
+
+\begin{document}
+%SIZE
+\newcommand{\parname}[3]{
+    \node[anchor=east] at (-.3,1+\parlen-#1-.6) {\hypertarget{#3}{#2}};
+    \node[rotate=35,anchor=west] at (#1-.7,\parlen+.3) {\hypertarget{#3}{#2}};
+}
+\newcommand{\cpxlink}[4]{
+    \filldraw[#3] (#2,\parlen-1-#1) rectangle (#2+1,\parlen-#1);
+    % \node[inner sep=0] at (#1+.5,\parlen-#2-.5) {\href{#4}{\begin{tikzpicture}\path (0,0) rectangle (.9,.9);\end{tikzpicture}}};
+}
+\begin{tikzpicture}
+%CONTENT
+    \draw[yshift=\parlen cm, line width=.2pt] (-0.2,-\parlen.2) grid (\parlen.2,+0.2);
+    \draw[yshift=\parlen cm, line width=2pt] (-0.2,-\parlen.2) grid[step=3] (\parlen.2,+0.2);
+    \draw[yshift=\parlen cm, line width=4pt] (-0.2,-\parlen.2) grid[step=6] (\parlen.2,+0.2);
+\end{tikzpicture}
+\end{document}
