@@ -125,14 +125,17 @@ pub fn build_collection() -> RawData {
         ;
 
     let vertex_cover = create.parameter("4lp9Yj", "vertex cover", 9)
+        .abbr("vc")
         .tag(&tag_vertex_removal)
         .done();
     let max_matching = create.parameter("veU7Jf", "maximum matching", 3)
         .done();
     let vertex_integrity = create.parameter("KVhJFB", "vertex integrity", 6)
+        .abbr("vi")
         .tag(&tag_vertex_removal)
         .done();
     let treedepth = create.parameter("KEP2qM", "treedepth", 7)
+        .abbr("td")
         .tag(&tag_vertex_removal)
         .done();
     let clique_cover_num = create.parameter("VomShB", "clique cover number", 5)
@@ -149,6 +152,7 @@ pub fn build_collection() -> RawData {
         .tag(&tag_edge_cover)
         .done();
     let neighborhood_diversity = create.parameter("vMs3RS", "neighborhood diversity", 6)
+        .abbr("nd")
         .tag(&tag_modules)
         .done();
     let modular_width = create.parameter("4bj71L", "modular-width", 7)
@@ -186,6 +190,7 @@ pub fn build_collection() -> RawData {
     let c_closure = create.parameter("ou9VU1", "c-closure", 0)
         .done();
     let feedback_vertex_set = create.parameter("GNOiyB", "feedback vertex set", 8)
+        .abbr("fvs")
         .tag(&tag_vertex_removal)
         .done();
     let shrub_depth = create.parameter("NTgNzT", "shrub-depth", 6)
@@ -194,6 +199,7 @@ pub fn build_collection() -> RawData {
         .tag(&tag_linear)
         .done();
     let pathwidth = create.parameter("VHClqR", "pathwidth", 8)
+        .abbr("pw")
         .tag(&tag_linear)
         .done();
     let degree_pathwidth = create.intersection("6BWcgd", &pathwidth, &max_degree, "pathwidth+maxdegree", 3)
@@ -202,6 +208,7 @@ pub fn build_collection() -> RawData {
     let d_path_free = create.parameter("s4EiWI", "d-path-free", 2)
         .done(); // todo
     let treewidth = create.parameter("5Q7fuR", "treewidth", 9)
+        .abbr("tw")
         .tag(&tree_decomposition)
         .done();
     let mm_width = create.parameter("d7vRYU", "mm-width", 4)
@@ -212,6 +219,7 @@ pub fn build_collection() -> RawData {
     let branch_width = create.parameter("lIcmuR", "branch width", 5)
         .done();
     let clique_width = create.parameter("wg5HuV", "clique-width", 7)
+        .abbr("cw")
         .done();
     let clique_tree_width = create.parameter("7P9WUz", "clique-tree-width", 2)
         .done();
@@ -225,6 +233,7 @@ pub fn build_collection() -> RawData {
     let inf_flip_width = create.parameter("nYXiuT", "inf-flip-width", 3)
         .done();
     let twin_width = create.parameter("OrH7et", "twin-width", 8)
+        .abbr("tww")
         .done();
     let r_flip_width = create.parameter("4DIiH0", "radius-r flip-width", 3)
         .done();
@@ -239,6 +248,7 @@ pub fn build_collection() -> RawData {
         .tag(&tag_coloring)
         .done();
     let odd_cycle_transversal = create.parameter("Ve5ruW", "odd cycle transversal", 6)
+        .abbr("oct")
         .tag(&tag_edge_removal)
         .done();
     let degeneracy = create.parameter("VowkuW", "degeneracy", 6)
@@ -340,10 +350,10 @@ pub fn build_collection() -> RawData {
         .done();
     // let dist_to_disconnected = create.distance_to("ZL7BOP", &disconnected, 2)
     // .done();
-    let bip_free = create.parameter("Qme7wD", "$K_{t,t}$-free", 5)
-        .done();
-    let bip_sub_free = create.parameter("LoQADQ", "$K_{t,t}$-subgraph-free", 5)
-        .done();
+    // let bip_free = create.parameter("Qme7wD", "$K_{t,t}$-free", 5)
+        // .done();
+    // let bip_sub_free = create.parameter("LoQADQ", "$K_{t,t}$-subgraph-free", 5)
+        // .done();
     let bipartite_number = create.parameter("1dQQ87", "bipartite number", 2)
         .defined("QmlowC", "Bipartite number of $G$ is the maximum order of an induced bipartite subgraph.")
         .done();

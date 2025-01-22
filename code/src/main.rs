@@ -12,6 +12,7 @@ use anyhow::Result;
 use biblatex::Bibliography;
 use data::data::Linkable;
 use general::cache::Cache;
+use general::progress::ProgressDisplay;
 use processing::bibliography::load_bibliography;
 use rayon::prelude::*;
 use data::data::Data;
@@ -91,10 +92,8 @@ fn build_page(page: &TargetPage,
     let handcrafted_content = match page.source {
         Some(source) => {
             if source.as_os_str().to_str().unwrap().ends_with(".md") {
-                println!("copy & processing {:?}", source);
                 file::read_file_content(source)?
             } else {
-                println!("copy {:?}", page.target);
                 let target_folder = &page.target.parent().unwrap();
                 fs::create_dir_all(target_folder)?;
                 fs::copy(&source, &page.target)?;
@@ -118,11 +117,13 @@ fn generate_pages(pages: &Vec<TargetPage>,
                   final_dir: &PathBuf,
                   working_dir: &PathBuf,
                   map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
-    println!("generating pages");
-    // todo par_iter
+    let mut progress = ProgressDisplay::new("generating pages", pages.len() as u32);
+    // todo par_iter ?
     let res: Result<Vec<()>> = pages.iter().map(|page| -> anyhow::Result<()>{
+        progress.increase(1);
         build_page(page, markdown, final_dir, working_dir, map)
     }).collect();
+    progress.done();
     Ok(())
 }
 
@@ -319,6 +320,7 @@ impl Computation {
         let markdown = Markdown::new(&data, linkable, &self.bibliography);
         let mut generated_pages = HashMap::new();
         add_content(&data.sets, &self.final_dir, &mut generated_pages);
+        add_content(&data.relations, &self.final_dir, &mut generated_pages);
         add_content(&data.sources, &self.final_dir, &mut generated_pages);
         add_content(&data.tags, &self.final_dir, &mut generated_pages);
         self.time.print("fetching handcrafted pages");

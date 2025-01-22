@@ -22,7 +22,6 @@ fn inclusion_edge_style(mx: &CpxTime) -> String {
 }
 
 pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_sets: &Vec<&Set>, color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> anyhow::Result<PathBuf> {
-    println!("generating dot {:?} {}", target_dir, name);
     let mut displayed_sets_preview: HashSet<PreviewSet> = displayed_sets.iter().map(|x|x.preview.clone()).collect();
     let mut remove_sets_preview: HashSet<PreviewSet> = HashSet::new();
     for relation in &data.relations {
@@ -84,11 +83,34 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
 }
 
 pub fn make_focus_drawing(data: &Data, set: &Set, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
-    let set_distance_to_draw = bfs_limit_distance(set, &data, distance);
-    let preview_sets_to_draw: Vec<PreviewSet> = set_distance_to_draw.iter().map(|(a,_)|a.clone()).filter(|x|x.typ == set.typ).collect();
+    let set_distances = bfs_limit_distance(set, &data, 20);
+    let mut relevance_visibility: HashMap<u32, usize> = HashMap::new();
+    relevance_visibility.insert(0, 0);
+    relevance_visibility.insert(1, 0);
+    relevance_visibility.insert(2, 0);
+    relevance_visibility.insert(3, 0);
+    relevance_visibility.insert(4, 1);
+    relevance_visibility.insert(5, 1);
+    relevance_visibility.insert(6, 1);
+    relevance_visibility.insert(7, 2);
+    relevance_visibility.insert(8, 3);
+    relevance_visibility.insert(9, 4);
+    let preview_sets_to_draw: Vec<PreviewSet> = set_distances.iter().filter(|(x,y)|x.typ == set.typ).filter(
+        |(x,y)|{
+            let mut visibility = *relevance_visibility.get(&x.relevance).unwrap();
+            if set.subsets.all.contains(&x)
+                || set.supersets.all.contains(&x) {
+                visibility += 1;
+            }
+            if set.equivsets.contains(&x) {
+                visibility += 10;
+            }
+            visibility >= **y
+        }
+        ).map(|(x,y)|x).cloned().collect();
     let sets_to_draw = data.get_sets(preview_sets_to_draw);
     let filename = &format!("local_{}", set.id);
-    make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_distance(set_distance_to_draw, distance)))
+    make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_distance(set_distances, 3)))
 }
 
 pub fn make_subset_drawing(filename: &str, data: &Data, set: &Set, sets_to_draw: Vec<&Set>, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
@@ -98,8 +120,7 @@ pub fn make_subset_drawing(filename: &str, data: &Data, set: &Set, sets_to_draw:
 fn mark_by_distance(distances: HashMap<PreviewSet, usize>, max_dist: usize) -> Box<dyn Fn(&Set) -> String> {
     Box::new(move |set: &Set| -> String {
         let dist = distances.get(&set.preview).expect("error getting distances");
-        let ratio = (*dist as f32) / (max_dist as f32);
-        assert!(ratio >= 0.0 && ratio <= 1.0);
+        let ratio = ((*dist as f32) / (max_dist as f32)).clamp(0.0, 1.0);
         interpolate_colors("#78acff", "#dddde8", ratio)
     })
 }

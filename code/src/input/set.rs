@@ -17,6 +17,12 @@ impl<'a> SetBuilder<'a> {
         self
     }
 
+    pub fn abbr(mut self, abbreviation: &str) -> Self {
+        assert!(self.set.abbr == None);
+        self.set.abbr = Some(abbreviation.into());
+        self
+    }
+
     pub fn tag(mut self, tag: &RawTag) -> Self {
         self.set.tags.push(tag.clone());
         self

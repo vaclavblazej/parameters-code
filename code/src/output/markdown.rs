@@ -11,13 +11,13 @@ use std::process::Command;
 use biblatex::Bibliography;
 use regex::Regex;
 
-use crate::data::data::{Data, Linkable, ProviderLink, Set, Showed, ShowedFact, Source, Tag};
+use crate::data::data::{Data, Linkable, ProviderLink, Relation, Set, Showed, ShowedFact, Source, Tag};
 use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType};
 use crate::general::enums::{Page, SourceKey};
 use crate::file;
 use crate::general::progress;
 
-use super::color::Color;
+use super::color::{relation_color, Color};
 use super::diagram::{make_focus_drawing, make_subset_drawing};
 use super::to_markdown::ToMarkdown;
 
@@ -119,6 +119,9 @@ impl GeneratedPage for Set {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
         res += &format!("# {}\n\n", self.name);
+        if let Some(abbr) = &self.abbr {
+            res += &format!("abbr: {}\n\n", abbr);
+        }
         if !self.aka.is_empty() {
             res += &format!("aka: {}\n\n", self.aka.join(", "));
         }
@@ -253,6 +256,26 @@ impl GeneratedPage for Source {
                 res += &format!("* {}\n", val);
             }
         }
+        res
+    }
+}
+
+impl GeneratedPage for Relation {
+    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
+        let mut res = String::new();
+        res += &format!("# {} & {}\n\n", self.subset.get_name(), self.superset.get_name());
+        let sub = builder.data.get_set(&self.subset);
+        let sup = builder.data.get_set(&self.superset);
+        res += &format!("color: [[color {}]]\n\n", relation_color(&sub, &sup).name());
+        // pub id: String,
+        // pub preview: PreviewRelation,
+        // /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
+        // pub subset: PreviewSet,
+        // /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
+        // pub superset: PreviewSet,
+        // pub cpx: CpxInfo,
+        // pub created_by: CreatedBy,
+        // pub essential: bool,
         res
     }
 }

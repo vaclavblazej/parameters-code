@@ -61,13 +61,13 @@ The blue[[color blue]], magenta[[color magenta]], and cyan[[color cyan]] represe
 
 A 2D table allows a simple depiction of all pairwise relations at once.
 Each cell at row $A$ and column $B$ represents relation from parameter $A$ to $B$.
-Assume $A$ is bounded by $k$, then color of the cell represents the following.
-
-* green cell[[color green]] - $B$ is bounded by $f(k)$ for some computable function of $k$
-* red cell[[color red]] - $B$ is unbounded
-* blue cell[[color blue]] - it is unknown to HOPS whether $B$ is bounded or unbounded
+Assuming $A$ is fixed, the color coding is identical to the above legend for diagrams.
+Hence, a diagram visible within a specific parameter $A$ is shown as a single row in the table.
 
 ## Relevance
 
-todo
+Relevance is meant to give a very rough direction for people who are not familiar with some of the parameters.
+This value is entered manually which inadvertently introduces personal bias.
+The hope is that eventually each parameter is somewhat correctly categorized as viewed by the community.
+If you feel some values are significantly incorrect, then let us know.
 

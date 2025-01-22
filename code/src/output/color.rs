@@ -124,13 +124,14 @@ impl Color{
 }
 
 pub fn relation_color(set: &Set, other: &Set) -> Color {
+    let a_eq_b = set.equivsets.contains(&other.preview);
     let a_gte_b = set.supersets.all.contains(&other.preview);
     let a_lte_b = set.subsets.all.contains(&other.preview);
     let a_ngte_b = set.super_exclusions.all.contains(&other.preview);
     let a_nlte_b = set.sub_exclusions.all.contains(&other.preview);
     match (a_gte_b, a_lte_b, a_ngte_b, a_nlte_b) {
         (true, _, true, _) | (_, true, _, true) => panic!("impossible resulting case between {} and {}", set.id, other.id),
-        (true, true, false, false)   => Color::Yellow,
+        (true, true, false, false)   => panic!("unexpected equivalence which should be in set.equivsets instead of being just contained in subsets and supersets for {} and {}", set.id, other.id),
         (false, true, true, false)   => Color::Green,
         (false, false, true, true)   => Color::Blue,
         (true, false, false, true)   => Color::Red,
@@ -138,7 +139,12 @@ pub fn relation_color(set: &Set, other: &Set) -> Color {
         (false, true, false, false)  => Color::Lime,
         (false, false, true, false)  => Color::Cyan,
         (false, false, false, true)  => Color::Magenta,
-        (false, false, false, false) => Color::Gray,
+        (false, false, false, false) => {
+            match a_eq_b {
+                true => Color::Yellow,
+                false => Color::Gray,
+            }
+        }
     }
 }
 

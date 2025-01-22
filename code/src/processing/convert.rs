@@ -82,15 +82,7 @@ impl RawShowedFact {
 
 impl Into<Relation> for RawRelation {
     fn into(self) -> Relation {
-        Relation {
-            id: self.clone().get_id(),
-            preview: self.clone().into(),
-            subset: self.subset.clone().into(),
-            superset: self.superset.clone().into(),
-            cpx: self.cpx.clone(),
-            created_by: CreatedBy::Directly,
-            essential: true,
-        }
+        Relation::new(&self.subset.into(), &self.superset.into(), self.cpx, CreatedBy::Directly)
     }
 }
 
@@ -117,10 +109,12 @@ impl Into<PreviewTag> for RawTag {
 
 impl Into<PreviewRelation> for RawRelation {
     fn into(self) -> PreviewRelation {
+        let preview_subset = self.subset.into();
+        let preview_superset = self.superset.into();
         PreviewRelation {
-            id: self.get_id(),
-            subset: self.subset.into(),
-            superset: self.superset.into(),
+            id: Relation::id(&preview_subset, &preview_superset),
+            subset: preview_subset,
+            superset: preview_superset,
             cpx: self.cpx,
         }
     }

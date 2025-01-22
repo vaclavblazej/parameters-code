@@ -131,6 +131,7 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
         providers,
         timeline,
         aka: set.aka.clone(),
+        abbr: set.abbr.clone(),
         tags: set.tags.iter().map(|x|x.clone().into()).collect(),
         // transfers,
         equivsets: help.get_eqsets(&preview),
@@ -409,9 +410,13 @@ fn process_relations(sets: &Vec<PreviewSet>,
 
 impl Relation {
 
+    pub fn id(subset: &PreviewSet, superset: &PreviewSet) -> String {
+        format!("{}_{}", subset.id, superset.id)
+    }
+
     pub fn new(subset: &PreviewSet, superset: &PreviewSet, cpx: CpxInfo, created_by: CreatedBy) -> Self{
         let preview = PreviewRelation {
-            id: format!("{}_{}", subset.id, superset.id),
+            id: Self::id(subset, superset),
             cpx,
             subset: subset.clone(),
             superset: superset.clone(),
@@ -453,41 +458,23 @@ impl Relation {
     pub fn combine_serial(&self, other: &Relation) -> Relation {
         assert_eq!(self.superset, other.subset);
         let cpx = self.cpx.combine_serial(&other.cpx);
-        let preview = PreviewRelation {
-            id: "".into(),
-            subset: self.subset.clone(),
-            superset: other.superset.clone(),
-            cpx: cpx.clone(),
-        };
-        Relation {
-            id: preview.id.clone(),
-            subset: preview.subset.clone(),
-            superset: preview.superset.clone(),
-            preview,
-            cpx,
-            created_by: CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone()),
-            essential: true,
-        }
+        Relation::new(
+            &self.subset,
+            &other.superset,
+            cpx.clone(),
+            CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone())
+            )
     }
 
     pub fn combine_plus(&self, other: &Relation) -> Relation {
         assert_eq!(self.subset, other.subset); // expected to be used for combined parameters only
         let cpx = self.cpx.combine_plus(&other.cpx);
-        let preview = PreviewRelation {
-            id: "".into(),
-            subset: self.subset.clone(),
-            superset: self.superset.clone(),
-            cpx: cpx.clone(),
-        };
-        Relation {
-            id: preview.id.clone(),
-            subset: preview.subset.clone(),
-            superset: preview.superset.clone(),
-            preview,
+        Relation::new(
+            &self.subset,
+            &self.superset,
             cpx,
-            created_by: CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone()), // todo check
-            essential: true,
-        }
+            CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone())
+            )
     }
 
 }
@@ -508,21 +495,12 @@ fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<Pr
                 }
                 for tr in top_res {
                     for br in bot_res {
-                        let prev = PreviewRelation {
-                            id: "".into(),
-                            cpx: res_cpx.clone(),
-                            subset: tr.clone(),
-                            superset: br.clone(),
-                        };
-                        let rel = Relation {
-                            id: prev.id.clone(),
-                            cpx: prev.cpx.clone(),
-                            subset: prev.subset.clone(),
-                            superset: prev.superset.clone(),
-                            preview: prev,
-                            essential: false,
-                            created_by: CreatedBy::TransferredFrom(transfer_group.clone(), relation.clone()),
-                        };
+                        let rel = Relation::new(
+                            &tr.clone(),
+                            &br.clone(),
+                            res_cpx.clone(),
+                            CreatedBy::TransferredFrom(transfer_group.clone(), relation.clone())
+                            );
                         transferred_relations.push(rel);
                     }
                 }
@@ -580,6 +558,9 @@ pub fn process_raw_data(rawdata: &RawData, bibliography: &Option<Bibliography>) 
             RawShowedFact::Citation(_) => (),
             RawShowedFact::Definition(_) => (),
         }
+    }
+    for set in &rawdata.sets {
+        raw_relations.push(RawRelation::new(set, set, CpxInfo::Equal));
     }
     let mut relations = process_relations(&preview_sets, &composed_sets, raw_relations, &transfers);
     let preview_relations = relations.iter().map(|x|x.preview.clone()).collect();

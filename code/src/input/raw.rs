@@ -55,6 +55,7 @@ pub struct RawSet {
     pub hidden: bool,
     pub tags: Vec<RawTag>,
     pub aka: Vec<String>,
+    pub abbr: Option<String>,
 }
 
 impl RawSet {
@@ -68,6 +69,7 @@ impl RawSet {
             hidden: false,
             tags: vec![],
             aka: vec![],
+            abbr: None,
         }
     }
 }
@@ -96,12 +98,6 @@ impl RawRelation {
             superset: superset.clone(),
             cpx,
         }
-    }
-}
-
-impl Id for RawRelation {
-    fn get_id(&self) -> String{
-        format!("relation_{}_to_{}", self.subset.id, self.superset.id)
     }
 }
 

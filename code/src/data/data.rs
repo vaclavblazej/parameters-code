@@ -20,6 +20,7 @@ pub trait HasId {
     fn id(&self) -> String;
 }
 impl HasId for Set { fn id(&self) -> String { self.id.clone() } }
+impl HasId for Relation { fn id(&self) -> String { self.id.clone() } }
 impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
 impl HasId for Tag { fn id(&self) -> String { self.id.clone() } }
 
@@ -88,6 +89,7 @@ pub struct Set {
     pub name: String,
     pub typ: PreviewType,
     pub aka: Vec<String>,
+    pub abbr: Option<String>,
     pub tags: Vec<PreviewTag>,
     pub providers: Vec<ProviderLink>,
     pub timeline: Vec<SourceSubset>,
@@ -164,7 +166,7 @@ pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, P
 
 impl Data {
     pub fn new(mut sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, tags: Vec<Tag>) -> Self {
-        sets.sort_by_key(|x|x.name.clone());
+        sets.sort_by_key(|x|x.name.to_lowercase().clone());
         let set_idx = compute_set_idx(&sets);
         let relation_idx = compute_relation_idx(&relations);
         Self {
@@ -203,8 +205,6 @@ impl Data {
         // Some(&self.relations[idx])
     }
 }
-
-// todo abbreviation
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Relation {
