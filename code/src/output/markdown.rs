@@ -44,8 +44,12 @@ impl fmt::Display for MarkdownError {
     }
 }
 
-fn base(id: &String) -> String {
+fn html_base(id: &String) -> String {
     format!("{{{{< base >}}}}html/{}", id)
+}
+
+fn base(id: &String) -> String {
+    format!("{{{{< base >}}}}{}", id)
 }
 
 impl Linkable for ProviderLink {
@@ -59,7 +63,7 @@ impl Linkable for ProviderLink {
 
 impl Linkable for PreviewRelation {
     fn get_url(&self) -> String {
-        base(&self.id)
+        html_base(&self.id)
     }
     fn get_name(&self) -> String {
         format!("{} → {}", self.subset.name, self.superset.name)
@@ -68,7 +72,7 @@ impl Linkable for PreviewRelation {
 
 impl Linkable for PreviewTag {
     fn get_url(&self) -> String {
-        base(&self.id)
+        html_base(&self.id)
     }
     fn get_name(&self) -> String {
         self.name.clone()
@@ -77,7 +81,7 @@ impl Linkable for PreviewTag {
 
 impl Linkable for PreviewSet {
     fn get_url(&self) -> String {
-        base(&self.id)
+        html_base(&self.id)
     }
     fn get_name(&self) -> String {
         self.name.clone()
@@ -87,9 +91,9 @@ impl Linkable for PreviewSet {
 impl Linkable for PreviewSource {
     fn get_url(&self) -> String {
         match &self.sourcekey {
-            SourceKey::Bibtex { key: _, name: _, entry: _ } => base(&self.id),
+            SourceKey::Bibtex { key: _, name: _, entry: _ } => html_base(&self.id),
             SourceKey::Online { url } => url.clone(),
-            SourceKey::Other { name: _, description: _ } => base(&self.id),
+            SourceKey::Other { name: _, description: _ } => html_base(&self.id),
         }
     }
     fn get_name(&self) -> String {
@@ -129,8 +133,8 @@ impl GeneratedPage for Set {
             let tag_strings: Vec<String> = self.tags.iter().map(|x|builder.linkto(x)).collect();
             res += &format!("tags: {}\n\n", tag_strings.join(", "));
         }
-        if !self.equivsets.is_empty() {
-            let equivalent_strings: Vec<String> = self.equivsets.iter().map(|x|builder.linkto(x)).collect();
+        let equivalent_strings: Vec<String> = self.equivsets.iter().filter(|x|x.id != self.id).map(|x|builder.linkto(x)).collect();
+        if !equivalent_strings.is_empty() {
             res += &format!("equivalent to: {}\n\n", equivalent_strings.join(", "));
         }
         if !self.providers.is_empty() {
@@ -183,24 +187,30 @@ impl GeneratedPage for Set {
             // res += "\n";
         // }
         res += &format!("---\n\n## Relations\n\n");
-        let mut relation_table = Table::new(vec!["Other", "Relation from", "Relation to"]);
+        let mut relation_table = Table::new(vec!["Other", "", "Relation from", "Relation to"]);
         for set in &builder.data.sets {
-            if set.preview == self.preview {
-                continue;
-            }
-            let relation_fr = match builder.data.get_relation(&set.preview, &self.preview){
-                None => None,
-                Some(rel) => rel.preview.short_description(builder),
+            let relation_fr_el: String = match builder.data.get_relation(&set.preview, &self.preview){
+                None => "unknown to HOPS".into(),
+                Some(rel) => {
+                    let name = rel.preview.short_description(builder);
+                    format!("[{}]({})", name, rel.preview.get_url())
+                }
             };
-            let relation_to = match builder.data.get_relation(&self.preview, &set.preview){
-                None => None,
-                Some(rel) => rel.preview.short_description(builder),
+            let relation_to_el: String = match builder.data.get_relation(&self.preview, &set.preview){
+                None => "unknown to HOPS".into(),
+                Some(rel) => {
+                    let name = rel.preview.short_description(builder);
+                    format!("[{}]({})", name, rel.preview.get_url())
+                }
             };
+            let colorname = relation_color(self, set).name();
             relation_table.add(
                 vec![
                 builder.linkto(&set.preview),
-                relation_fr.unwrap_or("unknown to HOPS".into()),
-                relation_to.unwrap_or("unknown to HOPS".into()),
+                // the hidden span makes the color column sortable
+                format!("<span style=\"display:none\">{}</span>[[color {}]]", colorname, colorname),
+                relation_fr_el,
+                relation_to_el,
                 ]);
         }
         res += builder.make_table(relation_table).as_str();
@@ -260,13 +270,52 @@ impl GeneratedPage for Source {
     }
 }
 
+fn format_created_by(data: &Data, relation: &Relation, indent: usize, set: &mut HashSet<PreviewRelation>) -> String{
+    let (res, children) = if set.contains(&relation.preview) {
+        match &relation.created_by {
+            CreatedBy::Directly => ("was proved directly", "".into()),
+            CreatedBy::Todo => ("information missing in HOPS", "".into()),
+            CreatedBy::TransferredFrom(a, b) => {
+                let rel = data.get_relation(&b.subset, &b.superset).unwrap();
+                ("relation implied from another relation", format_created_by(data, &rel, indent+1, set))
+            },
+            CreatedBy::TransitiveInclusion(a, b) => {
+                let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
+                let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
+                let format_a = format_created_by(data, &rel_a, indent+1, set);
+                let format_b = format_created_by(data, &rel_b, indent+1, set);
+                ("relation implied from relations", format!("{}\n{}", format_a, format_b))
+            },
+            CreatedBy::TransitiveExclusion(a, b) => {
+                let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
+                let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
+                let format_a = format_created_by(data, &rel_a, indent+1, set);
+                let format_b = format_created_by(data, &rel_b, indent+1, set);
+                ("relation implied from relations", format!("{}\n{}", format_a, format_b))
+            },
+            // _ => ("", "".into()),
+        }
+    } else {
+        panic!("cyclic dependence for {:?}", relation);
+        // ("a cyclic dependence, that's not good", "".into())
+    };
+    format!("{}* {}\n{}", " ".repeat(4*indent), res, children)
+}
+
 impl GeneratedPage for Relation {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
         let mut res = String::new();
-        res += &format!("# {} & {}\n\n", self.subset.get_name(), self.superset.get_name());
+        let join_el =
+            if let Some(reverse_relation) = builder.data.get_relation(&self.superset, &self.subset) {
+                format!("[→]({})", reverse_relation.preview.get_url())
+            } else {
+                format!("→")
+            };
+        res += &format!("# {} {} {}\n\n", builder.linkto(&self.subset), join_el, builder.linkto(&self.superset));
         let sub = builder.data.get_set(&self.subset);
         let sup = builder.data.get_set(&self.superset);
         res += &format!("color: [[color {}]]\n\n", relation_color(&sub, &sup).name());
+        // res += &format_created_by(&builder.data, &self, 0, &mut HashSet::new()); // todo
         // pub id: String,
         // pub preview: PreviewRelation,
         // /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
@@ -384,7 +433,7 @@ impl<'a> Markdown<'a> {
                 "parameters" => {
                     let mut pars = self.data.sets.iter().filter(|&s| s.typ == PreviewType::Parameter).collect::<Vec<&Set>>();
                     pars.sort_by_key(|x|x.name.to_lowercase());
-                    let mut table = Table::new(vec!["Parameter", "Relevance"]);
+                    let mut table = Table::new(vec!["Parameter", &format!("<a href=\"{}\">*</a>Relevance", base(&(*"docs/legend/#relevance").into()))]);
                     for set in &pars {
                         let relstring = progress::bar(set.preview.relevance, 9);
                         table.add(vec![self.linkto(&set.preview), relstring]);
@@ -394,7 +443,7 @@ impl<'a> Markdown<'a> {
                 "graphs" => {
                     let mut graphs = self.data.sets.iter().filter(|&s| s.typ == PreviewType::GraphClass).collect::<Vec<&Set>>();
                     graphs.sort_by_key(|x|&x.name);
-                    let mut table = Table::new(vec!["Graph class", "Relevance"]);
+                    let mut table = Table::new(vec!["Graph class", &format!("<a href=\"{}\">*</a>Relevance", base(&(*"docs/legend/#relevance").into()))]);
                     for set in &graphs {
                         let relstring = progress::bar(set.preview.relevance, 9);
                         table.add(vec![self.linkto(&set.preview), relstring]);

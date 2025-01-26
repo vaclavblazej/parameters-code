@@ -3,6 +3,8 @@
 
 use serde::{Serialize, Deserialize};
 
+use crate::data::preview::{PreviewRelation, PreviewSource};
+
 
 /// Refers to a page in a book or paper. If pdf is available it should refer its
 /// page in pdf instead of the label.
@@ -23,7 +25,7 @@ pub enum TransferGroup {
 }
 
 /// Points to the source of a citation.
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum SourceKey {
     Bibtex {
         key: String,
@@ -61,24 +63,59 @@ pub enum CpxTime {
     Linear,     // O(N)
     Polynomial, // N^{O(1)}
     Exponential,// 2^{O(N)}
-    Tower, // 2^2^...^N
+    Tower,      // 2^2^...^N
     Exists,     // f(N) where f is a computable function
 }
 
 /// What we know about parameter increase over a binary relation A with B.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CpxInfo {
+    /// Values are the same, B = A; this relation is symmetric.
+    Equal,
     /// Value of B is at least mn(A) and at most mx(A).
     Inclusion{mn: CpxTime, mx: CpxTime},
     /// Value of B is not bounded by any function of A.
     Exclusion,
-    /// Values are the same, B = A; this relation is symmetric.
-    /// Equal is a more refined Inclusion{Linear, Linear}.
-    Equal,
     /// Value of B is at least mn(A) but upper bound is unknown.
     /// LowerBound can be further refined to Inclusion or Exclusion.
     LowerBound{mn: CpxTime},
+    /// Value of B is at most mx(A).
+    UpperBound{mx: CpxTime},
     /// There is no information about whether B is bounded by the value of A.
     Unknown,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum CreatedBy {
+    TransitiveInclusion(PreviewRelation, PreviewRelation),
+    TransitiveExclusion(PreviewRelation, PreviewRelation),
+    TransferredFrom(TransferGroup, PreviewRelation),
+    Directly,
+    Todo,
+}
+
+/// A processed variant of CpxInfo which has links to sources that lead to a given result
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SourcedCpxInfo {
+    Equal{source: CreatedBy},
+    UpperBound{mx: (CpxTime, CreatedBy)},
+    Inclusion{mn: (CpxTime, CreatedBy), mx: (CpxTime, CreatedBy)},
+    Exclusion{source: CreatedBy},
+    LowerBound{mn: (CpxTime, CreatedBy)},
+    Unknown,
+}
+
+impl Into<CpxInfo> for SourcedCpxInfo {
+    fn into(self) -> CpxInfo {
+        match self {
+            SourcedCpxInfo::Equal { source } => CpxInfo::Equal,
+            SourcedCpxInfo::UpperBound { mx: (mx, _) } => CpxInfo::UpperBound { mx: mx.clone() },
+            SourcedCpxInfo::Inclusion { mn: (mn, _), mx: (mx, _) } => CpxInfo::Inclusion { mn: mn.clone(), mx: mx.clone() },
+            SourcedCpxInfo::Exclusion { source: _ } => CpxInfo::Exclusion,
+            SourcedCpxInfo::Unknown => CpxInfo::Unknown,
+            SourcedCpxInfo::LowerBound { mn: (mn, _) } => CpxInfo::LowerBound { mn: mn.clone() },
+        }
+    }
+}
+
 

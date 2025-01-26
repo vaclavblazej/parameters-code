@@ -86,6 +86,7 @@ fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescrip
                 },
             }
         },
+        CpxInfo::UpperBound { mx } => RelDescription::UpperBound{bound: mx.clone()},
         CpxInfo::LowerBound { mn } => RelDescription::LowerBound { bound: mn.clone() },
         CpxInfo::Equal => RelDescription::Equal,
         CpxInfo::Exclusion => {
@@ -130,24 +131,24 @@ impl PreviewRelation {
         }
     }
 
-    pub fn short_description(&self, builder: &Markdown) -> Option<String> {
+    pub fn short_description(&self, builder: &Markdown) -> String {
         let subset_string = self.subset.to_markdown(builder).unwrap();
         let superset_string = self.superset.to_markdown(builder).unwrap();
         match relation_description(&self, &builder) {
-            RelDescription::UpperBound { bound } => Some(format!("upper bound")),
-            RelDescription::LowerBound { bound } => Some(format!("only lower bound")),
-            RelDescription::BothBounds { bound } => Some(format!("tight bounds")),
-            RelDescription::UpperLowerBound { lower_bound, upper_bound } => Some(format!("non-tight bounds")),
-            RelDescription::GraphBoundedPar => Some(format!("constant")),
-            RelDescription::BoundedParGraph => Some(format!("inclusion")),
-            RelDescription::GraphInclusion => Some(format!("inclusion")),
-            RelDescription::Equal => Some(format!("equal")),
-            RelDescription::ParExclusion => Some(format!("exclusion")),
-            RelDescription::GraphUnboundedPar => Some(format!("unbounded")),
-            RelDescription::ParExcludesGraph => Some(format!("exclusion")),
-            RelDescription::GraphExclusion => Some(format!("exclusion")),
-            RelDescription::Unknown => None,
-        }
+            RelDescription::UpperBound { bound } => "upper bound",
+            RelDescription::LowerBound { bound } => "only lower bound",
+            RelDescription::BothBounds { bound } => "tight bounds",
+            RelDescription::UpperLowerBound { lower_bound, upper_bound } => "non-tight bounds",
+            RelDescription::GraphBoundedPar => "constant",
+            RelDescription::BoundedParGraph => "inclusion",
+            RelDescription::GraphInclusion => "inclusion",
+            RelDescription::Equal => "equal",
+            RelDescription::ParExclusion => "exclusion",
+            RelDescription::GraphUnboundedPar => "unbounded",
+            RelDescription::ParExcludesGraph => "exclusion",
+            RelDescription::GraphExclusion => "exclusion",
+            RelDescription::Unknown => "unknown to HOPS",
+        }.into()
     }
 
 }

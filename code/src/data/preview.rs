@@ -1,6 +1,6 @@
 //! Preview versions of the full structures.
 
-use crate::general::enums::{CpxInfo, Page, SourceKey};
+use crate::general::enums::{CpxInfo, Page, SourceKey, SourcedCpxInfo};
 
 use serde::{Serialize, Deserialize};
 
@@ -30,7 +30,7 @@ impl PreviewSourceKey {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct PreviewSource {
     pub id: String,
     pub sourcekey: SourceKey,
@@ -44,6 +44,18 @@ pub struct PreviewSet {
     pub typ: PreviewType,
     pub relevance: u32,
     pub hidden: bool,
+}
+
+impl PreviewSet {
+    pub fn mock(id: &str) -> PreviewSet{
+        PreviewSet {
+            id: id.into(),
+            name: "".into(),
+            typ: PreviewType::Parameter,
+            relevance: 0,
+            hidden: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -4,7 +4,7 @@ use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Chunk, DateValue, Entry, PermissiveType, Person, Spanned};
 use serde::{Serialize, Deserialize};
 
-use crate::{data::{data::{CreatedBy, Data, Date, Linkable, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::TransferGroup, hide::filter_hidden, progress::ProgressDisplay}};
+use crate::{data::{data::{Data, Date, Linkable, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::{SourcedCpxInfo, TransferGroup}, hide::filter_hidden, progress::ProgressDisplay}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -332,7 +332,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                 ] {
                     let Some(ab) = res.get(&(x.clone(), y.clone())) else { continue };
                     match &ab.cpx {
-                        CpxInfo::Equal => {},
+                        SourcedCpxInfo::Equal { .. } => {},
                         _ => continue,
                     }
                     for (c,d,e,f) in vec![
@@ -342,7 +342,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                         (y.clone(), z.clone(), x.clone(), z.clone()),
                     ] {
                         let Some(cd) = res.get(&(c.clone(), d.clone())) else { continue };
-                        let result = Relation::new(&e, &f, cd.cpx.clone(), CreatedBy::Todo);
+                        let result = Relation::new(&e, &f, cd.cpx.clone());
                         add_and_update(&mut res, (e, f), result, &mut updated_relations);
                     }
                 }
@@ -370,15 +370,17 @@ fn process_relations(sets: &Vec<PreviewSet>,
                         (CpxInfo::Inclusion { .. }, CpxInfo::Exclusion) => {},
                         _ => continue,
                     }
-                    let result = Relation::new(&e, &f, CpxInfo::Exclusion, CreatedBy::Todo);
+                    let result = Relation::new(&e, &f, CpxInfo::Exclusion);
                     add_and_update(&mut res, (e, f), result, &mut updated_relations);
                 }
             }
             // inclusion ab implies inclusion f(a)f(b) for a transfer f
-            let new_relations = apply_transfers(transfers, &relation);
-            for result in new_relations {
-                let key = (result.subset.clone(), result.superset.clone());
-                add_and_update(&mut res, key, result, &mut updated_relations);
+            if let Some(ab) = res.get(&(relation.subset.clone(), relation.superset.clone())) {
+                let new_relations = apply_transfers(transfers, &ab);
+                for result in new_relations {
+                    let key = (result.subset.clone(), result.superset.clone());
+                    add_and_update(&mut res, key, result, &mut updated_relations);
+                }
             }
             // inclusion ab and ac imply inclusion a(b+c)
             for (composed_set, elements) in composed_sets {
@@ -414,83 +416,40 @@ impl Relation {
         format!("{}_{}", subset.id, superset.id)
     }
 
-    pub fn new(subset: &PreviewSet, superset: &PreviewSet, cpx: CpxInfo, created_by: CreatedBy) -> Self{
+    pub fn new(subset: &PreviewSet, superset: &PreviewSet, cpx: SourcedCpxInfo) -> Self{
         let preview = PreviewRelation {
             id: Self::id(subset, superset),
-            cpx,
+            cpx: cpx.clone().into(),
             subset: subset.clone(),
             superset: superset.clone(),
         };
         Self {
             id: preview.id.clone(),
-            cpx: preview.cpx.clone(),
-            subset: preview.subset.clone(),
-            superset: preview.superset.clone(),
+            cpx,
+            subset: subset.clone(),
+            superset: superset.clone(),
             preview,
-            created_by: CreatedBy::Directly, // todo
             essential: true,
         }
     }
 
-    // todo this should be changed to find the simplest way to find the resulting complexity
-    pub fn combine_parallel(&mut self, other: &Relation) -> bool {
-        assert_eq!(self.superset, other.superset);
-        assert_eq!(self.subset, other.subset);
-        // todo merging entries just via complexity is not good enough, they combine in a more nuanced way
-        let original = self.cpx.clone();
-        match self.cpx.combine_parallel(&other.cpx){
-            Ok(res) => {
-                if original != res {
-                    self.preview.cpx = res.clone();
-                    self.cpx = res;
-                    true
-                } else {
-                    false
-                }
-            },
-            Err(err) => {
-                eprintln!("{}\n{:?}\n{:?}", err, self.preview, other.preview);
-                false
-            }
-        }
-    }
-
-    pub fn combine_serial(&self, other: &Relation) -> Relation {
-        assert_eq!(self.superset, other.subset);
-        let cpx = self.cpx.combine_serial(&other.cpx);
-        Relation::new(
-            &self.subset,
-            &other.superset,
-            cpx.clone(),
-            CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone())
-            )
-    }
-
-    pub fn combine_plus(&self, other: &Relation) -> Relation {
-        assert_eq!(self.subset, other.subset); // expected to be used for combined parameters only
-        let cpx = self.cpx.combine_plus(&other.cpx);
-        Relation::new(
-            &self.subset,
-            &self.superset,
-            cpx,
-            CreatedBy::TransitiveInclusion(self.preview.clone(), other.preview.clone())
-            )
-    }
-
 }
 
-fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>, relation: &PreviewRelation) -> Vec<Relation> {
-    let mut transferred_relations = Vec::new();
+fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>, relation: &Relation) -> Vec<Relation> {
+    let mut transferred_relations: Vec<Relation> = Vec::new();
     let top = relation.subset.clone();
     let bot = relation.superset.clone();
     for (transfer_group, map) in transfers.iter() {
         if let (Some(top_res), Some(bot_res)) = (map.get(&top), map.get(&bot)) {
             let mut res_cpx = relation.cpx.clone();
-            if let CpxInfo::Inclusion { mn, mx } = &res_cpx {
+            if let SourcedCpxInfo::Inclusion { mn: (mn, smn), mx: (mx, smx) } = &res_cpx {
                 if let Constant = mx {
-                    res_cpx = CpxInfo::Inclusion {
-                        mn: mn.clone(),
-                        mx: crate::general::enums::CpxTime::Linear
+                    res_cpx = SourcedCpxInfo::Inclusion {
+                        mn: (mn.clone(), Todo),
+                        mx: (
+                            crate::general::enums::CpxTime::Linear,
+                            CreatedBy::TransferredFrom(transfer_group.clone(), relation.clone())
+                            ),
                     };
                 }
                 for tr in top_res {
@@ -499,7 +458,6 @@ fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<Pr
                             &tr.clone(),
                             &br.clone(),
                             res_cpx.clone(),
-                            CreatedBy::TransferredFrom(transfer_group.clone(), relation.clone())
                             );
                         transferred_relations.push(rel);
                     }

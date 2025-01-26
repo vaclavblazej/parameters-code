@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, path::PathBuf, process::Command};
 
-use crate::{data::{data::{Data, Relation, Set}, preview::PreviewSet}, general::hide::filter_hidden, output::color::interpolate_colors, processing::processing::bfs_limit_distance};
+use crate::{data::{data::{Data, Relation, Set}, preview::PreviewSet}, general::{enums::SourcedCpxInfo, hide::filter_hidden}, output::color::interpolate_colors, processing::processing::bfs_limit_distance};
 use crate::general::enums::{CpxInfo, CpxTime};
 use crate::output::dot::{Edge, Graph};
 use crate::file;
@@ -27,7 +27,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset) && displayed_sets_preview.contains(&relation.superset) {
             match &relation.cpx {
-                CpxInfo::Equal => {
+                SourcedCpxInfo::Equal { source: _ } => {
                     if relation.subset.relevance < relation.superset.relevance
                         || (relation.subset.relevance == relation.superset.relevance
                             && relation.subset.id < relation.superset.id) {
@@ -50,7 +50,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset) && displayed_sets_preview.contains(&relation.superset) {
             match &relation.cpx {
-                CpxInfo::Inclusion { mn: _, mx: _ } => {
+                SourcedCpxInfo::Inclusion { mn: _, mx: _ } => {
                     potential_relations.push(relation.preview.clone())
                 },
                 _ => {},

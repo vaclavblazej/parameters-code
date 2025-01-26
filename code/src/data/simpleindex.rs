@@ -31,12 +31,13 @@ impl SimpleIndex {
     fn add(&mut self, relation: PreviewRelation) {
         let element = (relation.subset.clone(), relation.superset.clone());
         match &relation.cpx {
-            CpxInfo::Inclusion { mn: _, mx: _ } => {
+            CpxInfo::Inclusion { .. }
+            | CpxInfo::UpperBound { .. }=> {
                 self.first_subset_of_second.insert(element);
             },
-            CpxInfo::LowerBound { mn: _ } => {
+            CpxInfo::LowerBound { .. } => {
             },
-            CpxInfo::Exclusion {} => {
+            CpxInfo::Exclusion => {
                 self.first_not_subset_of_second.insert(element);
             },
             CpxInfo::Equal => {
