@@ -43,7 +43,7 @@ We assume that all of the graph class inclusions are proper.
 We aim to have here only the graph classes that influence parameter inclusions.
 Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](https://www.graphclasses.org/) for an exhaustive list of graph classes and their inclusions.
 
-[Graph hierarchy DOT](graphs.dot)
+* [Graph hierarchy DOT](graphs.dot)
 
 [[dot graphs.dot]]
 
