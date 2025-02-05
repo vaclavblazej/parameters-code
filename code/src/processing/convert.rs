@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 use biblatex::Entry;
 
-use crate::data::data::{Date, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, Tag};
-use crate::general::enums::SourceKey;
+use crate::data::data::{Date, PartialResultsBuilder, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, Tag};
+use crate::general::enums::{CreatedBy, SourceKey, SourcedCpxInfo};
 use crate::input::raw::*;
 use crate::data::preview::*;
 
@@ -77,12 +77,6 @@ impl RawShowedFact {
             Self::Citation(x) => ShowedFact::Citation(x.preprocess(&sourcekey)),
             Self::Definition(x) => ShowedFact::Definition(x.into()),
         }
-    }
-}
-
-impl Into<Relation> for RawRelation {
-    fn into(self) -> Relation {
-        Relation::new(&self.subset.into(), &self.superset.into(), self.cpx)
     }
 }
 

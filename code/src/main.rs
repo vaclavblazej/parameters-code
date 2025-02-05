@@ -206,7 +206,7 @@ impl Computation {
                     args.insert(ComputationPhases::PAGES);
                     args.insert(ComputationPhases::TABLE);
                 },
-                other => eprintln!("unknown parameter: '{}'", other),
+                other => panic!("unknown parameter: '{}'", other),
             }
         }
         let current = env::current_dir().unwrap();
@@ -254,7 +254,7 @@ impl Computation {
             }
         }
         self.time.print("retrieving data collection");
-        let rawdata = match mock {
+        let mut rawdata = match mock {
             false => collection::build_collection(),
             true => test::collection::build_collection(),
         };
@@ -308,9 +308,9 @@ impl Computation {
         for set in &data.sets {
             linkable.insert(set.id.clone(), Box::new(set.preview.clone()));
         }
-        for rel in &data.relations {
-            linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
-        }
+        // for rel in &data.relations {
+            // linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
+        // }
         for source in &data.sources {
             linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
         }
@@ -320,7 +320,7 @@ impl Computation {
         let markdown = Markdown::new(&data, linkable, &self.bibliography);
         let mut generated_pages = HashMap::new();
         add_content(&data.sets, &self.final_dir, &mut generated_pages);
-        add_content(&data.relations, &self.final_dir, &mut generated_pages);
+        // add_content(&data.relations, &self.final_dir, &mut generated_pages);
         add_content(&data.sources, &self.final_dir, &mut generated_pages);
         add_content(&data.tags, &self.final_dir, &mut generated_pages);
         self.time.print("fetching handcrafted pages");

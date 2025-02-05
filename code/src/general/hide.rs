@@ -3,26 +3,45 @@
 
 use std::collections::HashMap;
 
-use crate::data::{data::{Data, Set}, preview::{PreviewRelation, PreviewSet}};
+use crate::{data::{data::{Data, PartialResult, Set}, preview::{PreviewRelation, PreviewSet}}, general::enums::SourcedCpxInfo};
 
 use super::enums::CpxInfo;
 
 
 
-fn rel_can_be_implied_through(map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>, relation: &PreviewRelation, midset: &PreviewSet) -> bool {
+fn rel_can_be_implied_through(
+    map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>,
+    relation: &PreviewRelation,
+    midset: &PreviewSet
+    ) -> bool {
     if let CpxInfo::Inclusion { mn: _, mx } = &relation.cpx {
         assert_ne!(relation.subset, relation.superset);
         assert_ne!(midset, &relation.superset);
         assert_ne!(midset, &relation.subset);
         if let (Some(upper_relation), Some(lower_relation))
             = (map.get(&(&relation.subset, midset)), map.get(&(midset, &relation.superset))) {
-            // if we have sequence of inclusions that implies the current one hide it
-            if let (CpxInfo::Inclusion { mn: _, mx: mxa },
-                    CpxInfo::Inclusion { mn: _, mx: mxb })
+            // if we have sequence of inclusions that implies the current one, then hide it
+            if let (CpxInfo::Inclusion { mn: mna, mx: mxa },
+                    CpxInfo::Inclusion { mn: mnb, mx: mxb })
                     = (&upper_relation.cpx, &lower_relation.cpx) {
-                if !mx.is_better_than(&mxa.combine_serial(mxb)) {
-                    return true;
-                    // println!("excluded {:?} because of {:?} and {:?}", relation.preview, upper_relation.preview, lower_relation.preview);
+                let pa = PartialResult {
+                    handle: 0,
+                    created_by: crate::general::enums::CreatedBy::Todo
+                };
+                let sxa = SourcedCpxInfo::Inclusion {
+                    mn: (mna.clone(), pa.clone()),
+                    mx: (mxa.clone(), pa.clone()),
+                };
+                let sxb = SourcedCpxInfo::Inclusion {
+                    mn: (mnb.clone(), pa.clone()),
+                    mx: (mxb.clone(), pa.clone()),
+                };
+                let sxc: SourcedCpxInfo = sxa.combine_serial(&sxb);
+                let scc: CpxInfo = sxc.into();
+                if let CpxInfo::Inclusion{mn, mx} = scc {
+                    if !mx.is_better_than(&mx) {
+                        return true;
+                    }
                 }
             }
         }

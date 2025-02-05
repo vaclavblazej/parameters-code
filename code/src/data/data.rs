@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
 use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTag};
-use crate::general::enums::{Cpx, CpxInfo, CpxTime, Page, SourceKey, SourcedCpxInfo, TransferGroup};
+use crate::general::enums::{Cpx, CpxInfo, CpxTime, CreatedBy, Page, SourceKey, SourcedCpxInfo, TransferGroup};
 use crate::processing::processing::Sets;
 
 
@@ -133,6 +133,16 @@ pub struct Source {
     pub time: Date,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct PartialResult {
+    pub handle: usize,
+    pub created_by: CreatedBy,
+}
+
+pub struct PartialResultsBuilder {
+    pub arr: Vec<PartialResult>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Data {
     pub sets: Vec<Set>,
@@ -140,6 +150,7 @@ pub struct Data {
     pub sources: Vec<Source>,
     pub providers: Vec<Provider>,
     pub tags: Vec<Tag>,
+    pub partial_results: Vec<PartialResult>,
     #[serde(skip)]
     pub set_idx: HashMap<PreviewSet, usize>,
     #[serde(skip)]
@@ -165,7 +176,7 @@ pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, P
 }
 
 impl Data {
-    pub fn new(mut sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, tags: Vec<Tag>) -> Self {
+    pub fn new(mut sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, tags: Vec<Tag>, partial_results: Vec<PartialResult>) -> Self {
         sets.sort_by_key(|x|x.name.to_lowercase().clone());
         let set_idx = compute_set_idx(&sets);
         let relation_idx = compute_relation_idx(&relations);
@@ -177,10 +188,11 @@ impl Data {
             tags,
             set_idx,
             relation_idx,
+            partial_results,
         }
     }
 
-    pub fn recompute(&mut self){
+    pub fn recompute(&mut self) {
         self.set_idx = compute_set_idx(&self.sets);
         self.relation_idx = compute_relation_idx(&self.relations);
     }
@@ -209,6 +221,7 @@ impl Data {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Relation {
     pub id: String,
+    pub handle: usize,
     pub preview: PreviewRelation,
     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
     pub subset: PreviewSet,

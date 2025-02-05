@@ -216,6 +216,8 @@ pub fn build_collection() -> RawData {
     let degree_treewidth = create.intersection("nCWUh3", &max_degree, &treewidth, "degree treewidth", 6)
         .tag(&tree_decomposition)
         .done();
+    let contraction_complexity = create.parameter("LlWzhg", "contraction complexity", 2)
+        .done();
     let branch_width = create.parameter("lIcmuR", "branch width", 5)
         .done();
     let clique_width = create.parameter("wg5HuV", "clique-width", 7)
@@ -794,6 +796,14 @@ pub fn build_collection() -> RawData {
         .defined("IxPMGS", Pp(7), &book_thickness, "A geometric drawing in which the vertices are in convex position is called a book embedding. The book thickness of a graph $G$, ..., is the minimum $k \\in \\mathbb N$ such that there is book embedding of $G$ with thickness $k$.")
         .showed("FY0U1r", Pp(8), &treewidth, &book_thickness, UpperBound(Linear), "The maximum book thickness ... of a graph $\\mathcal T_k$ (ed: $k$-tree) satisfy ... $=k$ for $k \\le 2$, $=k+1$ for $k \\ge 3$.")
         .todo_rest();
+    let contraction_complexity2008 = create.source("9JAQC7", "contractionComplexity2008")
+        .defined("4lmvZK", Pp(10), &contraction_complexity, "Definition 4.1. The contraction of an edge e removes e and replaces its end vertices (or vertex) with a single vertex. A contraction ordering π is an ordering of all the edges of G, π(1), π(2), . . ., π(|E(G)|). The complexity of π is the maximum degree of a merged vertex during the contraction process. The contraction complexity of G, denoted by cc(G), is the minimum complexity of a contraction ordering.")
+        .showed("F0p61H", Pp(10), &contraction_complexity, &max_degree, UpperBound(Linear), "$cc(G) \\ge \\Delta(G) - 1$")
+        .collective(Pp(11), "Proposition 4.2. ... $cc(G)=tw(G^*)$ ... Lemma 4.4. $(tw(G) - 1)/2 \\le tw(G^*) \\le \\Delta(G)(tw(G) + 1) - 1.$")
+            .showed("YhbKPB", &contraction_complexity, &treewidth, UpperBound(Linear))
+            .showed("YvvmJE", &degree_treewidth, &contraction_complexity, UpperBound(Linear))
+            .done()
+        .done();
     let delavina_waller2008 = create.source("C5cBsd", "spanningTreesManyLeaves2008")
         .showed("Pbg2ga", Pp(5), &average_distance, &bipartite_number, UpperBound(Linear), "Theorem 9 (Main Theorem). Let $G$ be a graph. Then $\\bar{D} < \\frac b2 + \\frac 12$. ...")
         // .showed("ZXINaY", Unknown, &max_leaf_num, &feedback_vertex_set, UpperBound(Linear), "")
@@ -1171,9 +1181,3 @@ pub fn build_collection() -> RawData {
 // KI6Jq6
 // jkoObg
 // t0TUmk
-// YvvmJE
-// YhbKPB
-// F0p61H
-// 4lmvZK
-// LlWzhg
-// 9JAQC7

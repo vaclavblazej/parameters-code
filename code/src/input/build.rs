@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::general::enums::{Page, TransferGroup, CpxTime::{Linear, Constant}, Cpx::UpperBound};
-use super::{set::SetBuilder, raw::{Composition, RawData, RawType, RawProvider, RawSet, RawSource, RawSourceKey, RawTag}};
+use super::{raw::{Composition, RawData, RawProvider, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource, RawSourceKey, RawTag, RawType}, set::SetBuilder};
 use super::source::{RawDataSource, RawDataProvider};
 
 pub struct Builder {
@@ -44,7 +44,12 @@ impl Builder {
 
     /// Retrieves all the information that was added to the builder
     /// while making the builder unusable further.
-    pub fn build(self) -> RawData {
+    pub fn build(mut self) -> RawData {
+        for set in &self.data.sets.clone() {
+            self.assumed_source()
+                .showed("", Page::NotApplicable, &set, &set, crate::general::enums::Cpx::Equal, "assumed")
+                .done();
+        }
         self.data
     }
 

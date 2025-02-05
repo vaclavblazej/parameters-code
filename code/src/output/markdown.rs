@@ -13,7 +13,7 @@ use regex::Regex;
 
 use crate::data::data::{Data, Linkable, ProviderLink, Relation, Set, Showed, ShowedFact, Source, Tag};
 use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType};
-use crate::general::enums::{Page, SourceKey};
+use crate::general::enums::{CreatedBy, Page, SourceKey};
 use crate::file;
 use crate::general::progress;
 
@@ -270,37 +270,38 @@ impl GeneratedPage for Source {
     }
 }
 
-fn format_created_by(data: &Data, relation: &Relation, indent: usize, set: &mut HashSet<PreviewRelation>) -> String{
-    let (res, children) = if set.contains(&relation.preview) {
-        match &relation.created_by {
-            CreatedBy::Directly => ("was proved directly", "".into()),
-            CreatedBy::Todo => ("information missing in HOPS", "".into()),
-            CreatedBy::TransferredFrom(a, b) => {
-                let rel = data.get_relation(&b.subset, &b.superset).unwrap();
-                ("relation implied from another relation", format_created_by(data, &rel, indent+1, set))
-            },
-            CreatedBy::TransitiveInclusion(a, b) => {
-                let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
-                let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
-                let format_a = format_created_by(data, &rel_a, indent+1, set);
-                let format_b = format_created_by(data, &rel_b, indent+1, set);
-                ("relation implied from relations", format!("{}\n{}", format_a, format_b))
-            },
-            CreatedBy::TransitiveExclusion(a, b) => {
-                let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
-                let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
-                let format_a = format_created_by(data, &rel_a, indent+1, set);
-                let format_b = format_created_by(data, &rel_b, indent+1, set);
-                ("relation implied from relations", format!("{}\n{}", format_a, format_b))
-            },
-            // _ => ("", "".into()),
-        }
-    } else {
-        panic!("cyclic dependence for {:?}", relation);
-        // ("a cyclic dependence, that's not good", "".into())
-    };
-    format!("{}* {}\n{}", " ".repeat(4*indent), res, children)
-}
+// todo
+// fn format_created_by(data: &Data, relation: &Relation, indent: usize, set: &mut HashSet<PreviewRelation>) -> String{
+    // let (res, children) = if set.contains(&relation.preview) {
+        // match &relation.cpx {
+            // CreatedBy::Directly => ("was proved directly", "".into()),
+            // CreatedBy::Todo => ("information missing in HOPS", "".into()),
+            // CreatedBy::TransferredFrom(a, b) => {
+                // let rel = data.get_relation(&b.subset, &b.superset).unwrap();
+                // ("relation implied from another relation", format_created_by(data, &rel, indent+1, set))
+            // },
+            // CreatedBy::TransitiveInclusion(a, b) => {
+                // let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
+                // let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
+                // let format_a = format_created_by(data, &rel_a, indent+1, set);
+                // let format_b = format_created_by(data, &rel_b, indent+1, set);
+                // ("relation implied from relations", format!("{}\n{}", format_a, format_b))
+            // },
+            // CreatedBy::TransitiveExclusion(a, b) => {
+                // let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
+                // let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
+                // let format_a = format_created_by(data, &rel_a, indent+1, set);
+                // let format_b = format_created_by(data, &rel_b, indent+1, set);
+                // ("relation implied from relations", format!("{}\n{}", format_a, format_b))
+            // },
+            // // _ => ("", "".into()),
+        // }
+    // } else {
+        // panic!("cyclic dependence for {:?}", relation);
+        // // ("a cyclic dependence, that's not good", "".into())
+    // };
+    // format!("{}* {}\n{}", " ".repeat(4*indent), res, children)
+// }
 
 impl GeneratedPage for Relation {
     fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {

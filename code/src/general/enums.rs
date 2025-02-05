@@ -3,7 +3,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::data::preview::{PreviewRelation, PreviewSource};
+use crate::data::{data::PartialResult, preview::{PreviewRelation, PreviewSource}};
 
 
 /// Refers to a page in a book or paper. If pdf is available it should refer its
@@ -86,23 +86,62 @@ pub enum CpxInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum BoundType {
+    UpperBound { cpx: CpxTime },
+    LowerBound { cpx: CpxTime },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum SourcedBound {
+    Direct { typ: BoundType, source: PreviewSource },
+    Indirect { typ: BoundType, source: usize }, // idx to data
+}
+
+// Saved indices point to 'data.partial_results'
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum CreatedBy {
-    TransitiveInclusion(PreviewRelation, PreviewRelation),
-    TransitiveExclusion(PreviewRelation, PreviewRelation),
-    TransferredFrom(TransferGroup, PreviewRelation),
-    Directly,
+    TransitiveInclusion(usize, usize),
+    TransitiveExclusion(usize, usize),
+    SameThroughEquivalence(usize, usize),
+    SumInclusion(usize, usize),
+    TransferredFrom(TransferGroup, usize),
+    Directly(PreviewSource),
     Todo,
 }
 
 /// A processed variant of CpxInfo which has links to sources that lead to a given result
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SourcedCpxInfo {
-    Equal{source: CreatedBy},
-    UpperBound{mx: (CpxTime, CreatedBy)},
-    Inclusion{mn: (CpxTime, CreatedBy), mx: (CpxTime, CreatedBy)},
-    Exclusion{source: CreatedBy},
-    LowerBound{mn: (CpxTime, CreatedBy)},
+    Equal{source: PartialResult},
+    UpperBound{mx: (CpxTime, PartialResult)},
+    Inclusion{mn: (CpxTime, PartialResult), mx: (CpxTime, PartialResult)},
+    Exclusion{source: PartialResult},
+    LowerBound{mn: (CpxTime, PartialResult)},
     Unknown,
+}
+
+impl CpxInfo {
+
+    pub fn to_sourced(self, partial_result: PartialResult) -> SourcedCpxInfo {
+        match self.clone() {
+            CpxInfo::Equal => SourcedCpxInfo::Equal {
+                source: partial_result
+            },
+            CpxInfo::Inclusion { mn, mx } => SourcedCpxInfo::Inclusion {
+                mn: (mn, partial_result.clone()),
+                mx: (mx, partial_result)
+            },
+            CpxInfo::UpperBound { mx } => SourcedCpxInfo::UpperBound {
+                mx: (mx, partial_result)
+            },
+            CpxInfo::LowerBound { mn } => SourcedCpxInfo::LowerBound {
+                mn: (mn, partial_result)
+            },
+            CpxInfo::Exclusion => SourcedCpxInfo::Exclusion { source: partial_result },
+            CpxInfo::Unknown => SourcedCpxInfo::Unknown,
+        }
+    }
+
 }
 
 impl Into<CpxInfo> for SourcedCpxInfo {
