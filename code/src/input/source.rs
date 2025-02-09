@@ -1,3 +1,5 @@
+use log::warn;
+
 use crate::general::enums::{Cpx, Page};
 
 use super::raw::{RawData, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource, RawProvider, RawProviderLink};
@@ -160,7 +162,7 @@ impl<'a> RawDataSource<'a> {
     }
 
     pub fn todo_rest(self) -> RawSource {
-        eprintln!("todo: rest of the source {} should be processed", self.source.id);
+        warn!("todo: rest of the source {} should be processed", self.source.id);
         self.source
     }
 

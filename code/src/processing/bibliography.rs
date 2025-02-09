@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use biblatex::Bibliography;
+use log::error;
 
 use crate::general::file;
 
@@ -12,8 +13,8 @@ pub fn load_bibliography(bibliography_file: &PathBuf) -> Option<Bibliography> {
             Some(Bibliography::parse(&bibliography_str).unwrap())
         },
         Err(error) => {
-            println!("cannot load bibliography from {:?}", bibliography_file);
-            println!("{:?}", error);
+            error!("cannot load bibliography from {:?}", bibliography_file);
+            error!("{:?}", error);
             None
         }
     }

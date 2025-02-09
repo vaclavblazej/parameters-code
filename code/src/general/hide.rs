@@ -37,9 +37,9 @@ fn rel_can_be_implied_through(
                     mx: (mxb.clone(), pa.clone()),
                 };
                 let sxc: SourcedCpxInfo = sxa.combine_serial(&sxb);
-                let scc: CpxInfo = sxc.into();
+                let scc: CpxInfo = sxc.clone().into();
                 if let CpxInfo::Inclusion{mn, mx} = scc {
-                    if !mx.is_better_than(&mx) {
+                    if !mx.is_smaller_than(&mx) {
                         return true;
                     }
                 }

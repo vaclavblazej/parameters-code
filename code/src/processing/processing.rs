@@ -2,9 +2,10 @@
 
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Chunk, DateValue, Entry, PermissiveType, Person, Spanned};
+use log::{trace, warn};
 use serde::{Serialize, Deserialize};
 
-use crate::{data::{data::{Data, Date, Linkable, PartialResult, PartialResultsBuilder, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simpleindex::SimpleIndex}, general::{enums::{CreatedBy, SourcedCpxInfo, TransferGroup}, hide::filter_hidden, progress::ProgressDisplay}};
+use crate::{data::{data::{Data, Date, Linkable, PartialResult, PartialResultsBuilder, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simple_index::SimpleIndex}, general::{enums::{CreatedBy, SourcedCpxInfo, TransferGroup}, hide::filter_hidden, progress::ProgressDisplay}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -146,6 +147,7 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
 }
 
 pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Option<Bibliography>) -> Source {
+    trace!("processing set {:?}", source.rawsourcekey);
     let mut sourcekey: SourceKey;
     let mut time = Date::empty();
     match &source.rawsourcekey {
@@ -292,6 +294,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                      transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>,
                      sources: &HashMap<RawSource, Source>,
                      ) -> (Vec<Relation>, Vec<PartialResult>) {
+    trace!("processing relations");
     let mut relations: Vec<Relation> = vec![];
     let mut partial_results_builder = PartialResultsBuilder::new();
     for (raw_source, showed) in factoids {
@@ -308,8 +311,9 @@ fn process_relations(sets: &Vec<PreviewSet>,
         }
     }
     let mut res: HashMap<(PreviewSet, PreviewSet), Relation> = HashMap::new();
-    let mut progress = ProgressDisplay::new("processing", 21329);
+    let mut progress = ProgressDisplay::new("processing", 21138);
     for relation in relations {
+        trace!("processing relation from {} to {}", relation.subset.name, relation.superset.name);
         let pair = (relation.subset.clone(), relation.superset.clone());
         let mut updated_relations: VecDeque<PreviewRelation> = VecDeque::new();
         // todo add progress in history when the collection is more complete
@@ -330,6 +334,9 @@ fn process_relations(sets: &Vec<PreviewSet>,
         let mut improved_relations = 0;
         while let Some(relation) = updated_relations.pop_front() {
             improved_relations += 1;
+            if improved_relations > 10000 {
+                panic!("this seems bad");
+            }
             // apply the new or improved relation
             for set in sets {
                 if *set == relation.subset || *set == relation.superset {
@@ -360,6 +367,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                                 let created_by = CreatedBy::SameThroughEquivalence(cd.handle, source.handle);
                                 let partial_result = partial_results_builder.partial_result(created_by);
                                 let result = Relation::new(&e, &f, cd.cpx.clone(), partial_result.handle);
+                                trace!("equivalence");
                                 add_and_update(&mut res, (e, f), result, &mut updated_relations);
                             }
                         },
@@ -375,6 +383,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                     let Some(bc) = res.get(&(b.clone(), c.clone())) else { continue };
                     let ac = (a.clone(), c.clone());
                     let result = ab.combine_serial(bc, &mut partial_results_builder);
+                    trace!("inclusions {} {} + {} = {}", updated_relations.len(), a.name, b.name, c.name);
                     add_and_update(&mut res, ac, result, &mut updated_relations);
                 }
                 // inclusion ab and exclusion cd implies exclusion ef
@@ -393,6 +402,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                                 source: partial_result.clone()
                             };
                             let result = Relation::new(&e, &f, src, partial_result.handle);
+                            trace!("exclusions");
                             add_and_update(&mut res, (e, f), result, &mut updated_relations);
                         },
                         _ => continue,
@@ -404,6 +414,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                 let new_relations = apply_transfers(transfers, &ab, &mut partial_results_builder);
                 for result in new_relations {
                     let key = (result.subset.clone(), result.superset.clone());
+                    trace!("transfer");
                     add_and_update(&mut res, key, result, &mut updated_relations);
                 }
             }
@@ -429,6 +440,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                     }
                     if !okay { continue }
                     if let Some(result) = opt_result {
+                        trace!("sum");
                         add_and_update(&mut res, (result.subset.clone(), result.superset.clone()), result, &mut updated_relations);
                     }
                 }
@@ -550,10 +562,10 @@ pub fn process_raw_data(rawdata: &RawData, bibliography: &Option<Bibliography>) 
     for rel in &mut relations {
         rel.essential = essential_relations_set.contains(&rel.preview);
     }
-    let simpleindex = SimpleIndex::new(&relations);
+    let simple_index = SimpleIndex::new(&relations);
     let mut sets = vec![];
     for set in &rawdata.sets {
-        sets.push(process_set(set, &simpleindex, &rawdata, &source_keys));
+        sets.push(process_set(set, &simple_index, &rawdata, &source_keys));
     }
     Data::new(sets, relations, sources, providers, tags, partial_results)
 }

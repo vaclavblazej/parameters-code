@@ -12,7 +12,9 @@ use anyhow::Result;
 use biblatex::Bibliography;
 use data::data::Linkable;
 use general::cache::Cache;
+use general::logger;
 use general::progress::ProgressDisplay;
+use log::{error, warn, info, debug, trace};
 use processing::bibliography::load_bibliography;
 use rayon::prelude::*;
 use data::data::Data;
@@ -30,7 +32,7 @@ use crate::output::markdown::Markdown;
 use crate::output::pages;
 use crate::output::pages::TargetPage;
 use crate::output::pages::add_content;
-use crate::data::simpleindex::SimpleIndex;
+use crate::data::simple_index::SimpleIndex;
 use crate::output::table::render_table;
 use crate::processing::processing::process_raw_data;
 use crate::general::file;
@@ -38,13 +40,14 @@ use crate::general::file;
 mod data {
     pub mod data;
     pub mod preview;
-    pub mod simpleindex;
+    pub mod simple_index;
 }
 mod general {
     pub mod cache;
     pub mod enums;
     pub mod file;
     pub mod hide;
+    pub mod logger;
     pub mod progress;
 }
 mod processing {
@@ -83,7 +86,7 @@ fn build_page(page: &TargetPage,
               map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
     let content = match page.substitute {
         Some(substitute) => {
-            // println!("generating {:?}", page.target);
+            // info!("generating {:?}", page.target);
             substitute.object.get_page(&markdown, &final_dir, &working_dir)
         },
         None => "[[handcrafted]]".into(),
@@ -158,21 +161,22 @@ impl Timer {
     }
 
     pub fn print(&self, message: &str) {
-        println!("{:?} {}", self.instant.elapsed(), message);
+        info!("{:?} {}", self.instant.elapsed(), message);
     }
 }
 
 #[derive(Hash, PartialEq, Eq)]
-enum ComputationPhases {
+enum Args {
     PREPROCESS,
     DOTS,
     PAGES,
     TABLE,
     MOCK,
+    TRACE,
 }
 
 struct Computation {
-    args: HashSet<ComputationPhases>,
+    args: HashSet<Args>,
     time: Timer,
     parent: PathBuf,
     handcrafted_dir: PathBuf,
@@ -195,20 +199,22 @@ impl Computation {
         for (i, arg) in rawargs.iter().enumerate() {
             if i == 0 { continue; }
             match arg.as_str() {
-                "preprocess" => {args.insert(ComputationPhases::PREPROCESS);},
-                "dots" => {args.insert(ComputationPhases::DOTS);},
-                "pages" => {args.insert(ComputationPhases::PAGES);},
-                "table" => {args.insert(ComputationPhases::TABLE);},
-                "mock" => {args.insert(ComputationPhases::MOCK);},
+                "preprocess" => {args.insert(Args::PREPROCESS);},
+                "dots" => {args.insert(Args::DOTS);},
+                "pages" => {args.insert(Args::PAGES);},
+                "table" => {args.insert(Args::TABLE);},
+                "mock" => {args.insert(Args::MOCK);},
+                "trace" => {args.insert(Args::TRACE);},
                 "all" => {
-                    args.insert(ComputationPhases::PREPROCESS);
-                    args.insert(ComputationPhases::DOTS);
-                    args.insert(ComputationPhases::PAGES);
-                    args.insert(ComputationPhases::TABLE);
+                    args.insert(Args::PREPROCESS);
+                    args.insert(Args::DOTS);
+                    args.insert(Args::PAGES);
+                    args.insert(Args::TABLE);
                 },
                 other => panic!("unknown parameter: '{}'", other),
             }
         }
+        logger::init(if args.contains(&Args::TRACE){ log::LevelFilter::Trace } else { log::LevelFilter::Info });
         let current = env::current_dir().unwrap();
         let parent = current.parent().unwrap();
         let handcrafted_dir = parent.join("handcrafted");
@@ -242,12 +248,12 @@ impl Computation {
     }
 
     fn retrieve_and_process_data(&mut self) {
-        let mock = self.args.contains(&ComputationPhases::MOCK);
+        let mock = self.args.contains(&Args::MOCK);
         self.bibliography = load_bibliography(&self.bibliography_file);
         let cch: Cache<Data> = Cache::new(&self.tmp_dir.join("data.json"));
-        if !mock && !self.args.contains(&ComputationPhases::PREPROCESS) {
+        if !mock && !self.args.contains(&Args::PREPROCESS) {
             if let Some(mut res) = cch.load(){
-                println!("deserialized data");
+                info!("deserialized data");
                 res.recompute();
                 self.some_data = Some(res);
                 return;
@@ -263,14 +269,14 @@ impl Computation {
         if !mock {
             match cch.save(&res){
                 Ok(()) => {},
-                Err(err) => println!("{:?}", err),
+                Err(err) => info!("{:?}", err),
             }
         }
         self.some_data = Some(res);
     }
 
     fn make_dots(&self) {
-        if !self.args.contains(&ComputationPhases::DOTS) {
+        if !self.args.contains(&Args::DOTS) {
             return;
         }
         let data = self.get_data();
@@ -292,14 +298,14 @@ impl Computation {
         ] {
             if let Ok(done_dot) = make_drawing(&data, &self.working_dir, name, set, None){
                 let final_dot = self.html_dir.join(format!("{}.dot", name));
-                println!("copy dot to {:?}", &final_dot);
+                info!("copy dot to {:?}", &final_dot);
                 fs::copy(&done_dot, &final_dot);
             }
         }
     }
 
     fn make_pages(&self) {
-        if !self.args.contains(&ComputationPhases::PAGES) {
+        if !self.args.contains(&Args::PAGES) {
             return;
         }
         let data = self.get_data();
@@ -331,9 +337,9 @@ impl Computation {
             if source.is_file() {
                 handcrafted_pages.insert(target_file.clone(), source.clone());
             } else if source.is_dir() {
-                println!("directory {:?}", target_file);
+                info!("directory {:?}", target_file);
             } else {
-                println!("unprocessable file {:?}", target_file);
+                info!("unprocessable file {:?}", target_file);
             }
         }
         self.time.print("merging generated and handcrafted pages");
@@ -350,14 +356,14 @@ impl Computation {
         let mut map: HashMap<&str, Mappable> = HashMap::new();
         // todo
         map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
-        // println!("clearing the final directory");
+        // info!("clearing the final directory");
         // fs::remove_dir_all(&self.final_dir);
         // fs::create_dir(&self.final_dir);
         generate_pages(&pages, &markdown, &self.final_dir, &self.working_dir, &map); // takes long
     }
 
     fn make_relation_table(&self) {
-        if !self.args.contains(&ComputationPhases::TABLE) {
+        if !self.args.contains(&Args::TABLE) {
             return;
         }
         let data = self.get_data();
@@ -380,7 +386,7 @@ impl Computation {
         ] {
             if let Ok(done_pdf) = generate_relation_table(&data, set, &self.parent) { // todo generalize
                 let final_pdf = self.final_dir.join("html").join(format!("{}.pdf", name));
-                println!("copy the pdf to {:?}", &final_pdf);
+                info!("copy the pdf to {:?}", &final_pdf);
                 fs::copy(&done_pdf, &final_pdf);
             }
         }

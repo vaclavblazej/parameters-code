@@ -3,7 +3,7 @@ use crate::general::enums::{CpxInfo, CpxTime::{self, *}};
 
 impl CpxTime {
 
-    pub fn is_better_than(&self, other: &Self) -> bool {
+    pub fn is_smaller_than(&self, other: &Self) -> bool {
         // todo define this linear order implicitly
         match (self, other) {
             (Constant, Linear | Polynomial | Exponential | Tower | Exists)

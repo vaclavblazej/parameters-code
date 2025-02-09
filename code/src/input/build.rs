@@ -2,6 +2,8 @@
 
 use std::collections::{HashMap, HashSet};
 
+use log::error;
+
 use crate::general::enums::{Page, TransferGroup, CpxTime::{Linear, Constant}, Cpx::UpperBound};
 use super::{raw::{Composition, RawData, RawProvider, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource, RawSourceKey, RawTag, RawType}, set::SetBuilder};
 use super::source::{RawDataSource, RawDataProvider};
@@ -59,7 +61,7 @@ impl Builder {
             panic!("id {} used multiple times", set.id);
         }
         if self.name_sanity_map.contains(&set.name) {
-            println!("name {} used multiple times", set.name);
+            error!("name {} used multiple times", set.name);
         }
         self.data.sets.push(set.clone());
         if set.id != "" { // todo get rid of this exception; maybe recommend what ID could be used

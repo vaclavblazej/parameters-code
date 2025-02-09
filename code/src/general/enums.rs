@@ -144,6 +144,57 @@ impl CpxInfo {
 
 }
 
+impl SourcedCpxInfo {
+
+    fn num(&self) -> u32 {
+        match self {
+            Self::Equal { .. } => 0,
+            Self::Inclusion { .. } => 1,
+            Self::UpperBound { .. } => 2,
+            Self::LowerBound { .. } => 3,
+            Self::Exclusion { .. } => 4,
+            Self::Unknown => 5,
+        }
+    }
+
+    pub fn is_better_than(&self, other: &SourcedCpxInfo) -> bool {
+        let (a, b) = if self.num() < other.num() {
+            (self, other)
+        } else {
+            (other, self)
+        };
+        match (a, b) {
+            (Self::Equal { .. }, Self::Equal { .. }) => false,
+            (Self::Equal { .. }, Self::Inclusion { .. }) => true,
+            (Self::Equal { .. }, Self::UpperBound { .. }) => true,
+            (Self::Equal { .. }, Self::LowerBound { .. }) => true,
+            (Self::Equal { .. }, Self::Exclusion { .. }) => panic!("impossible {:?} {:?}", a, b),
+            (Self::Equal { .. }, Self::Unknown) => true,
+            (Self::Inclusion { mn: (mna, _), mx: (mxa, _) }, Self::Inclusion { mn: (mnb, _), mx: (mxb, _) }) => {
+                   mna == mnb && mxa.is_smaller_than(mxb)
+                || mxa == mxb && mnb.is_smaller_than(mna)
+                || mnb.is_smaller_than(mna) && mxa.is_smaller_than(mxb)
+            },
+            (Self::Inclusion { mn, mx: (mxa, _) }, Self::UpperBound { mx: (mxb, _) }) => !mxb.is_smaller_than(mxa),
+            (Self::Inclusion { mn: (mna, _), mx }, Self::LowerBound { mn: (mnb, _) }) => !mna.is_smaller_than(mnb),
+            (Self::Inclusion { mn, mx }, Self::Exclusion { .. }) => panic!("impossible {:?} {:?}", a, b),
+            (Self::Inclusion { mn, mx }, Self::Unknown) => true,
+            (Self::UpperBound { mx: (mxa, _) }, Self::UpperBound { mx: (mxb, _) }) => mxa.is_smaller_than(mxb),
+            (Self::UpperBound { mx }, Self::LowerBound { mn }) => false,
+            (Self::UpperBound { mx }, Self::Exclusion { .. }) => panic!("impossible {:?} {:?}", a, b),
+            (Self::UpperBound { mx }, Self::Unknown) => true,
+            (Self::LowerBound { mn: (mna, _) }, Self::LowerBound { mn: (mnb, _) }) => mnb.is_smaller_than(mna),
+            (Self::LowerBound { mn }, Self::Exclusion { .. }) => panic!("impossible {:?} {:?}", a, b),
+            (Self::LowerBound { mn }, Self::Unknown) => true,
+            (Self::Exclusion { .. }, Self::Exclusion { .. }) => false,
+            (Self::Exclusion { .. }, Self::Unknown) => true,
+            (Self::Unknown, Self::Unknown) => false,
+            _ => { panic!("impossible case which should have been handled by comparing and swapping before the comparison"); }
+        }
+    }
+
+}
+
 impl Into<CpxInfo> for SourcedCpxInfo {
     fn into(self) -> CpxInfo {
         match self {
@@ -156,5 +207,3 @@ impl Into<CpxInfo> for SourcedCpxInfo {
         }
     }
 }
-
-

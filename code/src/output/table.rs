@@ -4,6 +4,8 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::Command;
 
+use log::error;
+
 use crate::data::data::{Data, Set};
 use crate::data::preview::{PreviewType, PreviewSet};
 use crate::general::enums::{CpxTime, CpxInfo::*};
@@ -119,7 +121,7 @@ pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &Pat
     std::env::set_current_dir(table_folder);
     let output = Command::new("pdflatex").arg("main.tex").output()?;
     if !output.status.success() {
-        eprintln!("Error executing pdflatex command: {:?}", output.stderr);
+        error!("Error executing pdflatex command: {:?}", output.stderr);
     }
 
     Ok(table_folder.join("main.pdf"))

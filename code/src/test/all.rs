@@ -5,7 +5,7 @@ mod tests {
 
     use crate::data::data::Relation;
     use crate::general::enums::CpxInfo;
-    use crate::general::enums::{Cpx::{self, *}, CpxInfo::*, CpxTime::*, Page::*};
+    use crate::general::enums::{SourcedCpxInfo::{self, *}, CpxInfo::*, CpxTime::*, Page::*};
     use crate::input::{raw::RawData, build::Builder};
     use crate::processing::processing::process_raw_data;
 

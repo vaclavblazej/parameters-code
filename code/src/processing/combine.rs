@@ -1,6 +1,7 @@
 use core::fmt;
 
 use crate::{data::{data::{PartialResult, PartialResultsBuilder, Relation}, preview::PreviewSet}, general::enums::{CpxInfo, CpxTime, CreatedBy, SourcedCpxInfo}};
+use log::error;
 use SourcedCpxInfo::*;
 
 
@@ -129,7 +130,7 @@ impl Relation {
             (UpperBound {  mx: (mxa, sxa) }, Inclusion { mn: (mnb, snb), mx: (mxb, sxb) })
                 | (Inclusion { mn: (mnb, snb), mx: (mxb, sxb) }, UpperBound {  mx: (mxa, sxa) })
                 => Ok(Inclusion {
-                    mn: (mxb.clone(), sxb.clone()),
+                    mn: (mnb.clone(), snb.clone()),
                     mx: combine_parallel_min((mxa, sxa), (mxb, sxb)),
                 }),
             (Inclusion { mn: (mna, sna), mx: (mxa, sxa) }, Inclusion { mn: (mnb, snb), mx: (mxb, sxb) })
@@ -165,7 +166,7 @@ impl Relation {
         };
         match res {
             Ok(res) => {
-                if original != res {
+                if res.is_better_than(&original) {
                     self.preview.cpx = res.clone().into();
                     self.cpx = res;
                     true
@@ -174,7 +175,7 @@ impl Relation {
                 }
             },
             Err(err) => {
-                eprintln!("{}\n{:?}\n{:?}", err, self.preview, other.preview);
+                error!("{}\n{:?}\n{:?}", err, self.preview, other.preview);
                 false
             }
         }

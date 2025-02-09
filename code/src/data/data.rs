@@ -4,6 +4,7 @@
 use std::fmt;
 use std::collections::HashMap;
 
+use log::trace;
 use serde::{Serialize, Deserialize};
 
 use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTag};
@@ -58,8 +59,6 @@ impl fmt::Display for Date {
         if let Some(d) = self.day {
             result.push('/');
             result.push_str(&format!("{:0>2}", d.to_string()));
-        // } else {
-            // return write!(f, "{}", result);
         }
         write!(f, "{}", result)
     }
@@ -158,6 +157,7 @@ pub struct Data {
 }
 
 pub fn compute_set_idx(sets: &Vec<Set>) -> HashMap<PreviewSet, usize> {
+    trace!("computing set indices");
     let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
     for (idx, set) in sets.iter().enumerate() {
         set_idx.insert(set.preview.clone(), idx);
@@ -166,6 +166,7 @@ pub fn compute_set_idx(sets: &Vec<Set>) -> HashMap<PreviewSet, usize> {
 }
 
 pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, PreviewSet), usize> {
+    trace!("computing relation indices");
     let mut relation_idx: HashMap<(PreviewSet, PreviewSet), usize> = HashMap::new();
     for (idx, relation) in relations.iter().enumerate() {
         let pair = (relation.subset.clone(), relation.superset.clone());
@@ -177,6 +178,7 @@ pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, P
 
 impl Data {
     pub fn new(mut sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, tags: Vec<Tag>, partial_results: Vec<PartialResult>) -> Self {
+        trace!("new data");
         sets.sort_by_key(|x|x.name.to_lowercase().clone());
         let set_idx = compute_set_idx(&sets);
         let relation_idx = compute_relation_idx(&relations);
@@ -203,18 +205,18 @@ impl Data {
     }
 
     pub fn get_set(&self, key: &PreviewSet) -> &Set {
+        trace!("get set {} {}", key.id, key.name);
         let idx: usize = *self.set_idx.get(&key).expect(&format!("preview set not found {:?}", key));
         &self.sets[idx]
     }
 
     pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> Option<&Relation> {
+        trace!("get relation from {} {} to {} {}", subset.id, subset.name, superset.id, superset.name);
         let key = (subset.clone(), superset.clone());
         match self.relation_idx.get(&key) {
             Some(&idx) => Some(&self.relations[idx]),
             None => None,
         }
-        // let idx: usize = *self.relation_idx.get(&key).expect(&format!("relation not found {:?}", key));
-        // Some(&self.relations[idx])
     }
 }
 

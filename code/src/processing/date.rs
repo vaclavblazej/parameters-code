@@ -3,6 +3,7 @@
 
 use biblatex::{Chunks, DateValue, Datetime, Entry, PermissiveType};
 use chrono::NaiveDate;
+use log::error;
 
 use crate::data::data::Date;
 
@@ -12,7 +13,7 @@ impl Into<Date> for &Entry {
             Ok(permissive_date) => {
                 match permissive_date {
                     PermissiveType::Chunks(chunks) => {
-                        eprintln!("unimplemented {:?}", chunks);
+                        error!("unimplemented {:?}", chunks);
                     },
                     PermissiveType::Typed(date) => {
                         match date.value{
@@ -29,7 +30,7 @@ impl Into<Date> for &Entry {
                                 return Date { year, month, day, };
                             },
                             _ => {
-                                eprintln!("unimplemented date format");
+                                error!("unimplemented date format");
                             },
                         }
                     },

@@ -1,5 +1,7 @@
 use std::io::{self, Write};
 
+use log::info;
+
 
 pub fn bar(value: u32, maxval: u32) -> String {
     let mind_value = value.min(maxval);
@@ -40,7 +42,7 @@ impl ProgressDisplay {
 
     pub fn done(self) {
         println!();
-        println!("{} done ({})", self.name, self.value);
+        info!("{} done ({})", self.name, self.value);
     }
 
 }

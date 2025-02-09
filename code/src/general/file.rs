@@ -3,6 +3,7 @@
 use std::{path::PathBuf, fs::{File, self}, io::{Read, Write}};
 
 use anyhow::Result;
+use log::error;
 
 pub fn iterate_folder_recursively(path: &PathBuf) -> Vec<PathBuf> {
     let mut res = vec![];
@@ -21,13 +22,13 @@ pub fn iterate_folder_recursively(path: &PathBuf) -> Vec<PathBuf> {
                         }
                     }
                     Err(err) => {
-                        eprintln!("Error iterating directory entry: {}", err);
+                        error!("Error iterating directory entry: {}", err);
                     }
                 }
             }
         }
         Err(err) => {
-            eprintln!("Error reading directory: {}", err);
+            error!("Error reading directory: {}", err);
         }
     }
     res

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::marker::PhantomData;
 
 use anyhow::Result;
+use log::{debug, error};
 use serde::{Serialize, de::DeserializeOwned};
 
 use crate::general::file;
@@ -24,9 +25,9 @@ impl<T> Cache<T> {
         T: Serialize,
     {
         let serialized = serde_json::to_string_pretty(object)?;
-        println!("writing content");
+        debug!("writing content");
         file::write_file_content(&self.file, serialized.as_str())?;
-        println!("done content");
+        debug!("done content");
         Ok(())
     }
 
@@ -40,12 +41,12 @@ impl<T> Cache<T> {
         let serialized = match file::read_file_content(&self.file) {
             Ok(res) => res,
             Err(err) => {
-                println!("{:?}", err);
+                error!("{:?}", err);
                 return None
             },
         };
         serde_json::from_str(&serialized).unwrap_or_else(|err|{
-            println!("{:?}", err);
+            error!("{:?}", err);
             return None;
         })
     }

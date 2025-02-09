@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use biblatex::Bibliography;
+use log::error;
 use regex::Regex;
 
 use crate::data::data::{Data, Linkable, ProviderLink, Relation, Set, Showed, ShowedFact, Source, Tag};
@@ -149,7 +150,7 @@ impl GeneratedPage for Set {
                 format!("[[dot ../{}]]", filename)
             },
             Err(e) => {
-                eprintln!("{:?}", e);
+                error!("{:?}", e);
                 format!("{:?}", e)
             },
         };
@@ -164,7 +165,7 @@ impl GeneratedPage for Set {
                     format!("[[dot ../{}]]", filename)
                 },
                 Err(e) => {
-                    eprintln!("{:?}", e);
+                    error!("{:?}", e);
                     format!("{:?}", e)
                 },
             };
@@ -247,7 +248,7 @@ impl GeneratedPage for Source {
                         // todo print the original (unformatted) biblatex citation
                         res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
                     } else {
-                        eprintln!("unable to load {} from main.bib", key);
+                        error!("unable to load {} from main.bib", key);
                         res += &format!("an error occured while loading the bibtex entry for `{}`", key);
                     }
                 }
@@ -400,13 +401,13 @@ impl<'a> Markdown<'a> {
                     match self.process_key(&key.into(), map) {
                         Ok(res) => res,
                         Err(error) => {
-                            println!("  {}", error.to_string());
+                            error!("  {}", error.to_string());
                             "<< substitution error >>".into()
                         }
                     }
                 },
                 None => {
-                    println!("  error substituting");
+                    error!("substitution error");
                     "<< substitution error >>".into()
                 },
             }
@@ -582,8 +583,7 @@ impl<'a> Markdown<'a> {
         final_markdown += &content;
         let filename = format!("./build/{}", pagename);
         let mut file = fs::File::create(&filename).expect("Unable to create file");
-        file.write_all(final_markdown.as_bytes())
-            .expect("Unable to write data to file");
+        file.write_all(final_markdown.as_bytes()).expect("Unable to write data to file");
         // println!("Saved website into {}", filename);
         // builder.make_page("_index.md", builder.landing_page_keys(&data));
         // for entry in &data.parameters {
