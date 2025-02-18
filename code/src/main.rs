@@ -81,13 +81,12 @@ mod collection;
 
 fn build_page(page: &TargetPage,
               markdown: &Markdown,
-              final_dir: &PathBuf,
-              working_dir: &PathBuf,
+              paths: &Paths,
               map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
     let content = match page.substitute {
         Some(substitute) => {
             // info!("generating {:?}", page.target);
-            substitute.object.get_page(&markdown, &final_dir, &working_dir)
+            substitute.object.get_page(&markdown, paths)
         },
         None => "[[handcrafted]]".into(),
     };
@@ -117,14 +116,13 @@ fn build_page(page: &TargetPage,
 
 fn generate_pages(pages: &Vec<TargetPage>,
                   markdown: &Markdown,
-                  final_dir: &PathBuf,
-                  working_dir: &PathBuf,
+                  paths: &Paths,
                   map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
     let mut progress = ProgressDisplay::new("generating pages", pages.len() as u32);
-    // todo par_iter ?
+    // todo - maybe use par_iter for iterating parallely to speed up the computation?
     let res: Result<Vec<()>> = pages.iter().map(|page| -> anyhow::Result<()>{
         progress.increase(1);
-        build_page(page, markdown, final_dir, working_dir, map)
+        build_page(page, markdown, paths, map)
     }).collect();
     progress.done();
     Ok(())
@@ -145,10 +143,11 @@ fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappabl
     altered_content
 }
 
-fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>,  parent: &Path) -> anyhow::Result<PathBuf> {
-    let table_folder = parent.join("scripts").join("table_tikz");
-    let table_file = render_table(&data, draw_sets, &table_folder).unwrap();
-    Ok(table_file)
+fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>, paths: &Paths, name: &str) {
+    let done_pdf = render_table(&data, draw_sets, &paths.table_tikz_folder).unwrap();
+    let final_pdf = paths.html_dir.join(format!("{}.pdf", name));
+    info!("copy the pdf to {:?}", &final_pdf);
+    fs::copy(&done_pdf, &final_pdf);
 }
 
 struct Timer {
@@ -170,7 +169,9 @@ enum Args {
     PREPROCESS,
     DOTS,
     PAGES,
+    RELATIONS,
     TABLE,
+    CLEAR,
     MOCK,
     TRACE,
 }
@@ -178,17 +179,23 @@ enum Args {
 struct Computation {
     args: HashSet<Args>,
     time: Timer,
-    parent: PathBuf,
-    handcrafted_dir: PathBuf,
-    bibliography_file: PathBuf,
+    paths: Paths,
     bibliography: Option<Bibliography>,
-    final_dir: PathBuf,
-    working_dir: PathBuf,
-    html_dir: PathBuf,
-    tmp_dir: PathBuf,
     hide_irrelevant_parameters_below: u32,
     simplified_hide_irrelevant_parameters_below: u32,
     some_data: Option<Data>,
+}
+
+struct Paths {
+    parent: PathBuf,
+    table_tikz_folder: PathBuf,
+    handcrafted_dir: PathBuf,
+    bibliography_file: PathBuf,
+    final_dir: PathBuf,
+    hugo_public_dir: PathBuf,
+    working_dir: PathBuf,
+    html_dir: PathBuf,
+    tmp_dir: PathBuf,
 }
 
 impl Computation {
@@ -202,13 +209,23 @@ impl Computation {
                 "preprocess" => {args.insert(Args::PREPROCESS);},
                 "dots" => {args.insert(Args::DOTS);},
                 "pages" => {args.insert(Args::PAGES);},
+                "relations" => {args.insert(Args::RELATIONS);},
                 "table" => {args.insert(Args::TABLE);},
+                "clear" => {args.insert(Args::CLEAR);},
                 "mock" => {args.insert(Args::MOCK);},
                 "trace" => {args.insert(Args::TRACE);},
-                "all" => {
+                "fast" => {
+                    args.insert(Args::CLEAR);
                     args.insert(Args::PREPROCESS);
                     args.insert(Args::DOTS);
                     args.insert(Args::PAGES);
+                },
+                "all" => {
+                    args.insert(Args::CLEAR);
+                    args.insert(Args::PREPROCESS);
+                    args.insert(Args::DOTS);
+                    args.insert(Args::PAGES);
+                    args.insert(Args::RELATIONS);
                     args.insert(Args::TABLE);
                 },
                 other => panic!("unknown parameter: '{}'", other),
@@ -217,23 +234,29 @@ impl Computation {
         logger::init(if args.contains(&Args::TRACE){ log::LevelFilter::Trace } else { log::LevelFilter::Info });
         let current = env::current_dir().unwrap();
         let parent = current.parent().unwrap();
+        let table_tikz_folder = parent.join("scripts").join("table_tikz");
         let handcrafted_dir = parent.join("handcrafted");
         let bibliography_file = handcrafted_dir.join("main.bib");
         let final_dir = parent.join("web").join("content");
+        let hugo_public_dir = parent.join("web").join("public");
         let working_dir = current.join("target");
         let html_dir = final_dir.join("html");
         let tmp_dir = current.join("tmp");
         Self {
             args,
             time: Timer::new(),
-            parent: parent.to_path_buf(),
-            handcrafted_dir,
-            bibliography_file,
+            paths: Paths{
+                parent: parent.to_path_buf(),
+                table_tikz_folder,
+                handcrafted_dir,
+                bibliography_file,
+                final_dir,
+                hugo_public_dir,
+                working_dir,
+                html_dir,
+                tmp_dir,
+            },
             bibliography: None,
-            final_dir,
-            working_dir,
-            html_dir,
-            tmp_dir,
             hide_irrelevant_parameters_below: 1,
             simplified_hide_irrelevant_parameters_below: 5,
             some_data: None,
@@ -247,10 +270,21 @@ impl Computation {
         }
     }
 
+    fn clear(&mut self) {
+        if self.args.contains(&Args::CLEAR){
+            info!("clearing the final directory");
+            info!("removing folder of {}", self.paths.final_dir.to_str().unwrap());
+            fs::remove_dir_all(&self.paths.final_dir);
+            fs::create_dir(&self.paths.final_dir);
+            info!("removing folder of {}", self.paths.hugo_public_dir.to_str().unwrap());
+            fs::remove_dir_all(&self.paths.hugo_public_dir);
+        }
+    }
+
     fn retrieve_and_process_data(&mut self) {
         let mock = self.args.contains(&Args::MOCK);
-        self.bibliography = load_bibliography(&self.bibliography_file);
-        let cch: Cache<Data> = Cache::new(&self.tmp_dir.join("data.json"));
+        self.bibliography = load_bibliography(&self.paths.bibliography_file);
+        let cch: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
         if !mock && !self.args.contains(&Args::PREPROCESS) {
             if let Some(mut res) = cch.load(){
                 info!("deserialized data");
@@ -296,8 +330,8 @@ impl Computation {
             ("graphs", &graphs),
             ("parameters_simplified", &simplified_parameters),
         ] {
-            if let Ok(done_dot) = make_drawing(&data, &self.working_dir, name, set, None){
-                let final_dot = self.html_dir.join(format!("{}.dot", name));
+            if let Ok(done_dot) = make_drawing(&data, &self.paths.working_dir, name, set, None){
+                let final_dot = self.paths.html_dir.join(format!("{}.dot", name));
                 info!("copy dot to {:?}", &final_dot);
                 fs::copy(&done_dot, &final_dot);
             }
@@ -311,29 +345,30 @@ impl Computation {
         let data = self.get_data();
         self.time.print("fetching generated pages");
         let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new();
+        let mut generated_pages = HashMap::new();
+        add_content(&data.sets, &self.paths.final_dir, &mut generated_pages);
         for set in &data.sets {
             linkable.insert(set.id.clone(), Box::new(set.preview.clone()));
         }
-        // for rel in &data.relations {
-            // linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
-        // }
+        if self.args.contains(&Args::RELATIONS) {
+            add_content(&data.relations, &self.paths.final_dir, &mut generated_pages);
+            for rel in &data.relations {
+                linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
+            }
+        }
+        add_content(&data.sources, &self.paths.final_dir, &mut generated_pages);
         for source in &data.sources {
             linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
         }
+        add_content(&data.tags, &self.paths.final_dir, &mut generated_pages);
         for tag in &data.tags {
             linkable.insert(tag.id.clone(), Box::new(tag.preview.clone()));
         }
-        let markdown = Markdown::new(&data, linkable, &self.bibliography);
-        let mut generated_pages = HashMap::new();
-        add_content(&data.sets, &self.final_dir, &mut generated_pages);
-        // add_content(&data.relations, &self.final_dir, &mut generated_pages);
-        add_content(&data.sources, &self.final_dir, &mut generated_pages);
-        add_content(&data.tags, &self.final_dir, &mut generated_pages);
         self.time.print("fetching handcrafted pages");
         let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
-        for source in file::iterate_folder_recursively(&self.handcrafted_dir) {
-            let relative = source.strip_prefix(&self.handcrafted_dir).unwrap();
-            let target_file = self.final_dir.join(relative);
+        for source in file::iterate_folder_recursively(&self.paths.handcrafted_dir) {
+            let relative = source.strip_prefix(&self.paths.handcrafted_dir).unwrap();
+            let target_file = self.paths.final_dir.join(relative);
             if source.is_file() {
                 handcrafted_pages.insert(target_file.clone(), source.clone());
             } else if source.is_dir() {
@@ -354,12 +389,10 @@ impl Computation {
         }
         self.time.print("building general substitution map");
         let mut map: HashMap<&str, Mappable> = HashMap::new();
-        // todo
-        map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
-        // info!("clearing the final directory");
-        // fs::remove_dir_all(&self.final_dir);
-        // fs::create_dir(&self.final_dir);
-        generate_pages(&pages, &markdown, &self.final_dir, &self.working_dir, &map); // takes long
+        // todo add custom entries to the hash map for [[key]] notation in the handcrafted pages
+        // map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
+        let markdown = Markdown::new(&data, linkable, &self.bibliography);
+        generate_pages(&pages, &markdown, &self.paths, &map); // takes long
     }
 
     fn make_relation_table(&self) {
@@ -372,23 +405,17 @@ impl Computation {
             .map(|x|x.preview.clone())
             .filter(|x|x.typ==PreviewType::Parameter)
             .filter(|x|x.relevance >= self.hide_irrelevant_parameters_below)
-            .filter(|x|!x.hidden)
             .collect();
         let simplified_table_sets: Vec<PreviewSet> = data.sets.iter()
             .map(|x|x.preview.clone())
             .filter(|x|x.typ==PreviewType::Parameter)
             .filter(|x|x.relevance >= self.simplified_hide_irrelevant_parameters_below)
-            .filter(|x|!x.hidden)
             .collect();
         for (name, set) in [
             ("table", &table_sets),
             ("table_simplified", &simplified_table_sets),
         ] {
-            if let Ok(done_pdf) = generate_relation_table(&data, set, &self.parent) { // todo generalize
-                let final_pdf = self.final_dir.join("html").join(format!("{}.pdf", name));
-                info!("copy the pdf to {:?}", &final_pdf);
-                fs::copy(&done_pdf, &final_pdf);
-            }
+            generate_relation_table(&data, set, &self.paths, name);
         }
     }
 
@@ -396,6 +423,7 @@ impl Computation {
 
 fn main() {
     let mut computation = Computation::new();
+    computation.clear();
     computation.retrieve_and_process_data();
     computation.make_dots();
     computation.make_pages();

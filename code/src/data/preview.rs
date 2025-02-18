@@ -43,7 +43,6 @@ pub struct PreviewSet {
     pub name: String,
     pub typ: PreviewType,
     pub relevance: u32,
-    pub hidden: bool,
 }
 
 impl PreviewSet {
@@ -53,8 +52,11 @@ impl PreviewSet {
             name: "".into(),
             typ: PreviewType::Parameter,
             relevance: 0,
-            hidden: false,
         }
+    }
+
+    pub fn is_more_relevant_than(&self, other: &PreviewSet) -> bool {
+        (self.relevance == other.relevance && self.id < other.id) || self.relevance > other.relevance
     }
 }
 

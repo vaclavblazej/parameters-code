@@ -2,9 +2,10 @@
 use std::collections::HashMap;
 
 use biblatex::Entry;
+use log::error;
 
 use crate::data::data::{Date, PartialResultsBuilder, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, Tag};
-use crate::general::enums::{CreatedBy, SourceKey, SourcedCpxInfo};
+use crate::general::enums::{CreatedBy, Drawing, RawDrawing, SourceKey, SourcedCpxInfo};
 use crate::input::raw::*;
 use crate::data::preview::*;
 
@@ -54,7 +55,6 @@ impl Into<PreviewSet> for RawSet {
             name: self.name,
             typ: self.typ.into(),
             relevance: self.relevance,
-            hidden: self.hidden,
         }
     }
 }
@@ -110,6 +110,28 @@ impl Into<PreviewRelation> for RawRelation {
             subset: preview_subset,
             superset: preview_superset,
             cpx: self.cpx,
+        }
+    }
+}
+
+fn str_to_preview_set(list: Vec<String>, preview_set_map: &HashMap<String, PreviewSet>) -> Vec<PreviewSet> {
+    let mut res = vec![];
+    for el in list {
+        match preview_set_map.get(&el) {
+            Some(x) => res.push(x.clone()),
+            None => {
+                error!("didn't find set with id {}", el);
+            },
+        }
+    }
+    res
+}
+
+impl RawDrawing {
+    pub fn preprocess(&self, preview_set_map: &HashMap<String, PreviewSet>) -> Drawing {
+        match self {
+            RawDrawing::Table(q) => Drawing::Table(str_to_preview_set(q.clone(), preview_set_map)),
+            RawDrawing::Hasse(q) => Drawing::Hasse(str_to_preview_set(q.clone(), preview_set_map)),
         }
     }
 }

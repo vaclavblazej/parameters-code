@@ -2,10 +2,10 @@
 
 use std::{collections::{HashMap, HashSet, VecDeque}, path::PathBuf};
 use biblatex::{Bibliography, Chunk, DateValue, Entry, PermissiveType, Person, Spanned};
-use log::{trace, warn};
+use log::{trace, warn, error};
 use serde::{Serialize, Deserialize};
 
-use crate::{data::{data::{Data, Date, Linkable, PartialResult, PartialResultsBuilder, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simple_index::SimpleIndex}, general::{enums::{CreatedBy, SourcedCpxInfo, TransferGroup}, hide::filter_hidden, progress::ProgressDisplay}};
+use crate::{data::{data::{Data, Date, Linkable, PartialResult, PartialResultsBuilder, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simple_index::SimpleIndex}, general::{enums::{CreatedBy, Drawing, RawDrawing, SourcedCpxInfo, TransferGroup}, progress::ProgressDisplay}};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -69,8 +69,8 @@ pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashMap<Pr
 }
 
 /// Given a RawSet create a full Set with all the information.
-pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &HashMap<RawSource, Source>) -> Set {
-    let mut timeline_map: HashMap<RawSource, Vec<RawShowed>> = HashMap::new();
+pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &HashMap<String, Source>) -> Set {
+    let mut timeline_map: HashMap<String, Vec<RawShowed>> = HashMap::new();
     for (raw_source, showed) in &data.factoids {
         let should_save = match &showed.fact {
             RawShowedFact::Relation(relation) if relation.superset.id == set.id || relation.subset.id == set.id => true,
@@ -87,10 +87,10 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
     let mut timeline: Vec<SourceSubset> = timeline_map.into_iter()
         .map(|(raw, showed_vec)| {
             let source = sources.get(&raw).expect(
-                &format!("A raw source {} does not have a processed source. Use create.source() to add new sources.", raw.id)
+                &format!("A raw source {} does not have a processed source. Use create.source() to add new sources.", raw)
                 );
             SourceSubset {
-                preview: raw.preprocess(&source.sourcekey),
+                preview: source.preview.clone(),
                 id: source.id.clone(),
                 sourcekey: source.sourcekey.clone(),
                 showed: showed_vec.into_iter().map(|x|x.preprocess(&source.sourcekey)).collect(),
@@ -146,7 +146,11 @@ pub fn process_set(set: &RawSet, help: &SimpleIndex, data: &RawData, sources: &H
     }
 }
 
-pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Option<Bibliography>) -> Source {
+pub fn process_source(source: &RawSource,
+                      rawdata: &RawData,
+                      bibliography: &Option<Bibliography>,
+                      preview_set_map: &HashMap<String, PreviewSet>,
+                     ) -> Source {
     trace!("processing set {:?}", source.rawsourcekey);
     let mut sourcekey: SourceKey;
     let mut time = Date::empty();
@@ -205,7 +209,12 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
                     None
                 },
             };
-            sourcekey = SourceKey::Bibtex { key: key.clone(), name, entry };
+            sourcekey = SourceKey::Bibtex {
+                key: key.clone(),
+                name,
+                entry,
+                relevance: source.relevance,
+            };
         },
         RawSourceKey::Online { url } => {
             sourcekey = SourceKey::Online { url: url.clone() };
@@ -219,18 +228,18 @@ pub fn process_source(source: &RawSource, rawdata: &RawData, bibliography: &Opti
     }
     let mut showed = vec![];
     for (fact_source, raw_showed) in &rawdata.factoids {
-        if fact_source == source {
+        if fact_source == &source.id {
             showed.push(raw_showed.clone().preprocess(&sourcekey));
         }
     }
-    let mut res = Source {
+    Source {
         preview: source.clone().preprocess(&sourcekey),
         id: source.id.clone(),
         sourcekey,
         showed,
         time,
-    };
-    res
+        drawings: source.drawings.iter().map(|drawing|drawing.preprocess(preview_set_map)).collect(),
+    }
 }
 
 /// Minimal and maximal refer to inclusion-wise extremes. An isolated element
@@ -280,9 +289,11 @@ fn add_and_update(
     ) {
     if let Some(mut x) = relation_map.get_mut(&changed_relation) {
         if x.combine_parallel(&result) {
-            updated_relations.push_back(result.preview.clone());
+            trace!("updated relation (replace) {} {}", x.subset.name, x.superset.name);
+            updated_relations.push_back(x.preview.clone());
         }
     } else {
+        trace!("updated relation (insert) {} {}", result.subset.name, result.superset.name);
         updated_relations.push_back(result.preview.clone());
         relation_map.insert(changed_relation, result);
     }
@@ -290,28 +301,31 @@ fn add_and_update(
 
 fn process_relations(sets: &Vec<PreviewSet>,
                      composed_sets: &Vec<(PreviewSet, Vec<PreviewSet>)>,
-                     factoids: &Vec<(RawSource, RawShowed)>,
+                     factoids: &Vec<(String, RawShowed)>,
                      transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<PreviewSet>>>,
-                     sources: &HashMap<RawSource, Source>,
+                     sources: &HashMap<String, Source>,
                      ) -> (Vec<Relation>, Vec<PartialResult>) {
     trace!("processing relations");
     let mut relations: Vec<Relation> = vec![];
     let mut partial_results_builder = PartialResultsBuilder::new();
-    for (raw_source, showed) in factoids {
+    for (raw_source_id, showed) in factoids {
         match &showed.fact {
             RawShowedFact::Relation(rel) => {
-                let preview_source = sources.get(raw_source).unwrap().preview.clone();
-                let partial_result = partial_results_builder.partial_result(CreatedBy::Directly(preview_source));
-                let handle = partial_result.handle;
-                let sourced_cpx = rel.cpx.clone().to_sourced(partial_result);
-                relations.push(Relation::new(&rel.subset.clone().into(), &rel.superset.clone().into(), sourced_cpx, handle));
+                if let Some(source) = sources.get(raw_source_id) {
+                    let partial_result = partial_results_builder.partial_result(CreatedBy::Directly(source.preview.clone()));
+                    let handle = partial_result.handle;
+                    let sourced_cpx = rel.cpx.clone().to_sourced(partial_result);
+                    relations.push(Relation::new(&rel.subset.clone().into(), &rel.superset.clone().into(), sourced_cpx, handle));
+                } else {
+                    panic!("source not found {:?}", raw_source_id);
+                }
             },
             RawShowedFact::Citation(_) => (),
             RawShowedFact::Definition(_) => (),
         }
     }
     let mut res: HashMap<(PreviewSet, PreviewSet), Relation> = HashMap::new();
-    let mut progress = ProgressDisplay::new("processing", 21138);
+    let mut progress = ProgressDisplay::new("processing", 22956);
     for relation in relations {
         trace!("processing relation from {} to {}", relation.subset.name, relation.superset.name);
         let pair = (relation.subset.clone(), relation.superset.clone());
@@ -334,8 +348,8 @@ fn process_relations(sets: &Vec<PreviewSet>,
         let mut improved_relations = 0;
         while let Some(relation) = updated_relations.pop_front() {
             improved_relations += 1;
-            if improved_relations > 10000 {
-                panic!("this seems bad");
+            if improved_relations >= 5000 {
+                panic!("5k updates during processing probably means a bug");
             }
             // apply the new or improved relation
             for set in sets {
@@ -414,7 +428,7 @@ fn process_relations(sets: &Vec<PreviewSet>,
                 let new_relations = apply_transfers(transfers, &ab, &mut partial_results_builder);
                 for result in new_relations {
                     let key = (result.subset.clone(), result.superset.clone());
-                    trace!("transfer");
+                    trace!("transfer from ({},{}) to ({},{})", relation.subset.name, relation.superset.name, result.subset.name, result.superset.name);
                     add_and_update(&mut res, key, result, &mut updated_relations);
                 }
             }
@@ -472,7 +486,6 @@ impl Relation {
             subset: subset.clone(),
             superset: superset.clone(),
             preview,
-            essential: true,
         }
     }
 
@@ -515,18 +528,16 @@ fn apply_transfers(transfers: &HashMap<TransferGroup, HashMap<PreviewSet, Vec<Pr
 }
 
 pub fn process_raw_data(rawdata: &RawData, bibliography: &Option<Bibliography>) -> Data {
+    let preview_sets: Vec<PreviewSet> = rawdata.sets.iter().map(|x|x.clone().into()).collect();
+    let preview_set_map: HashMap<String, PreviewSet> = preview_sets.iter().map(|x|(x.id.clone(), x.clone())).collect();
     let mut sources = vec![];
-    let mut source_keys: HashMap<RawSource, Source> = HashMap::new();
+    let mut source_keys: HashMap<String, Source> = HashMap::new();
     for rawsource in &rawdata.sources {
-        let source = process_source(&rawsource, &rawdata, &bibliography);
-        source_keys.insert(rawsource.clone(), source.clone());
+        let source = process_source(&rawsource, &rawdata, &bibliography, &preview_set_map);
+        source_keys.insert(rawsource.id.clone(), source.clone());
         sources.push(source);
     }
     sources.reverse();
-    let mut preview_sets: Vec<PreviewSet> = vec![];
-    for set in &rawdata.sets {
-        preview_sets.push(set.clone().into());
-    }
     let mut composed_sets: Vec<(PreviewSet, Vec<PreviewSet>)> = vec![];
     for set in &rawdata.sets {
         if let Composition::Intersection(ref vec) = set.composed {
@@ -556,12 +567,6 @@ pub fn process_raw_data(rawdata: &RawData, bibliography: &Option<Bibliography>) 
         transfers.insert(key.clone(), res);
     }
     let (mut relations, partial_results) = process_relations(&preview_sets, &composed_sets, &rawdata.factoids, &transfers, &source_keys);
-    let preview_relations = relations.iter().map(|x|x.preview.clone()).collect();
-    let essential_relations_vec = filter_hidden(preview_relations, &preview_sets);
-    let essential_relations_set: HashSet<&PreviewRelation> = essential_relations_vec.iter().collect();
-    for rel in &mut relations {
-        rel.essential = essential_relations_set.contains(&rel.preview);
-    }
     let simple_index = SimpleIndex::new(&relations);
     let mut sets = vec![];
     for set in &rawdata.sets {

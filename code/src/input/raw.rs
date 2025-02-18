@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::general::enums::{CpxInfo, Page, TransferGroup};
+use crate::general::enums::{CpxInfo, Drawing, Page, RawDrawing, TransferGroup};
 
 
 /// General identification of all database entities.
@@ -43,7 +43,45 @@ impl RawSourceKey {
 pub struct RawSource {
     pub id: String,
     pub rawsourcekey: RawSourceKey,
+    pub relevance: u32, // from 0 to 9
+    pub drawings: Vec<RawDrawing>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BuiltRawSource {
+    pub id: String,
+    pub rawsourcekey: RawSourceKey,
+    pub relevance: u32, // from 0 to 9
+    pub drawings: Vec<RawDrawing>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub struct BuiltRawSet {
+    pub id: String,
+    pub name: String,
+    pub typ: RawType,
+    pub composed: Composition,
+    pub relevance: u32, // from 0 to 9
+    pub tags: Vec<RawTag>,
+    pub aka: Vec<String>,
+    pub abbr: Option<String>,
+}
+
+impl Into<RawSet> for BuiltRawSet {
+    fn into(self) -> RawSet {
+        RawSet {
+            id: self.id,
+            name: self.name,
+            typ: self.typ,
+            composed: self.composed,
+            relevance: self.relevance,
+            tags: self.tags,
+            aka: self.aka,
+            abbr: self.abbr,
+        }
+    }
+}
+
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct RawSet {
@@ -52,13 +90,12 @@ pub struct RawSet {
     pub typ: RawType,
     pub composed: Composition,
     pub relevance: u32, // from 0 to 9
-    pub hidden: bool,
     pub tags: Vec<RawTag>,
     pub aka: Vec<String>,
     pub abbr: Option<String>,
 }
 
-impl RawSet {
+impl BuiltRawSet {
     pub fn new(id: String, name: String, typ: RawType, composed: Composition, relevance: u32) -> Self {
         Self {
             id,
@@ -66,7 +103,6 @@ impl RawSet {
             typ,
             composed,
             relevance,
-            hidden: false,
             tags: vec![],
             aka: vec![],
             abbr: None,
@@ -122,7 +158,7 @@ pub struct RawProviderLink {
 
 pub struct RawData {
     pub sets: Vec<RawSet>,
-    pub factoids: Vec<(RawSource, RawShowed)>,
+    pub factoids: Vec<(String, RawShowed)>,
     pub sources: Vec<RawSource>,
     pub provider_links: HashMap<RawProvider, Vec<RawProviderLink>>,
     pub tags: Vec<RawTag>,

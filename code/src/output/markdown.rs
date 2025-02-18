@@ -9,17 +9,18 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use biblatex::Bibliography;
-use log::error;
+use log::{error, info};
 use regex::Regex;
 
 use crate::data::data::{Data, Linkable, ProviderLink, Relation, Set, Showed, ShowedFact, Source, Tag};
 use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType};
-use crate::general::enums::{CreatedBy, Page, SourceKey};
-use crate::file;
+use crate::general::enums::{CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo};
+use crate::{file, generate_relation_table, Paths};
 use crate::general::progress;
 
 use super::color::{relation_color, Color};
-use super::diagram::{make_focus_drawing, make_subset_drawing};
+use super::diagram::{make_drawing, make_focus_drawing, make_subset_drawing};
+use super::table::render_table;
 use super::to_markdown::ToMarkdown;
 
 type Result<T> = std::result::Result<T, MarkdownError>;
@@ -92,14 +93,14 @@ impl Linkable for PreviewSet {
 impl Linkable for PreviewSource {
     fn get_url(&self) -> String {
         match &self.sourcekey {
-            SourceKey::Bibtex { key: _, name: _, entry: _ } => html_base(&self.id),
+            SourceKey::Bibtex { key: _, name: _, entry: _, relevance: _ } => html_base(&self.id),
             SourceKey::Online { url } => url.clone(),
             SourceKey::Other { name: _, description: _ } => html_base(&self.id),
         }
     }
     fn get_name(&self) -> String {
         match &self.sourcekey {
-            SourceKey::Bibtex { key, name, entry: _ } => name.clone().unwrap_or(key.clone()),
+            SourceKey::Bibtex { key, name, entry: _, relevance: _ } => name.clone().unwrap_or(key.clone()),
             SourceKey::Online { url } => url.clone(),
             SourceKey::Other { name, description: _ } => name.into(),
         }
@@ -107,7 +108,7 @@ impl Linkable for PreviewSource {
 }
 
 pub trait GeneratedPage {
-    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String;
+    fn get_page(&self, builder: &Markdown, path: &Paths) -> String;
 }
 
 fn copy_file_to_final_location(file: &PathBuf, to_directory: &PathBuf) {
@@ -120,9 +121,24 @@ fn copy_file_to_final_location(file: &PathBuf, to_directory: &PathBuf) {
     fs::copy(&file, &final_path).expect("Failed to copy result to final directory");
 }
 
+fn include_dot_file(drawing: anyhow::Result<PathBuf>, final_dir: &PathBuf) -> String {
+    match drawing {
+        Ok(result_pdf_file) => {
+            copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
+            let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
+            format!("[[dot ../{}]]", filename)
+        },
+        Err(e) => {
+            error!("{:?}", e);
+            format!("{:?}", e)
+        },
+    }
+}
+
 impl GeneratedPage for Set {
-    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
+    fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
+        res += &format!("---\ntitle: \"{}\"\n---", self.name);
         res += &format!("# {}\n\n", self.name);
         if let Some(abbr) = &self.abbr {
             res += &format!("abbr: {}\n\n", abbr);
@@ -143,33 +159,31 @@ impl GeneratedPage for Set {
             res += &format!("providers: {}\n\n", provider_strings.join(", "));
         }
         res += "[[handcrafted]]\n\n";
-        res += &match make_focus_drawing(&builder.data, self, 2, working_dir) {
-            Ok(result_dot_file) => {
-                copy_file_to_final_location(&result_dot_file, &final_dir.join("html"));
-                let filename = result_dot_file.file_name().unwrap().to_string_lossy();
-                format!("[[dot ../{}]]", filename)
-            },
-            Err(e) => {
-                error!("{:?}", e);
-                format!("{:?}", e)
-            },
+        for drawing_path in [
+            make_focus_drawing(
+                &format!("local_{}", self.id),
+                &builder.data,
+                self,
+                2,
+                &paths.working_dir
+                ),
+            make_subset_drawing(
+                &format!("dif_inclusions_{}", self.id),
+                &builder.data,
+                self,
+                builder.data.sets.iter().filter(|x| x.typ != self.typ && x.preview.relevance > 0).collect(),
+                &paths.working_dir
+                ),
+            make_subset_drawing(
+                &format!("same_inclusions_{}", self.id),
+                &builder.data,
+                self,
+                builder.data.sets.iter().filter(|x| x.typ == self.typ && x.preview.relevance > 0).collect(),
+                &paths.working_dir
+                ),
+        ] {
+            res += &include_dot_file(drawing_path, &paths.final_dir);
         };
-        for (name, drawn_sets) in [
-            (&format!("dif_inclusions_{}", self.id), builder.data.sets.iter().filter(|x| x.typ != self.typ).collect()),
-            (&format!("same_inclusions_{}", self.id), builder.data.sets.iter().filter(|x| x.typ == self.typ).collect()),
-        ]{
-            res += &match make_subset_drawing(name, &builder.data, self, drawn_sets, working_dir) {
-                Ok(result_pdf_file) => {
-                    copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
-                    let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
-                    format!("[[dot ../{}]]", filename)
-                },
-                Err(e) => {
-                    error!("{:?}", e);
-                    format!("{:?}", e)
-                },
-            };
-        }
         // todo - having parameters and graphs both as sets means maximal doesn't show what was expected
         // let subs = &self.subsets.maximal;
         // if !subs.is_empty() {
@@ -232,10 +246,10 @@ impl GeneratedPage for Set {
 }
 
 impl GeneratedPage for Source {
-    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
+    fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
         match &self.sourcekey {
-            SourceKey::Bibtex { key, name, entry } => {
+            SourceKey::Bibtex { key, name, entry, relevance } => {
                 res += &format!("# {}\n\n", self.preview.get_name());
                 if let Some(somebib) = builder.bibliography {
                     if let Some(val) = somebib.get(key) {
@@ -245,7 +259,7 @@ impl GeneratedPage for Source {
                         } else if let Ok(url) = val.url() {
                             res += &format!("[{}]({})\n\n", url, url);
                         }
-                        // todo print the original (unformatted) biblatex citation
+                        // todo - print the original (unformatted) biblatex citation from main.bib
                         res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
                     } else {
                         error!("unable to load {} from main.bib", key);
@@ -261,6 +275,25 @@ impl GeneratedPage for Source {
                 res += &format!("# Online source {}\n\n", self.id);
             },
         }
+        for (idx, drawing) in self.drawings.iter().enumerate() {
+            let name = &format!("drawing_{}_{}", self.id, idx);
+            match drawing {
+                Drawing::Table(list) => {
+                    generate_relation_table(builder.data, &list, &paths, name);
+                    res += &format!("[[pdf ../{}.pdf]]\n\n", name);
+                },
+                Drawing::Hasse(list) => {
+                    let drawing_path = make_drawing(
+                        builder.data,
+                        &paths.final_dir,
+                        name,
+                        &builder.data.get_sets(list.clone()),
+                        None
+                        );
+                    res += &include_dot_file(drawing_path, &paths.final_dir);
+                },
+            };
+        }
         // res += &format!("{:?} {}", self.sourcekey, self.time);
         for s in &self.showed {
             if let Some(val) = s.to_markdown(builder) {
@@ -271,42 +304,74 @@ impl GeneratedPage for Source {
     }
 }
 
-// todo
-// fn format_created_by(data: &Data, relation: &Relation, indent: usize, set: &mut HashSet<PreviewRelation>) -> String{
-    // let (res, children) = if set.contains(&relation.preview) {
-        // match &relation.cpx {
-            // CreatedBy::Directly => ("was proved directly", "".into()),
-            // CreatedBy::Todo => ("information missing in HOPS", "".into()),
-            // CreatedBy::TransferredFrom(a, b) => {
-                // let rel = data.get_relation(&b.subset, &b.superset).unwrap();
-                // ("relation implied from another relation", format_created_by(data, &rel, indent+1, set))
-            // },
-            // CreatedBy::TransitiveInclusion(a, b) => {
-                // let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
-                // let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
-                // let format_a = format_created_by(data, &rel_a, indent+1, set);
-                // let format_b = format_created_by(data, &rel_b, indent+1, set);
-                // ("relation implied from relations", format!("{}\n{}", format_a, format_b))
-            // },
-            // CreatedBy::TransitiveExclusion(a, b) => {
-                // let rel_a = data.get_relation(&a.subset, &a.superset).unwrap();
-                // let rel_b = data.get_relation(&b.subset, &b.superset).unwrap();
-                // let format_a = format_created_by(data, &rel_a, indent+1, set);
-                // let format_b = format_created_by(data, &rel_b, indent+1, set);
-                // ("relation implied from relations", format!("{}\n{}", format_a, format_b))
-            // },
-            // // _ => ("", "".into()),
-        // }
-    // } else {
-        // panic!("cyclic dependence for {:?}", relation);
-        // // ("a cyclic dependence, that's not good", "".into())
-    // };
-    // format!("{}* {}\n{}", " ".repeat(4*indent), res, children)
-// }
+fn format_created_by(data: &Data, created_by: &CreatedBy, indent: usize) -> String{
+    let (res, children): (&str, Option<String>) = match &created_by {
+        CreatedBy::TransferredFrom(transfer_groupe, handle) => {
+            ("transferred", Some(format_created_by(data, &data.get_partial_result(handle).created_by, indent+1)))
+        },
+        CreatedBy::TransitiveInclusion(handlea, handleb) => {
+            let format_a = format_created_by(data, &data.get_partial_result(handlea).created_by, indent+1);
+            let format_b = format_created_by(data, &data.get_partial_result(handleb).created_by, indent+1);
+            ("transitive inclusion", Some(format!("{}\n{}", format_a, format_b)))
+        },
+        CreatedBy::TransitiveExclusion(handlea, handleb) => {
+            let format_a = format_created_by(data, &data.get_partial_result(handlea).created_by, indent+1);
+            let format_b = format_created_by(data, &data.get_partial_result(handleb).created_by, indent+1);
+            ("transitive exclusion", Some(format!("{}\n{}", format_a, format_b)))
+        },
+        CreatedBy::Directly(source) => ("relation proved directly", None),
+        CreatedBy::Todo => ("relation known but reference is missing in HOPS", None),
+        CreatedBy::SumInclusion(handlea, handleb) => {
+            let format_a = format_created_by(data, &data.get_partial_result(handlea).created_by, indent+1);
+            let format_b = format_created_by(data, &data.get_partial_result(handleb).created_by, indent+1);
+            ("summed from", Some(format!("{}\n{}", format_a, format_b)))
+        }
+        CreatedBy::SameThroughEquivalence(handlea, handleb) => {
+            let format_a = format_created_by(data, &data.get_partial_result(handlea).created_by, indent+1);
+            let format_b = format_created_by(data, &data.get_partial_result(handleb).created_by, indent+1);
+            ("implied through equivalence", Some(format!("{}\n{}", format_a, format_b)))
+        }
+    };
+    let children_str = if let Some(str) = children{
+        &format!("\n{}", str)
+    } else {
+        ""
+    };
+    format!("{}* {}{}", " ".repeat(4*indent), res, children_str)
+}
+
+fn format_relation(data: &Data, relation: &Relation) -> String{
+    let (res, children) = match &relation.cpx {
+        SourcedCpxInfo::Unknown => ("unknown to HOPS", "".into()),
+        SourcedCpxInfo::Equal { source } => {
+            let format_a = format_created_by(data, &source.created_by, 1);
+            ("equal", format_a)
+        },
+        SourcedCpxInfo::UpperBound { mx: (mx, smx) } => {
+            let format_a = format_created_by(data, &smx.created_by, 1);
+            ("upper bound", format_a)
+        },
+        SourcedCpxInfo::Inclusion { mn: (mn, smn), mx: (mx, smx) } => {
+            let format_a = format_created_by(data, &smn.created_by, 1);
+            let format_b = format_created_by(data, &smx.created_by, 1);
+            ("upper bound", format!("{}\n{}", format_a, format_b))
+        },
+        SourcedCpxInfo::LowerBound { mn: (mn, smn) } => {
+            let format_a = format_created_by(data, &smn.created_by, 1);
+            ("lower bound", format_a)
+        }
+        SourcedCpxInfo::Exclusion { source } => {
+            let format_a = format_created_by(data, &source.created_by, 1);
+            ("exclusion", format_a)
+        }
+    };
+    format!("* {}\n{}", res, children)
+}
 
 impl GeneratedPage for Relation {
-    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
+    fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
+        res += &format!("---\ntitle: \"{} to {}\"\n---\n\n", &self.subset.name, &self.superset.name);
         let join_el =
             if let Some(reverse_relation) = builder.data.get_relation(&self.superset, &self.subset) {
                 format!("[→]({})", reverse_relation.preview.get_url())
@@ -317,22 +382,13 @@ impl GeneratedPage for Relation {
         let sub = builder.data.get_set(&self.subset);
         let sup = builder.data.get_set(&self.superset);
         res += &format!("color: [[color {}]]\n\n", relation_color(&sub, &sup).name());
-        // res += &format_created_by(&builder.data, &self, 0, &mut HashSet::new()); // todo
-        // pub id: String,
-        // pub preview: PreviewRelation,
-        // /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
-        // pub subset: PreviewSet,
-        // /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
-        // pub superset: PreviewSet,
-        // pub cpx: CpxInfo,
-        // pub created_by: CreatedBy,
-        // pub essential: bool,
+        res += &format_relation(&builder.data, &self);
         res
     }
 }
 
 impl GeneratedPage for Tag {
-    fn get_page(&self, builder: &Markdown, final_dir: &PathBuf, working_dir: &PathBuf) -> String {
+    fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
         res += &format!("# {}\n\n", self.name);
         res += &format!("{}\n\n", self.description);
@@ -453,10 +509,18 @@ impl<'a> Markdown<'a> {
                     content += self.make_table(table).as_str();
                 },
                 "sources" => {
-                    let mut table = Table::new(vec!["Order", "Year", "Source"]);
-                    for (index, source) in self.data.sources.iter().enumerate() {
-                        if let SourceKey::Bibtex { key, name, entry } = &source.sourcekey {
-                            table.add(vec![format!("{:0>3}", index), source.time.to_string(), self.linkto(&source.preview)]);
+                    let mut table = Table::new(vec![
+                                               "#",
+                                               "Year",
+                                               &format!("<a href=\"{}\">*</a>Relevance", base(&(*"docs/legend/#relevance").into())),
+                                               "Source",
+                    ]);
+                    let mut index = 0;
+                    for source in &self.data.sources {
+                        if let SourceKey::Bibtex { key, name, entry, relevance } = &source.sourcekey {
+                            let relstring = progress::bar(*relevance, 9);
+                            table.add(vec![format!("{:0>3}", index), source.time.to_string(), relstring, self.linkto(&source.preview)]);
+                            index += 1;
                         }
                     }
                     content += self.make_table(table).as_str();

@@ -78,7 +78,7 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
     result
 }
 
-pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &PathBuf) -> io::Result<PathBuf> {
+pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &PathBuf) -> anyhow::Result<PathBuf> {
     let size_str = format!("\\def\\parlen{{{}}}\n", draw_sets.len());
     let ordered_pars = order_sets_from_sources(data, draw_sets);
 

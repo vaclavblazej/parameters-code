@@ -1,13 +1,10 @@
 use log::warn;
 
-use crate::general::enums::{Cpx, Page};
-
-use super::raw::{RawData, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource, RawProvider, RawProviderLink};
-use crate::general::enums::CpxInfo::*;
-use crate::general::enums::CpxTime;
+use super::raw::{BuiltRawSource, RawData, RawProvider, RawProviderLink, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource};
+use crate::general::enums::{Cpx, CpxTime, Page, RawDrawing, CpxInfo::*};
 
 pub struct RawDataSource<'a> {
-    source: RawSource,
+    source: BuiltRawSource,
     data: &'a mut RawData,
 }
 
@@ -57,7 +54,7 @@ impl<'a> CollectiveSource<'a> {
 
 impl<'a> RawDataSource<'a> {
 
-    pub fn new(source: &RawSource, data: &'a mut RawData) -> Self {
+    pub fn new(source: &BuiltRawSource, data: &'a mut RawData) -> Self {
         RawDataSource { source: source.clone(), data }
     }
 
@@ -68,7 +65,7 @@ impl<'a> RawDataSource<'a> {
             fact: RawShowedFact::Definition(set.clone()),
             page,
         };
-        self.data.factoids.push((self.source.clone(), showed));
+        self.data.factoids.push((self.source.id.clone(), showed));
         self
     }
 
@@ -93,8 +90,8 @@ impl<'a> RawDataSource<'a> {
             }),
             page: Page::NotApplicable,
         };
-        self.data.factoids.push((self.source.clone(), inclusion));
-        self.data.factoids.push((self.source.clone(), exclusion));
+        self.data.factoids.push((self.source.id.clone(), inclusion));
+        self.data.factoids.push((self.source.id.clone(), exclusion));
         self
     }
 
@@ -126,13 +123,13 @@ impl<'a> RawDataSource<'a> {
                 fact: RawShowedFact::Relation(relation),
                 page: page.clone(),
             };
-            self.data.factoids.push((self.source.clone(), showed));
+            self.data.factoids.push((self.source.id.clone(), showed));
         }
         self
     }
 
     pub fn asked(self, id: &str, page: Page, subset: &RawSet, superset: &RawSet, text: &str) -> Self {
-        // todo
+        // todo - implement asked: source listed a relation as an open question
         self
     }
 
@@ -147,27 +144,49 @@ impl<'a> RawDataSource<'a> {
             fact: RawShowedFact::Citation(who),
             page,
         };
-        self.data.factoids.push((self.source.clone(), showed));
+        self.data.factoids.push((self.source.id.clone(), showed));
         self
     }
 
-    pub fn hasse(self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
-        // todo
+    /// Notes that a source contains a hasse diagram of the listed sets.
+    /// This method recreates that diagram with results from HOPS.
+    pub fn hasse(mut self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
+        self.source.drawings.push(RawDrawing::Hasse(sets.iter().map(|x|x.to_string()).collect()));
         self
     }
 
-    pub fn table(self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
-        // todo
+    /// Notes that a source has a complete comparison table of the listed sets.
+    /// This recreates the same table from the results in HOPS.
+    pub fn table(mut self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
+        self.source.drawings.push(RawDrawing::Table(sets.iter().map(|x|x.to_string()).collect()));
         self
     }
 
     pub fn todo_rest(self) -> RawSource {
         warn!("todo: rest of the source {} should be processed", self.source.id);
-        self.source
+        self.done()
     }
 
     pub fn done(self) -> RawSource {
-        self.source
+        let res = self.source.clone().into();
+        res
     }
 
+}
+
+impl Into<RawSource> for BuiltRawSource {
+    fn into(self) -> RawSource {
+        RawSource {
+            id: self.id,
+            rawsourcekey: self.rawsourcekey,
+            relevance: self.relevance,
+            drawings: self.drawings,
+        }
+    }
+}
+
+impl<'a> Drop for RawDataSource<'a> {
+    fn drop(&mut self) {
+        self.data.sources.push(self.source.clone().into());
+    }
 }

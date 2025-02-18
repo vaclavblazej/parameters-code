@@ -156,7 +156,7 @@ impl PreviewRelation {
 impl ToMarkdown for PreviewSource {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         match &self.sourcekey {
-            SourceKey::Bibtex { key, name, entry: _ } => {
+            SourceKey::Bibtex { key, name, entry: _, relevance: _ } => {
                 Some(name.clone().unwrap_or(key.clone()))
             },
             SourceKey::Online { url } => Some(url.clone()),

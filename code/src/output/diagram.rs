@@ -49,18 +49,15 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
     let mut potential_relations = Vec::new();
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset) && displayed_sets_preview.contains(&relation.superset) {
-            match &relation.cpx {
-                SourcedCpxInfo::Inclusion { mn: _, mx: _ } => {
-                    potential_relations.push(relation.preview.clone())
-                },
-                _ => {},
+            if let Some(_) = &relation.preview.cpx.get_mx() {
+                potential_relations.push(relation.preview.clone())
             }
         }
     }
     // hiding cannot be global as it is implied by the set of items shown in the drawing
     let drawn_relations = filter_hidden(potential_relations, &displayed_sets.iter().map(|x|x.preview.clone()).collect());
     for relation in drawn_relations {
-        if let CpxInfo::Inclusion { mn, mx } = &relation.cpx {
+        if let Some(mx) = relation.cpx.get_mx() {
             let style = inclusion_edge_style(&mx);
             let drawedge = Edge {
                 url: relation.id.clone(),
@@ -82,7 +79,7 @@ pub fn make_drawing(data: &Data, target_dir: &PathBuf, name: &str, displayed_set
     Ok(dot_target_file)
 }
 
-pub fn make_focus_drawing(data: &Data, set: &Set, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
+pub fn make_focus_drawing(filename: &str, data: &Data, set: &Set, distance: usize, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
     let set_distances = bfs_limit_distance(set, &data, 20);
     let mut relevance_visibility: HashMap<u32, usize> = HashMap::new();
     relevance_visibility.insert(0, 0);
@@ -109,7 +106,6 @@ pub fn make_focus_drawing(data: &Data, set: &Set, distance: usize, target_dir: &
         }
         ).map(|(x,y)|x).cloned().collect();
     let sets_to_draw = data.get_sets(preview_sets_to_draw);
-    let filename = &format!("local_{}", set.id);
     make_drawing(data, target_dir, filename, &sets_to_draw, Some(mark_by_distance(set_distances, 3)))
 }
 

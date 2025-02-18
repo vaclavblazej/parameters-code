@@ -1,7 +1,7 @@
 use core::fmt;
 
-use crate::{data::{data::{PartialResult, PartialResultsBuilder, Relation}, preview::PreviewSet}, general::enums::{CpxInfo, CpxTime, CreatedBy, SourcedCpxInfo}};
-use log::error;
+use crate::{data::{data::{PartialResult, PartialResultsBuilder, Relation}, preview::PreviewSet}, general::enums::{ComparisonResult, CpxInfo, CpxTime, CreatedBy, SourcedCpxInfo}};
+use log::{error, trace};
 use SourcedCpxInfo::*;
 
 
@@ -88,12 +88,12 @@ pub fn combine_parallel_max(a: (CpxTime, PartialResult), b: (CpxTime, PartialRes
 
 impl Relation {
 
-    // todo this should be changed to find the simplest way to find the resulting complexity
+    // todo - combine_parallel should be changed to find the simplest way to find the resulting complexity
     /// Combine the two complexities' best results.
     pub fn combine_parallel(&mut self, other: &Relation) -> bool {
         assert_eq!(self.superset, other.superset);
         assert_eq!(self.subset, other.subset);
-        // todo merging entries just via complexity is not good enough, they combine in a more nuanced way
+        trace!("\n{:?}\n{:?}", self.preview, other.preview);
         let original = self.cpx.clone();
         let res: Result<SourcedCpxInfo, CombinationError> = match (self.cpx.clone(), other.cpx.clone()) {
             // Prefer anything before taking Unknown.
@@ -166,12 +166,13 @@ impl Relation {
         };
         match res {
             Ok(res) => {
-                if res.is_better_than(&original) {
-                    self.preview.cpx = res.clone().into();
-                    self.cpx = res;
-                    true
-                } else {
-                    false
+                match res.compare_to(&original) {
+                    ComparisonResult::Better => {
+                        self.preview.cpx = res.clone().into();
+                        self.cpx = res;
+                        true
+                    },
+                    _ => false,
                 }
             },
             Err(err) => {

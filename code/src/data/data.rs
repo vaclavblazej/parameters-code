@@ -8,7 +8,7 @@ use log::trace;
 use serde::{Serialize, Deserialize};
 
 use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTag};
-use crate::general::enums::{Cpx, CpxInfo, CpxTime, CreatedBy, Page, SourceKey, SourcedCpxInfo, TransferGroup};
+use crate::general::enums::{Cpx, CpxInfo, CpxTime, CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo, TransferGroup};
 use crate::processing::processing::Sets;
 
 
@@ -80,7 +80,7 @@ pub struct SourceSubset {
 }
 
 /// A general structure for parameters, graph classes, any other structures.
-// todo remove clone
+// todo - Set is a heavy structure and ideally should not have #derive[clone]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Set {
     pub preview: PreviewSet,
@@ -98,7 +98,6 @@ pub struct Set {
     pub super_exclusions: Sets,
     pub sub_exclusions: Sets,
     pub unknown: Sets,
-    // pub transfers: HashMap<TransferGroup, Vec<PreviewSet>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -130,6 +129,7 @@ pub struct Source {
     pub sourcekey: SourceKey,
     pub showed: Vec<Showed>,
     pub time: Date,
+    pub drawings: Vec<Drawing>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -218,6 +218,10 @@ impl Data {
             None => None,
         }
     }
+
+    pub fn get_partial_result(&self, handle: &usize) -> &PartialResult {
+        self.partial_results.get(*handle).unwrap()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,7 +234,6 @@ pub struct Relation {
     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
     pub superset: PreviewSet,
     pub cpx: SourcedCpxInfo,
-    pub essential: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
