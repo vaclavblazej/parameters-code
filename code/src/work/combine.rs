@@ -1,14 +1,13 @@
 use core::fmt;
 
-use crate::{data::{data::{PartialResult, PartialResultsBuilder, Relation}, preview::PreviewSet}, general::enums::{ComparisonResult, CpxInfo, CpxTime, CreatedBy, SourcedCpxInfo}};
-use log::{error, trace};
-use SourcedCpxInfo::*;
+use crate::{data::{data::{PartialResult, PartialResultsBuilder, Relation}, preview::{WorkRelation, PreviewSet}}, general::enums::{ComparisonResult, CpxInfo, CpxTime, CreatedBy, SourcedCpxInfo, SourcedCpxInfo::*}};
+use log::{debug, error, trace};
 
 
 #[derive(Debug)]
 pub enum CombinationError {
-    ExclusionInclusion(Relation, Relation),
-    IncompatibleWithEquivalence(Relation, Relation),
+    ExclusionInclusion(PartialResult, PartialResult),
+    IncompatibleWithEquivalence(PartialResult, PartialResult),
 }
 
 impl fmt::Display for CombinationError {
@@ -28,11 +27,13 @@ impl PartialResultsBuilder {
         }
     }
 
-    pub fn partial_result(&mut self, created_by: CreatedBy) -> PartialResult {
+    pub fn partial_result(&mut self, created_by: CreatedBy, cpx: CpxInfo, relation: WorkRelation) -> PartialResult {
         let len = self.arr.len();
         let res = PartialResult{
             handle: len,
             created_by,
+            cpx,
+            relation,
         };
         self.arr.push(res.clone());
         res
@@ -42,20 +43,22 @@ impl PartialResultsBuilder {
         self.arr
     }
 
-    fn comb_trans(&mut self, a: PartialResult, b: PartialResult) -> PartialResult {
-        self.partial_result(CreatedBy::TransitiveInclusion(a.handle, b.handle))
+}
+
+impl WorkRelation {
+
+    pub fn new(subset: &PreviewSet, superset: &PreviewSet) -> Self {
+        WorkRelation {
+            subset: subset.clone(),
+            superset: superset.clone(),
+        }
     }
 
-    /// What kind of complexity we get when we substitute k with b instead?
-    pub fn combine_serial(&mut self, a: (CpxTime, PartialResult), b: (CpxTime, PartialResult)) -> (CpxTime, PartialResult) {
-        match (a, b) {
-            ((CpxTime::Exists, a), (_, b)) | ((_, b), (CpxTime::Exists, a)) => (CpxTime::Exists, self.comb_trans(a, b)),
-            ((CpxTime::Tower, a), (_, b)) | ((_, b), (CpxTime::Tower, a)) => (CpxTime::Tower, self.comb_trans(a, b)),
-            ((CpxTime::Exponential, a), (_, b)) | ((_, b), (CpxTime::Exponential, a)) => (CpxTime::Tower, self.comb_trans(a, b)),
-            ((CpxTime::Exponential, a), (_, b)) | ((_, b), (CpxTime::Exponential, a)) => (CpxTime::Exponential, self.comb_trans(a, b)),
-            ((CpxTime::Polynomial, a), (_, b)) | ((_, b), (CpxTime::Polynomial, a)) => (CpxTime::Polynomial, self.comb_trans(a, b)),
-            ((CpxTime::Linear, a), (_, b)) | ((_, b), (CpxTime::Linear, a)) => (CpxTime::Linear, self.comb_trans(a, b)),
-            ((CpxTime::Constant, a), (CpxTime::Constant, b)) => (CpxTime::Constant, self.comb_trans(a, b)),
+    pub fn combine_serial(&self, other: &Self) -> Self {
+        assert_eq!(self.superset.id, other.subset.id);
+        Self {
+            subset: self.subset.clone(),
+            superset: other.superset.clone(),
         }
     }
 
@@ -85,17 +88,29 @@ pub fn combine_parallel_max(a: (CpxTime, PartialResult), b: (CpxTime, PartialRes
     }
 }
 
+/// Returns complexity that we get when we substitute k with b
+pub fn combine_serial((cpxa, a): (CpxTime, PartialResult), (cpxb, b): (CpxTime, PartialResult)) -> (PartialResult, PartialResult, CpxTime) {
+    let relation = a.relation.combine_serial(&b.relation);
+    match (cpxa, cpxb) {
+        (CpxTime::Exists, _) | (_, CpxTime::Exists) => (a, b, CpxTime::Exists),
+        (CpxTime::Tower, _) | (_, CpxTime::Tower) => (a, b, CpxTime::Tower),
+        (CpxTime::Exponential, _) | (_, CpxTime::Exponential) => (a, b, CpxTime::Tower),
+        (CpxTime::Polynomial, _) | (_, CpxTime::Polynomial) => (a, b, CpxTime::Polynomial),
+        (CpxTime::Linear, _) | (_, CpxTime::Linear) => (a, b, CpxTime::Linear),
+        (CpxTime::Constant, _) | (_, CpxTime::Constant) => (a, b, CpxTime::Constant),
+    }
+}
 
-impl Relation {
+
+impl PartialResult {
 
     // todo - combine_parallel should be changed to find the simplest way to find the resulting complexity
-    /// Combine the two complexities' best results.
-    pub fn combine_parallel(&mut self, other: &Relation) -> bool {
-        assert_eq!(self.superset, other.superset);
-        assert_eq!(self.subset, other.subset);
-        trace!("\n{:?}\n{:?}", self.preview, other.preview);
-        let original = self.cpx.clone();
-        let res: Result<SourcedCpxInfo, CombinationError> = match (self.cpx.clone(), other.cpx.clone()) {
+    /// Combine the two complexities' best results. Returns Some if the result is better than self.
+    pub fn combine_parallel(&self, other: &PartialResult, partial_result_builder: &mut PartialResultsBuilder) -> Option<PartialResult> {
+        assert_eq!(self.relation, other.relation);
+        trace!("\n{:?}\n{:?}", self.relation, other.relation);
+        let original: SourcedCpxInfo = self.to_sourced();
+        let res: Result<SourcedCpxInfo, CombinationError> = match (self.to_sourced(), other.to_sourced()) {
             // Prefer anything before taking Unknown.
             (Unknown, a) | (a, Unknown) => Ok(a.clone()),
             // Check equivalence is compatible with the other bound and if so, keep it.
@@ -168,97 +183,56 @@ impl Relation {
             Ok(res) => {
                 match res.compare_to(&original) {
                     ComparisonResult::Better => {
-                        self.preview.cpx = res.clone().into();
-                        self.cpx = res;
-                        true
+                        Some(partial_result_builder.partial_result(CreatedBy::ParallelComposition(self.handle, other.handle), res.into(), self.relation.clone()))
                     },
-                    _ => false,
+                    _ => None,
                 }
             },
             Err(err) => {
-                error!("{}\n{:?}\n{:?}", err, self.preview, other.preview);
-                false
+                error!("{}\n{:?}\n{:?}", err, self.relation, other.relation);
+                None
             }
         }
     }
 
-    /// Combine the two complexities to represent the transitive complexity.
-    pub fn combine_serial(&self, other: &Relation, partial_results_builder: &mut PartialResultsBuilder) -> Relation {
-        assert_eq!(self.superset, other.subset);
-        let cpx = match (self.cpx.clone(), other.cpx.clone()) {
-            // (a = other) and (other rel c) => (a rel c)
-            (Equal{ .. }, a) | (a, Equal{ .. }) => a.clone(),
-            // No matter what, nothing can be deduced.
-            (Unknown, _) | (_, Unknown) => Unknown,
-            // Lower bounds are existential, i.e., there exists a graph
-            // that has value other > f(A) which does not compose, because
-            // existing graphs are not necessarily the same.
-            (Exclusion{ .. }, _) | (_, Exclusion{ .. }) => Unknown,
-            (LowerBound { .. }, _) | (_, LowerBound { .. }) => Unknown,
-            (Inclusion { mn: _, mx: (mxa, sra) } | UpperBound { mx: (mxa, sra) },
-             Inclusion { mn: _, mx: (mxb, srb) } | UpperBound { mx: (mxb, srb) })
-                => UpperBound {
-                    mx: partial_results_builder.combine_serial((mxa, sra), (mxb, srb))
-                },
-        };
-        Relation::new(
-            &self.subset,
-            &other.superset,
-            cpx,
-            1
-            )
-    }
-
-    pub fn combine_plus(&self, other: &Relation) -> Relation {
-        assert_eq!(self.subset, other.subset); // expected to be used for combined parameters only
-        let cpx = match (self.cpx.clone(), other.cpx.clone()) {
-            (Unknown, _) | (_, Unknown) => Unknown,
-            (Exclusion { source }, _) | (_, Exclusion { source }) => Exclusion { source: source.clone() },
-            (Equal { source }, a) | (a, Equal { source }) => a.clone(),
-            (Inclusion { mn: _, mx: mxa } | UpperBound { mx: mxa },
-             Inclusion { mn: _, mx: mxb } | UpperBound { mx: mxb })
-                => UpperBound { mx: combine_parallel_max(mxa, mxb) },
-            (LowerBound { .. }, _) | (_, LowerBound { .. }) => Unknown,
-        };
-        Relation::new(
-            &self.subset,
-            &self.superset,
-            cpx,
-            1
-            )
+    pub fn to_sourced(&self) -> SourcedCpxInfo {
+        self.cpx.clone().to_sourced(self.clone())
     }
 
 }
 
 impl SourcedCpxInfo {
 
-    pub fn combine_serial(&self, other: &Self) -> Self {
-        let seta = PreviewSet::mock("a");
-        let setb = PreviewSet::mock("b");
-        let setc = PreviewSet::mock("c");
-        let rela = Relation::new(&seta, &setb, self.clone(), 1);
-        let relb = Relation::new(&setb, &setc, other.clone(), 2);
-        let mut partial_results_builder = PartialResultsBuilder::new();
-        rela.combine_serial(&relb, &mut partial_results_builder).cpx
-    }
+    // todo
+    // pub fn combine_serial(&self, other: &Self) -> Self {
+        // let seta = PreviewSet::mock("a");
+        // let setb = PreviewSet::mock("b");
+        // let setc = PreviewSet::mock("c");
+        // let rela = Relation::new(&seta, &setb, self.clone(), 1);
+        // let relb = Relation::new(&setb, &setc, other.clone(), 2);
+        // let mut partial_results_builder = PartialResultsBuilder::new();
+        // rela.combine_serial(&relb, &mut partial_results_builder).cpx
+    // }
+    // pub fn combine_parallel(&self, other: &Self) -> Result<Self, CombinationError> {
+        // let seta = PreviewSet::mock("a");
+        // let setb = PreviewSet::mock("b");
+        // let mut rela = Relation::new(&seta, &setb, self.clone(), 1);
+        // let relb = Relation::new(&seta, &setb, other.clone(), 2);
+        // rela.combine_parallel(&relb);
+        // Ok(rela.cpx)
+    // }
 
-    pub fn combine_parallel(&self, other: &Self) -> Result<Self, CombinationError> {
-        let seta = PreviewSet::mock("a");
-        let setb = PreviewSet::mock("b");
-        let mut rela = Relation::new(&seta, &setb, self.clone(), 1);
-        let relb = Relation::new(&seta, &setb, other.clone(), 2);
-        rela.combine_parallel(&relb);
-        Ok(rela.cpx)
-    }
-
-    pub fn combine_plus(&self, other: &Self) -> Self {
-        let seta = PreviewSet::mock("a");
-        let setb = PreviewSet::mock("b");
-        let setc = PreviewSet::mock("c");
-        let setcb = PreviewSet::mock("cb");
-        let relab = Relation::new(&seta, &setb, self.clone(), 1);
-        let relac = Relation::new(&seta, &setc, other.clone(), 2);
-        relab.combine_plus(&relac).cpx
+    pub fn combine_plus(&self, other: &Self) -> SourcedCpxInfo {
+        debug!("{:?} {:?}", self.clone(), other.clone());
+        let cpx = match (self.clone(), other.clone()) {
+            (Unknown, _) | (_, Unknown) => Unknown,
+            (Equal { source }, a) | (a, Equal { source }) => a.clone(),
+            (Inclusion { mn: _, mx: mxa } | UpperBound { mx: mxa },
+             Inclusion { mn: _, mx: mxb } | UpperBound { mx: mxb })
+                => UpperBound { mx: combine_parallel_max(mxa, mxb) },
+            (Exclusion { .. } | LowerBound { .. }, _) | (_, Exclusion { .. } | LowerBound { .. }) => Unknown,
+        };
+        cpx
     }
 
 }

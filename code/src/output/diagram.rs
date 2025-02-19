@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, path::PathBuf, process::Command};
 
-use crate::{data::{data::{Data, Relation, Set}, preview::PreviewSet}, general::{enums::SourcedCpxInfo, hide::filter_hidden}, output::color::interpolate_colors, processing::processing::bfs_limit_distance};
+use crate::{data::{data::{Data, Relation, Set}, preview::PreviewSet}, general::{enums::SourcedCpxInfo, hide::filter_hidden}, output::color::interpolate_colors, work::processing::bfs_limit_distance};
 use crate::general::enums::{CpxInfo, CpxTime};
 use crate::output::dot::{Edge, Graph};
 use crate::file;

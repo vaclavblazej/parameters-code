@@ -53,6 +53,8 @@ Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](h
 
 ## Sources
 
+* [download .bib file for all the sources](../main.bib)
+
 [[list sources]]
 
 ---

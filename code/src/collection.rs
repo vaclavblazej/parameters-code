@@ -813,7 +813,7 @@ pub fn build_collection() -> RawData {
         .showed("F0p61H", Pp(10), &contraction_complexity, &max_degree, UpperBound(Linear), "$cc(G) \\ge \\Delta(G) - 1$")
         .collective(Pp(11), "Proposition 4.2. ... $cc(G)=tw(G^*)$ ... Lemma 4.4. $(tw(G) - 1)/2 \\le tw(G^*) \\le \\Delta(G)(tw(G) + 1) - 1.$")
             .showed("YhbKPB", &contraction_complexity, &treewidth, UpperBound(Linear))
-            .showed("YvvmJE", &degree_treewidth, &contraction_complexity, UpperBound(Linear))
+            .showed("YvvmJE", &degree_treewidth, &contraction_complexity, UpperBound(Polynomial))
             .done()
         .done();
     let delavina_waller2008 = create.source("C5cBsd", "spanningTreesManyLeaves2008", 2)

@@ -3,7 +3,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::data::{data::PartialResult, preview::{PreviewRelation, PreviewSet, PreviewSource}};
+use crate::data::{data::PartialResult, preview::{PreviewSet, PreviewSource}};
 
 
 /// Refers to a page in a book or paper. If pdf is available it should refer its
@@ -103,8 +103,9 @@ pub enum SourcedBound {
 pub enum CreatedBy {
     TransitiveInclusion(usize, usize),
     TransitiveExclusion(usize, usize),
+    ParallelComposition(usize, usize),
     SameThroughEquivalence(usize, usize),
-    SumInclusion(usize, usize),
+    SumInclusion(Vec<usize>),
     TransferredFrom(TransferGroup, usize),
     Directly(PreviewSource),
     Todo,

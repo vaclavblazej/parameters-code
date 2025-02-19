@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use crate::{data::{data::{Data, PartialResult, Set}, preview::{PreviewRelation, PreviewSet}}, general::enums::SourcedCpxInfo};
+use crate::{data::{data::{Data, PartialResult, Set}, preview::{PreviewRelation, PreviewSet}}, general::enums::SourcedCpxInfo, work::combine::combine_serial};
 
 use super::enums::CpxInfo;
 
@@ -19,16 +19,22 @@ fn rel_can_be_implied_through(
         assert_ne!(midset, &relation.superset);
         assert_ne!(midset, &relation.subset);
         if let (Some(upper_relation), Some(lower_relation)) = (map.get(&(&relation.subset, midset)), map.get(&(midset, &relation.superset))) {
-            let pa = PartialResult {
+            let mock_a = PartialResult {
                 handle: 0,
-                created_by: crate::general::enums::CreatedBy::Todo
+                created_by: crate::general::enums::CreatedBy::Todo,
+                cpx: CpxInfo::Unknown,
+                relation: upper_relation.clone().into(),
             };
-            let sxa: SourcedCpxInfo = upper_relation.cpx.clone().to_sourced(pa.clone());
-            let sxb: SourcedCpxInfo = lower_relation.cpx.clone().to_sourced(pa.clone());
-            let sxc: SourcedCpxInfo = sxa.combine_serial(&sxb);
-            let scc: CpxInfo = sxc.clone().into();
-            if let Some(ccmx) = scc.get_mx() {
-                if !mx.is_smaller_than(&ccmx) {
+            let mock_b = PartialResult {
+                handle: 0,
+                created_by: crate::general::enums::CreatedBy::Todo,
+                cpx: CpxInfo::Unknown,
+                relation: lower_relation.clone().into(),
+            };
+            // todo fix
+            if let (Some(a), Some(b)) = (upper_relation.cpx.get_mx(), lower_relation.cpx.get_mx()) {
+                let (c, d, e) = combine_serial((a, mock_a.clone()), (b, mock_b.clone()));
+                if !mx.is_smaller_than(&e) {
                     return true;
                 }
             }

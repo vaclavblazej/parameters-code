@@ -142,9 +142,10 @@ impl Builder {
         );
         SetBuilder::new(res, self)
             .add_callback(Box::new(move|builder: &mut Builder, newset: &RawSet|{
-                let mut tmp_source = builder.assumed_source();
+                let mut tmp_source = builder.assumed_source().collective(Page::NotApplicable, "by definition");
                 for s in &sets {
-                    tmp_source = tmp_source.showed("", Page::NotApplicable, &newset, &s, upper_bound.clone(), "by definition");
+                    let id = &format!("{}_{}", newset.id, s.id);
+                    tmp_source = tmp_source.showed("", &newset, &s, upper_bound.clone());
                 }
                 tmp_source.done();
             }))

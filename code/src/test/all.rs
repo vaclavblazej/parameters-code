@@ -4,8 +4,8 @@ mod tests {
     use std::env;
 
     use crate::data::data::Relation;
-    use crate::general::enums::CpxInfo;
-    use crate::general::enums::{SourcedCpxInfo::{self, *}, CpxInfo::*, CpxTime::*, Page::*};
+    use crate::general::enums::{Cpx, CpxInfo};
+    use crate::general::enums::{SourcedCpxInfo::{self, *}, CpxTime::*, Page::*};
     use crate::input::{raw::RawData, build::Builder};
     use crate::processing::processing::process_raw_data;
 
@@ -33,7 +33,7 @@ mod tests {
             let id = format!("s_{}", i);
             let this = &arr[i];
             let next = &arr[i+1];
-            source = source.showed(&id, NotApplicable, this, next, UpperBound(Linear), "");
+            source = source.showed(&id, NotApplicable, this, next, Cpx::UpperBound(Linear), "");
         }
         source.done();
         let data = process_raw_data(&create.build(), &None);
@@ -42,7 +42,7 @@ mod tests {
         let last = arr.last().unwrap();
         let rel = data.get_relation(&first.clone().into(), &last.clone().into()).unwrap();
         assert!(matches!(rel.cpx, Inclusion{ .. }));
-        assert_eq!(rel.cpx, Inclusion{ mn: Constant, mx: Linear });
+        assert_eq!(rel.cpx.into(), CpxInfo::Inclusion{ mn: Constant, mx: Linear });
     }
 
     #[test]
@@ -54,12 +54,12 @@ mod tests {
         let c = create.parameter("c", "c", 9).done();
         create.assumed_source()
             .showed("s_ab", NotApplicable, &a, &c, Cpx::Exclusion, "")
-            .showed("s_bc", NotApplicable, &b, &c, UpperBound(Linear), "")
+            .showed("s_bc", NotApplicable, &b, &c, Cpx::UpperBound(Linear), "")
             .done();
         let data = process_raw_data(&create.build(), &None);
         // == test =============================================================
         let rel = data.get_relation(&a.into(), &b.into()).unwrap();
-        assert_eq!(rel.cpx, CpxInfo::Exclusion);
+        assert_eq!(rel.cpx.into(), CpxInfo::Exclusion);
     }
 
     #[test]
@@ -73,8 +73,8 @@ mod tests {
             .done();
         let data = process_raw_data(&create.build(), &None);
         // == test =============================================================
-        assert!(matches!(data.get_relation(&a.clone().into(), &b.clone().into()).unwrap().cpx, CpxInfo::Equal));
-        assert!(matches!(data.get_relation(&b.clone().into(), &a.clone().into()).unwrap().cpx, CpxInfo::Equal));
+        assert!(matches!(data.get_relation(&a.clone().into(), &b.clone().into()).unwrap().cpx.into(), CpxInfo::Equal));
+        assert!(matches!(data.get_relation(&b.clone().into(), &a.clone().into()).unwrap().cpx.into(), CpxInfo::Equal));
     }
 
     #[test]
@@ -87,8 +87,8 @@ mod tests {
         let d = create.parameter("d", "d", 9).done();
         create.assumed_source()
             .showed("s_ab", NotApplicable, &a, &b, Cpx::Equal, "")
-            .showed("s_ac", NotApplicable, &a, &c, UpperBound(Linear), "")
-            .showed("s_db", NotApplicable, &d, &b, UpperBound(Linear), "")
+            .showed("s_ac", NotApplicable, &a, &c, Cpx::UpperBound(Linear), "")
+            .showed("s_db", NotApplicable, &d, &b, Cpx::UpperBound(Linear), "")
             .done();
         let data = process_raw_data(&create.build(), &None);
         // == test =============================================================

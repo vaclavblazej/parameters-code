@@ -68,6 +68,12 @@ pub struct PreviewRelation {
     pub cpx: CpxInfo,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct WorkRelation {
+    pub subset: PreviewSet,
+    pub superset: PreviewSet,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreviewTag {
     pub id: String,

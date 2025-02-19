@@ -319,12 +319,16 @@ fn format_created_by(data: &Data, created_by: &CreatedBy, indent: usize) -> Stri
             let format_b = format_created_by(data, &data.get_partial_result(handleb).created_by, indent+1);
             ("transitive exclusion", Some(format!("{}\n{}", format_a, format_b)))
         },
-        CreatedBy::Directly(source) => ("relation proved directly", None),
-        CreatedBy::Todo => ("relation known but reference is missing in HOPS", None),
-        CreatedBy::SumInclusion(handlea, handleb) => {
+        CreatedBy::ParallelComposition(handlea, handleb) => {
             let format_a = format_created_by(data, &data.get_partial_result(handlea).created_by, indent+1);
             let format_b = format_created_by(data, &data.get_partial_result(handleb).created_by, indent+1);
-            ("summed from", Some(format!("{}\n{}", format_a, format_b)))
+            ("parallel composition", Some(format!("{}\n{}", format_a, format_b)))
+        }
+        CreatedBy::Directly(source) => ("relation proved directly", None),
+        CreatedBy::Todo => ("relation known but reference is missing in HOPS", None),
+        CreatedBy::SumInclusion(handles) => {
+            let formatted: Vec<String> = handles.iter().map(|handle|format_created_by(data, &data.get_partial_result(handle).created_by, indent+1)).collect();
+            ("summed from", Some(formatted.join("\n")))
         }
         CreatedBy::SameThroughEquivalence(handlea, handleb) => {
             let format_a = format_created_by(data, &data.get_partial_result(handlea).created_by, indent+1);

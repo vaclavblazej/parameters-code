@@ -101,6 +101,24 @@ impl Into<PreviewTag> for RawTag {
     }
 }
 
+impl Into<WorkRelation> for &mut Relation {
+    fn into(self) -> WorkRelation {
+        WorkRelation {
+            subset: self.subset.clone(),
+            superset: self.superset.clone(),
+        }
+    }
+}
+
+impl Into<WorkRelation> for PreviewRelation {
+    fn into(self) -> WorkRelation {
+        WorkRelation {
+            subset: self.subset.clone(),
+            superset: self.superset.clone(),
+        }
+    }
+}
+
 impl Into<PreviewRelation> for RawRelation {
     fn into(self) -> PreviewRelation {
         let preview_subset = self.subset.into();

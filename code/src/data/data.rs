@@ -9,7 +9,9 @@ use serde::{Serialize, Deserialize};
 
 use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTag};
 use crate::general::enums::{Cpx, CpxInfo, CpxTime, CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo, TransferGroup};
-use crate::processing::processing::Sets;
+use crate::work::processing::Sets;
+
+use super::preview::WorkRelation;
 
 
 pub trait Linkable {
@@ -136,6 +138,8 @@ pub struct Source {
 pub struct PartialResult {
     pub handle: usize,
     pub created_by: CreatedBy,
+    pub relation: WorkRelation,
+    pub cpx: CpxInfo,
 }
 
 pub struct PartialResultsBuilder {

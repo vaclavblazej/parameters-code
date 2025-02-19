@@ -15,7 +15,7 @@ use general::cache::Cache;
 use general::logger;
 use general::progress::ProgressDisplay;
 use log::{error, warn, info, debug, trace};
-use processing::bibliography::load_bibliography;
+use work::bibliography::load_bibliography;
 use rayon::prelude::*;
 use data::data::Data;
 use data::data::Relation;
@@ -34,7 +34,7 @@ use crate::output::pages::TargetPage;
 use crate::output::pages::add_content;
 use crate::data::simple_index::SimpleIndex;
 use crate::output::table::render_table;
-use crate::processing::processing::process_raw_data;
+use crate::work::processing::process_raw_data;
 use crate::general::file;
 
 mod data {
@@ -50,7 +50,7 @@ mod general {
     pub mod logger;
     pub mod progress;
 }
-mod processing {
+mod work {
     pub mod bibliography;
     pub mod combine;
     pub mod compare;
@@ -173,6 +173,7 @@ enum Args {
     TABLE,
     CLEAR,
     MOCK,
+    DEBUG,
     TRACE,
 }
 
@@ -214,6 +215,7 @@ impl Computation {
                 "clear" => {args.insert(Args::CLEAR);},
                 "mock" => {args.insert(Args::MOCK);},
                 "trace" => {args.insert(Args::TRACE);},
+                "debug" => {args.insert(Args::DEBUG);},
                 "fast" => {
                     args.insert(Args::CLEAR);
                     args.insert(Args::PREPROCESS);
@@ -231,7 +233,13 @@ impl Computation {
                 other => panic!("unknown parameter: '{}'", other),
             }
         }
-        logger::init(if args.contains(&Args::TRACE){ log::LevelFilter::Trace } else { log::LevelFilter::Info });
+        logger::init(if args.contains(&Args::TRACE){
+            log::LevelFilter::Trace
+        } else if args.contains(&Args::DEBUG) {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        });
         let current = env::current_dir().unwrap();
         let parent = current.parent().unwrap();
         let table_tikz_folder = parent.join("scripts").join("table_tikz");
