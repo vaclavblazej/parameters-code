@@ -16,11 +16,14 @@ pub struct Builder {
     assumed_source: BuiltRawSource,
 }
 
+pub static UNKNOWN_SOURCE_ID: &str = "myit4D";
+pub static ASSUMED_SOURCE_ID: &str = "9kg0oo";
+
 impl Builder {
 
     pub fn new() -> Builder {
         let unknown_source = BuiltRawSource {
-            id: "myit4D".into(),
+            id: UNKNOWN_SOURCE_ID.into(),
             rawsourcekey: RawSourceKey::Other {
                 name: "unknown source".into(),
                 description: "This knowledge was added to the database without tying it to an appropriate resource.".into(),
@@ -29,7 +32,7 @@ impl Builder {
             drawings: vec![],
         };
         let assumed_source = BuiltRawSource {
-            id: "9kg0oo".into(),
+            id: ASSUMED_SOURCE_ID.into(),
             rawsourcekey: RawSourceKey::Other {
                 name: "assumed".into(),
                 description: "Is axiomatic knowledge from the viewpoint of HOPS website.".into(),

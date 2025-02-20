@@ -60,7 +60,8 @@ enum RelDescription {
 
 fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescription {
     match &rel.cpx {
-        CpxInfo::Inclusion { mn, mx } => {
+        CpxInfo::Inclusion { mn: None, mx: None } => panic!("none none"),
+        CpxInfo::Inclusion { mn: Some(mn), mx: Some(mx) } => {
             match (&rel.subset.typ, &rel.superset.typ) {
                 (PreviewType::Parameter, PreviewType::Parameter) => {
                     if *mx == CpxTime::Constant { // preventing the trivial mn==mx on constant lb
@@ -86,8 +87,8 @@ fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescrip
                 },
             }
         },
-        CpxInfo::UpperBound { mx } => RelDescription::UpperBound{bound: mx.clone()},
-        CpxInfo::LowerBound { mn } => RelDescription::LowerBound { bound: mn.clone() },
+        CpxInfo::Inclusion { mn: None, mx: Some(mx) } => RelDescription::UpperBound { bound: mx.clone() },
+        CpxInfo::Inclusion { mn: Some(mn), mx: None } => RelDescription::LowerBound { bound: mn.clone() },
         CpxInfo::Equal => RelDescription::Equal,
         CpxInfo::Exclusion => {
             match (&rel.subset.typ, &rel.superset.typ) {

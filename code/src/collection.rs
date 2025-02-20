@@ -647,10 +647,6 @@ pub fn build_collection() -> RawData {
         .done();
     create.web_source("dxaIhi", "https://mathworld.wolfram.com/Pathwidth.html")
         .defined("OivGaa", NotApplicable, &pathwidth, "The pathwidth of a graph $G$, also called the interval thickness, vertex separation number, and node searching number, is one less than the size of the largest set in a path decomposition G.");
-    create.web_source("W4j934", "https://en.wikipedia.org/wiki/Treewidth")
-        .defined("LNtnP9", NotApplicable, &treewidth, "..., the treewidth of an undirected graph is an integer number which specifies, informally, how far the graph is from being a tree.");
-    create.web_source("xnhT1P", "https://www.mimuw.edu.pl/~malcin/book/parameterized-algorithms.pdf")
-        .defined("96BXHn", NotApplicable, &treewidth, "Very roughly, treewidth captures how similar a graph is to a tree. There are many ways to define ``tree-likeness'' of a graph; ... it appears that the approach most useful from algorithmic and graph theoretical perspectives, is to view tree-likeness of a graph $G$ as the existence of a structural decomposition of $G$ into pieces of bounded size that are connected in a tree-like fashion. This intuitive concept is formalized via the notions of a *tree decomposition* and the *treewidth* of a graph; the latter is a quantitative measure of how good a tree decomposition we can possibly obtain.");
     create.web_source("ZhBkjd", "https://en.wikipedia.org/wiki/Branch-decomposition")
         .defined("0SLCxV", NotApplicable, &branch_width, "... branch-decomposition of an undirected graph $G$ is a hierarchical clustering of the edges of $G$, represented by an unrooted binary tree $T$ with the edges of $G$ as its leaves. Removing any edge from $T$ partitions the edges of $G$ into two subgraphs, and the width of the decomposition is the maximum number of shared vertices of any pair of subgraphs formed in this way. The branchwidth of $G$ is the minimum width of any branch-decomposition of $G$.");
     create.web_source("9Ckusi", "https://en.wikipedia.org/wiki/Clique-width")
@@ -899,6 +895,7 @@ pub fn build_collection() -> RawData {
         .showed("OoSnHu", Pp(20), &twin_cover_num, &shrub_depth, UpperBound(Constant), "Let $\\mathcal H_k$ be the class of graphs of twin-cover $k$. Then $\\mathcal H_k \\subseteq \\mathcal{TM}_{2^k+k}(2)$ and a tree-model of any $G \\in \\mathcal H_k$ may be constructed in single-exponential FPT time.")
         .todo_rest();
     let parameterized_algorithms2015 = create.source("Xlsyce", "ParameterizedAlgorithms2015", 9)
+        .defined("96BXHn", NotApplicable, &treewidth, "Very roughly, treewidth captures how similar a graph is to a tree. There are many ways to define ``tree-likeness'' of a graph; ... it appears that the approach most useful from algorithmic and graph theoretical perspectives, is to view tree-likeness of a graph $G$ as the existence of a structural decomposition of $G$ into pieces of bounded size that are connected in a tree-like fashion. This intuitive concept is formalized via the notions of a *tree decomposition* and the *treewidth* of a graph; the latter is a quantitative measure of how good a tree decomposition we can possibly obtain.")
         .todo_rest();
     let diestel2017 = create.source("r2Lwky", "Diestel2017", 7)
         .defined("hxpfbI", Pp(3), &complete, "If all the vertices of $G$ are pairwise adjacent, then $G$ is \\emph{complete}.")

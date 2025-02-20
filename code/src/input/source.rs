@@ -76,7 +76,7 @@ impl<'a> RawDataSource<'a> {
             fact: RawShowedFact::Relation(RawRelation {
                 subset: subset.clone(),
                 superset: superset.clone(),
-                cpx: Inclusion { mn: CpxTime::Constant, mx: CpxTime::Constant },
+                cpx: Inclusion { mn: Some(CpxTime::Constant), mx: Some(CpxTime::Constant) },
             }),
             page: Page::NotApplicable,
         };
@@ -97,13 +97,13 @@ impl<'a> RawDataSource<'a> {
 
     pub fn showed(self, id: &str, page: Page, subset: &RawSet, superset: &RawSet, cpx: Cpx, text: &str) -> Self {
         let relations = match cpx {
-            Cpx::Bounds(a, b) => vec![RawRelation::new(subset, superset, Inclusion{mn: a.clone(), mx: b.clone()})],
-            Cpx::Exactly(a) => vec![RawRelation::new(subset, superset, Inclusion{mn: a.clone(), mx: a.clone()})],
-            Cpx::UpperBound(b) => vec![RawRelation::new(subset, superset, Inclusion{mn: CpxTime::Constant, mx: b.clone()})],
-            Cpx::Todo => vec![RawRelation::new(subset, superset, Inclusion { mn: CpxTime::Constant, mx: CpxTime::Exists })],
+            Cpx::Bounds(a, b) => vec![RawRelation::new(subset, superset, Inclusion{mn: Some(a.clone()), mx: Some(b.clone())})],
+            Cpx::Exactly(a) => vec![RawRelation::new(subset, superset, Inclusion{mn: Some(a.clone()), mx: Some(a.clone())})],
+            Cpx::UpperBound(b) => vec![RawRelation::new(subset, superset, Inclusion{mn: Some(CpxTime::Constant), mx: Some(b.clone())})],
+            Cpx::Todo => vec![RawRelation::new(subset, superset, Inclusion { mn: Some(CpxTime::Constant), mx: Some(CpxTime::Exists) })],
             Cpx::Equal => vec![RawRelation::new(subset, superset, Equal), RawRelation::new(superset, subset, Equal)],
             Cpx::Equivalent(a, b) => vec![
-                RawRelation::new(subset, superset, Inclusion { mn: CpxTime::Constant, mx: a }), RawRelation::new(superset, subset, Inclusion { mn: CpxTime::Constant, mx: b }),
+                RawRelation::new(subset, superset, Inclusion { mn: Some(CpxTime::Constant), mx: Some(a) }), RawRelation::new(superset, subset, Inclusion { mn: Some(CpxTime::Constant), mx: Some(b) }),
             ],
             Cpx::Exclusion => vec![RawRelation::new(subset, superset, Exclusion)],
             Cpx::Incomparable => vec![
@@ -111,7 +111,7 @@ impl<'a> RawDataSource<'a> {
                 RawRelation::new(superset, subset, Exclusion),
             ],
             Cpx::StrictUpperBound(a) => vec![
-                RawRelation::new(subset, superset, Inclusion{mn: CpxTime::Constant, mx: a.clone()}),
+                RawRelation::new(subset, superset, Inclusion{mn: Some(CpxTime::Constant), mx: Some(a.clone())}),
                 RawRelation::new(superset, subset, Exclusion),
             ],
         };

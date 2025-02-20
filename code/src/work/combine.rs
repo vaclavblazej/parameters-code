@@ -111,72 +111,52 @@ impl PartialResult {
         trace!("\n{:?}\n{:?}", self.relation, other.relation);
         let original: SourcedCpxInfo = self.to_sourced();
         let res: Result<SourcedCpxInfo, CombinationError> = match (self.to_sourced(), other.to_sourced()) {
+            (Inclusion { mn: Option::None, mx: Option::None }, _)
+                | (_, Inclusion { mn: Option::None, mx: Option::None }) => panic!("impossible none none"),
             // Prefer anything before taking Unknown.
             (Unknown, a) | (a, Unknown) => Ok(a.clone()),
             // Check equivalence is compatible with the other bound and if so, keep it.
             (Equal{ source }, Equal{ .. }) => Ok(Equal { source }),
-            (Equal{ source }, LowerBound { mn: (mn, _) }) | (LowerBound { mn: (mn, _) }, Equal{ source }) => {
-                match mn {
-                    CpxTime::Constant | CpxTime::Linear => Ok(Equal { source }),
-                    _ => Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
-                }
-            },
-            (Equal{ source }, Inclusion { mn: (mn, mns), mx: (mx, mxs) }) | (Inclusion { mn: (mn, mns), mx: (mx, mxs) }, Equal{ source }) => {
+            (Equal{ source }, Inclusion { mn, mx }) | (Inclusion { mn, mx }, Equal{ source }) => {
                 match (mn, mx) {
-                    (CpxTime::Constant | CpxTime::Linear,
-                     CpxTime::Linear | CpxTime::Polynomial | CpxTime::Exponential | CpxTime::Tower | CpxTime::Exists)
+                    (Option::None
+                     | Some((CpxTime::Constant
+                             | CpxTime::Linear
+                             , _)),
+                     Option::None
+                     | Some((CpxTime::Linear
+                             | CpxTime::Polynomial
+                             | CpxTime::Exponential
+                             | CpxTime::Tower
+                             | CpxTime::Exists
+                             , _)))
                         => Ok(Equal { source }),
                     (_, _) => Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
                 }
             },
-            (Equal{ source }, UpperBound { mx: (mx, mxs) }) | (UpperBound { mx: (mx, mxs) }, Equal{ source }) => {
-                match mx {
-                    CpxTime::Linear | CpxTime::Polynomial | CpxTime::Exponential | CpxTime::Tower | CpxTime::Exists
-                        => Ok(Equal { source }),
-                    _ => Err(CombinationError::IncompatibleWithEquivalence(self.clone(), other.clone())),
-                }
-            },
             (Equal{ .. }, Exclusion{ .. }) | (Exclusion{ .. }, Equal{ .. }) => panic!("impossible"),
             // If both are inclusions, upper bounds or lower bounds we can nicely combine them.
-            (UpperBound {  mx: (mxa, sa) }, UpperBound { mx: (mxb, sb) })
-                => Ok(UpperBound {
-                    mx: combine_parallel_min((mxa, sa), (mxb, sb)),
-                }),
-            (UpperBound {  mx: (mxa, sxa) }, Inclusion { mn: (mnb, snb), mx: (mxb, sxb) })
-                | (Inclusion { mn: (mnb, snb), mx: (mxb, sxb) }, UpperBound {  mx: (mxa, sxa) })
+            (Inclusion { mn: mna, mx: mxa }, Inclusion { mn: mnb, mx: mxb })
                 => Ok(Inclusion {
-                    mn: (mnb.clone(), snb.clone()),
-                    mx: combine_parallel_min((mxa, sxa), (mxb, sxb)),
-                }),
-            (Inclusion { mn: (mna, sna), mx: (mxa, sxa) }, Inclusion { mn: (mnb, snb), mx: (mxb, sxb) })
-                => Ok(Inclusion {
-                    mn: combine_parallel_max((mna, sna), (mnb, snb)),
-                    mx: combine_parallel_min((mxa, sxa), (mxb, sxb)),
-                }),
-            (Inclusion { mn: (mna, sna), mx }, LowerBound { mn: (mnb, snb) })
-                | (LowerBound { mn: (mnb, snb) }, Inclusion { mn: (mna, sna), mx })
-                => Ok(Inclusion {
-                    mn: combine_parallel_max((mna, sna), (mnb, snb)),
-                    mx: mx.clone(),
-                }),
-            (UpperBound { mx }, LowerBound { mn })
-                | (LowerBound { mn }, UpperBound { mx })
-                => Ok(Inclusion {
-                    mn: mn.clone(),
-                    mx: mx.clone(),
-                }),
-            (LowerBound { mn: (mna, sna) }, LowerBound { mn: (mnb, snb) })
-                => Ok(LowerBound {
-                    mn: combine_parallel_max((mna, sna), (mnb, snb)),
+                    mn: match (mna, mnb) {
+                        (Some((a, sa)), Some((b, sb))) => Some(combine_parallel_max((a, sa), (b, sb))),
+                        (Some((a, sa)), None) | (None, Some((a, sa))) => Some((a, sa)),
+                        (None, None) => None,
+                    },
+                    mx: match (mxa, mxb) {
+                        (Some((a, sa)), Some((b, sb))) => Some(combine_parallel_min((a, sa), (b, sb))),
+                        (Some((a, sa)), None) | (None, Some((a, sa))) => Some((a, sa)),
+                        (None, None) => None,
+                    },
                 }),
             // Lower bounds are weaker exclusions.
             (Exclusion { source }, Exclusion { .. })
-                | (LowerBound { .. }, Exclusion { source })
-                | (Exclusion { source }, LowerBound { .. })
+                | (Inclusion { mn: Some(_), mx: Option::None }, Exclusion { source })
+                | (Exclusion { source }, Inclusion { mn: Some(_), mx: Option::None })
                 => Ok(Exclusion { source }),
             // We cannot combine exclusion and inclusion as they are disjoint cases.
-            (Exclusion{ .. }, Inclusion { .. } | UpperBound { .. })
-                | (Inclusion { .. } | UpperBound { .. }, Exclusion{ .. })
+            (Exclusion{ .. }, Inclusion { mn: _, mx: Some(_) } )
+                | (Inclusion { mn: _, mx: Some(_) }, Exclusion{ .. })
                 => Err(CombinationError::ExclusionInclusion(self.clone(), other.clone())),
         };
         match res {
@@ -203,34 +183,16 @@ impl PartialResult {
 
 impl SourcedCpxInfo {
 
-    // todo
-    // pub fn combine_serial(&self, other: &Self) -> Self {
-        // let seta = PreviewSet::mock("a");
-        // let setb = PreviewSet::mock("b");
-        // let setc = PreviewSet::mock("c");
-        // let rela = Relation::new(&seta, &setb, self.clone(), 1);
-        // let relb = Relation::new(&setb, &setc, other.clone(), 2);
-        // let mut partial_results_builder = PartialResultsBuilder::new();
-        // rela.combine_serial(&relb, &mut partial_results_builder).cpx
-    // }
-    // pub fn combine_parallel(&self, other: &Self) -> Result<Self, CombinationError> {
-        // let seta = PreviewSet::mock("a");
-        // let setb = PreviewSet::mock("b");
-        // let mut rela = Relation::new(&seta, &setb, self.clone(), 1);
-        // let relb = Relation::new(&seta, &setb, other.clone(), 2);
-        // rela.combine_parallel(&relb);
-        // Ok(rela.cpx)
-    // }
-
     pub fn combine_plus(&self, other: &Self) -> SourcedCpxInfo {
         debug!("{:?} {:?}", self.clone(), other.clone());
         let cpx = match (self.clone(), other.clone()) {
             (Unknown, _) | (_, Unknown) => Unknown,
             (Equal { source }, a) | (a, Equal { source }) => a.clone(),
-            (Inclusion { mn: _, mx: mxa } | UpperBound { mx: mxa },
-             Inclusion { mn: _, mx: mxb } | UpperBound { mx: mxb })
-                => UpperBound { mx: combine_parallel_max(mxa, mxb) },
-            (Exclusion { .. } | LowerBound { .. }, _) | (_, Exclusion { .. } | LowerBound { .. }) => Unknown,
+            (Inclusion { mn: _, mx: Some(mxa) },
+             Inclusion { mn: _, mx: Some(mxb) })
+                => Inclusion { mn: None, mx: Some(combine_parallel_max(mxa, mxb)) },
+            (Exclusion { .. } | Inclusion { mn: _, mx: Option::None }, _)
+                | (_, Exclusion { .. } | Inclusion { mn: _, mx: Option::None }) => Unknown,
         };
         cpx
     }

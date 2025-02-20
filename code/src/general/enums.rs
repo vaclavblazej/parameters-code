@@ -73,15 +73,11 @@ pub enum CpxTime {
 pub enum CpxInfo {
     /// Values are the same, B = A; this relation is symmetric.
     Equal,
-    /// Value of B is at least mn(A) and at most mx(A).
-    Inclusion{mn: CpxTime, mx: CpxTime},
+    /// Value of B is at least mn(A) and at most mx(A). Either mn or mx can be omitted
+    /// if that bound is unknown, but at least one be should always present.
+    Inclusion{mn: Option<CpxTime>, mx: Option<CpxTime>},
     /// Value of B is not bounded by any function of A.
     Exclusion,
-    /// Value of B is at least mn(A) but upper bound is unknown.
-    /// LowerBound can be further refined to Inclusion or Exclusion.
-    LowerBound{mn: CpxTime},
-    /// Value of B is at most mx(A).
-    UpperBound{mx: CpxTime},
     /// There is no information about whether B is bounded by the value of A.
     Unknown,
 }
@@ -115,10 +111,8 @@ pub enum CreatedBy {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SourcedCpxInfo {
     Equal{source: PartialResult},
-    UpperBound{mx: (CpxTime, PartialResult)},
-    Inclusion{mn: (CpxTime, PartialResult), mx: (CpxTime, PartialResult)},
+    Inclusion{mn: Option<(CpxTime, PartialResult)>, mx: Option<(CpxTime, PartialResult)>},
     Exclusion{source: PartialResult},
-    LowerBound{mn: (CpxTime, PartialResult)},
     Unknown,
 }
 
@@ -139,9 +133,8 @@ impl CpxInfo {
     pub fn get_mx(&self) -> Option<CpxTime> {
         match self {
             CpxInfo::Equal => Some(CpxTime::Linear),
-            CpxInfo::Inclusion { mn: _, mx } => Some(mx.clone()),
-            CpxInfo::UpperBound { mx } => Some(mx.clone()),
-            CpxInfo::LowerBound { .. } => None,
+            CpxInfo::Inclusion { mn: _, mx: Some(ref x) } => Some(x.clone()),
+            CpxInfo::Inclusion { .. } => None,
             CpxInfo::Exclusion => None,
             CpxInfo::Unknown => None,
         }
@@ -149,18 +142,18 @@ impl CpxInfo {
 
     pub fn to_sourced(self, partial_result: PartialResult) -> SourcedCpxInfo {
         match self.clone() {
-            CpxInfo::Equal => SourcedCpxInfo::Equal {
-                source: partial_result
-            },
-            CpxInfo::Inclusion { mn, mx } => SourcedCpxInfo::Inclusion {
-                mn: (mn, partial_result.clone()),
-                mx: (mx, partial_result)
-            },
-            CpxInfo::UpperBound { mx } => SourcedCpxInfo::UpperBound {
-                mx: (mx, partial_result)
-            },
-            CpxInfo::LowerBound { mn } => SourcedCpxInfo::LowerBound {
-                mn: (mn, partial_result)
+            CpxInfo::Equal => SourcedCpxInfo::Equal { source: partial_result },
+            CpxInfo::Inclusion { mn, mx } => {
+                SourcedCpxInfo::Inclusion {
+                    mn: match mn {
+                        Option::Some(x) => Some((x, partial_result.clone())),
+                        Option::None => None,
+                    },
+                    mx: match mx {
+                        Option::Some(x) => Some((x, partial_result.clone())),
+                        Option::None => None,
+                    },
+                }
             },
             CpxInfo::Exclusion => SourcedCpxInfo::Exclusion { source: partial_result },
             CpxInfo::Unknown => SourcedCpxInfo::Unknown,
@@ -173,11 +166,20 @@ impl Into<CpxInfo> for SourcedCpxInfo {
     fn into(self) -> CpxInfo {
         match self {
             SourcedCpxInfo::Equal { source } => CpxInfo::Equal,
-            SourcedCpxInfo::UpperBound { mx: (mx, _) } => CpxInfo::UpperBound { mx: mx.clone() },
-            SourcedCpxInfo::Inclusion { mn: (mn, _), mx: (mx, _) } => CpxInfo::Inclusion { mn: mn.clone(), mx: mx.clone() },
+            SourcedCpxInfo::Inclusion { mn, mx } => {
+                CpxInfo::Inclusion {
+                    mn: match mn {
+                        Some((x, _)) => Some(x),
+                        Option::None => None,
+                    },
+                    mx: match mx {
+                        Some((x, _)) => Some(x),
+                        Option::None => None,
+                    },
+                }
+            },
             SourcedCpxInfo::Exclusion { source: _ } => CpxInfo::Exclusion,
             SourcedCpxInfo::Unknown => CpxInfo::Unknown,
-            SourcedCpxInfo::LowerBound { mn: (mn, _) } => CpxInfo::LowerBound { mn: mn.clone() },
         }
     }
 }

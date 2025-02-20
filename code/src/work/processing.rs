@@ -5,7 +5,7 @@ use biblatex::{Bibliography, Chunk, DateValue, Entry, PermissiveType, Person, Sp
 use log::{debug, error, trace, warn};
 use serde::{Serialize, Deserialize};
 
-use crate::{data::{data::{Data, Date, Linkable, PartialResult, PartialResultsBuilder, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simple_index::SimpleIndex}, general::{enums::{CpxTime, CreatedBy, Drawing, RawDrawing, SourcedCpxInfo, TransferGroup}, progress::ProgressDisplay}, work::combine::combine_serial};
+use crate::{data::{data::{Data, Date, Linkable, PartialResult, PartialResultsBuilder, Provider, Relation, Set, Showed, ShowedFact, Source, SourceSubset}, simple_index::SimpleIndex}, general::{enums::{CpxTime, CreatedBy, Drawing, RawDrawing, SourcedCpxInfo, TransferGroup}, progress::ProgressDisplay}, input::build::{ASSUMED_SOURCE_ID, UNKNOWN_SOURCE_ID}, work::combine::combine_serial};
 use crate::general::{enums::SourceKey, enums::CpxInfo, file};
 use crate::input::raw::*;
 use crate::data::preview::*;
@@ -327,27 +327,13 @@ fn process_relations(sets: &Vec<PreviewSet>,
         }
     }
     let mut res: HashMap<WorkRelation, PartialResult> = HashMap::new();
-    let mut progress = ProgressDisplay::new("processing", 22956);
+    let mut progress = ProgressDisplay::new("processing", 12486);
     for partial_result in partial_results {
         let pair = partial_result.relation.clone();
         debug!("processing relation from {} to {}", pair.subset.name, pair.superset.name);
         let mut updated_relations: VecDeque<WorkRelation> = VecDeque::new();
         // todo add progress in history when the collection is more complete
         add_and_update(partial_result, &mut res, &mut updated_relations, &mut partial_results_builder);
-        // if let Some(mut value) = res.get_mut(&pair) {
-            // if !value.combine_parallel(&partial_result) {
-                // continue;
-            // }
-            // updated_relations.push_back(relation.preview.clone());
-            // true
-        // } else {
-            // res.insert(pair, relation.clone());
-            // updated_relations.push_back(relation.preview.clone());
-            // false
-        // };
-        // let intersection_parameters = sets.iter().filter_map(|x|{
-            // match x.crea
-        // }).collect();
         let mut improved_relations = 0;
         while let Some(relation) = updated_relations.pop_front() {
             improved_relations += 1;
@@ -383,8 +369,6 @@ fn process_relations(sets: &Vec<PreviewSet>,
                                 let Some(cd) = res.get(&WorkRelation::new(&c, &d)) else { continue };
                                 let created_by = CreatedBy::SameThroughEquivalence(cd.handle, source.handle);
                                 let partial_result = partial_results_builder.partial_result(created_by, cd.cpx.clone(), WorkRelation::new(&e, &f));
-    // pub fn partial_result(&mut self, created_by: CreatedBy, cpx: CpxInfo, relation: WorkRelation) -> PartialResult {
-                                // let result = Relation::new(&e, &f, cd.cpx.clone(), partial_result.handle);
                                 debug!("equivalence");
                                 add_and_update(partial_result, &mut res, &mut updated_relations, &mut partial_results_builder);
                             }
@@ -399,12 +383,12 @@ fn process_relations(sets: &Vec<PreviewSet>,
                 ] {
                     let Some(ab) = res.get(&WorkRelation::new(&a, &b)) else { continue };
                     let Some(bc) = res.get(&WorkRelation::new(&b, &c)) else { continue };
-                    if let (SourcedCpxInfo::Inclusion { mn: _, mx: (mxa, sra) } | SourcedCpxInfo::UpperBound { mx: (mxa, sra) },
-                        SourcedCpxInfo::Inclusion { mn: _, mx: (mxb, srb) } | SourcedCpxInfo::UpperBound { mx: (mxb, srb) })
+                    if let (SourcedCpxInfo::Inclusion { mn: _, mx: Some((mxa, sra)) },
+                            SourcedCpxInfo::Inclusion { mn: _, mx: Some((mxb, srb)) })
                             = (ab.to_sourced(), bc.to_sourced()) {
                         let rel = sra.relation.combine_serial(&srb.relation);
                         let (a, b, time) = combine_serial((mxa, sra), (mxb, srb));
-                        let pr = partial_results_builder.partial_result(CreatedBy::TransitiveInclusion(a.handle, b.handle), CpxInfo::UpperBound { mx: time }, rel);
+                        let pr = partial_results_builder.partial_result(CreatedBy::TransitiveInclusion(a.handle, b.handle), CpxInfo::Inclusion { mn: None, mx: Some(time) }, rel);
                         debug!("inclusions {} {} + {} = {}", updated_relations.len(), a.handle, b.handle, c.name);
                         add_and_update(pr, &mut res, &mut updated_relations, &mut partial_results_builder);
                     };
@@ -421,10 +405,9 @@ fn process_relations(sets: &Vec<PreviewSet>,
                     let Some(cd) = res.get(&WorkRelation::new(&c, &d)) else { continue };
                     let res_relation = WorkRelation::new(&e, &f);
                     match (&ab.to_sourced(), &cd.to_sourced()) {
-                        (SourcedCpxInfo::Inclusion { mn: _, mx: (_, smx) }, SourcedCpxInfo::Exclusion { source }) => {
+                        (SourcedCpxInfo::Inclusion { mn: _, mx: Some((_, smx)) }, SourcedCpxInfo::Exclusion { source }) => {
                             let created_by = CreatedBy::TransitiveExclusion(smx.handle, source.handle);
                             let partial_result = partial_results_builder.partial_result(created_by, CpxInfo::Exclusion, res_relation);
-                            // pub fn partial_result(&mut self, created_by: CreatedBy, cpx: CpxInfo, relation: WorkRelation) -> PartialResult {
                             debug!("exclusions");
                             add_and_update(partial_result, &mut res, &mut updated_relations, &mut partial_results_builder);
                         },
@@ -515,25 +498,15 @@ fn apply_transfers(
         if let (Some(top_res), Some(bot_res)) = (map.get(&top), map.get(&bot)) {
             let mut res_cpx: SourcedCpxInfo = partial_result.clone().to_sourced();
             let okay = match res_cpx.clone() {
-                // todo get rid of these exceptions via lambda that takes the result and transforms it
-                SourcedCpxInfo::Inclusion { mn: (mn, smn), mx: (mx, smx) } => {
-                    if let Constant = mx {
-                        res_cpx = SourcedCpxInfo::Inclusion {
-                            mn: (mn, smn),
-                            mx: (CpxTime::Linear, smx),
-                        }
+                SourcedCpxInfo::Inclusion { mn, mx } => {
+                    res_cpx = SourcedCpxInfo::Inclusion {
+                        mn,
+                        mx: match mx {
+                            // todo get rid of these exceptions via lambda that takes the result and transforms it
+                            Some((Constant, smx)) => Some((CpxTime::Linear, smx)),
+                            x => x,
+                        },
                     };
-                    true
-                },
-                SourcedCpxInfo::UpperBound { mx: (mx, smx) } => {
-                    if let Constant = mx {
-                        res_cpx = SourcedCpxInfo::UpperBound {
-                            mx: (CpxTime::Linear, smx),
-                        }
-                    };
-                    true
-                },
-                SourcedCpxInfo::LowerBound { mn: (mn, smn) } => {
                     true
                 },
                 _ => false,
@@ -592,11 +565,22 @@ pub fn process_raw_data(rawdata: &RawData, bibliography: &Option<Bibliography>) 
         }
         transfers.insert(key.clone(), res);
     }
-    let (mut relations, partial_results) = process_relations(&preview_sets, &composed_sets, &rawdata.factoids, &transfers, &source_keys);
+    let (relations, partial_results) = process_relations(&preview_sets, &composed_sets, &rawdata.factoids, &transfers, &source_keys);
     let simple_index = SimpleIndex::new(&relations);
     let mut sets = vec![];
     for set in &rawdata.sets {
         sets.push(process_set(set, &simple_index, &rawdata, &source_keys));
     }
+    // todo
+    // let mut unused_ids: Vec<String> = vec![];
+    // if let Some(unknown_source) = source_keys.get(UNKNOWN_SOURCE_ID) {
+        // unused_ids.append(&mut unknown_source.showed.iter().map(|x|x.id.clone()).collect());
+    // }
+    // if let Some(assumed_source) = source_keys.get(ASSUMED_SOURCE_ID) {
+        // unused_ids.append(&mut assumed_source.showed.iter().map(|x|x.id.clone()).collect());
+    // }
+    // if unused_ids.len() != 0 {
+        // warn!("unnecessary unknown or assumed results with ids: {}", unused_ids.join(", "));
+    // }
     Data::new(sets, relations, sources, providers, tags, partial_results)
 }

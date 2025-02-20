@@ -351,19 +351,17 @@ fn format_relation(data: &Data, relation: &Relation) -> String{
             let format_a = format_created_by(data, &source.created_by, 1);
             ("equal", format_a)
         },
-        SourcedCpxInfo::UpperBound { mx: (mx, smx) } => {
-            let format_a = format_created_by(data, &smx.created_by, 1);
-            ("upper bound", format_a)
+        SourcedCpxInfo::Inclusion { mn, mx } => {
+            let mut children: Vec<String> = vec![];
+            if let Some((a, sa)) = mn {
+                children.push(format!("lower bound {}", format_created_by(data, &sa.created_by, 1)));
+            }
+            if let Some((a, sa)) = mx {
+                children.push(format!("upper bound {}", format_created_by(data, &sa.created_by, 1)));
+            }
+            ;
+            ("inclusion", children.join("\n"))
         },
-        SourcedCpxInfo::Inclusion { mn: (mn, smn), mx: (mx, smx) } => {
-            let format_a = format_created_by(data, &smn.created_by, 1);
-            let format_b = format_created_by(data, &smx.created_by, 1);
-            ("upper bound", format!("{}\n{}", format_a, format_b))
-        },
-        SourcedCpxInfo::LowerBound { mn: (mn, smn) } => {
-            let format_a = format_created_by(data, &smn.created_by, 1);
-            ("lower bound", format_a)
-        }
         SourcedCpxInfo::Exclusion { source } => {
             let format_a = format_created_by(data, &source.created_by, 1);
             ("exclusion", format_a)
