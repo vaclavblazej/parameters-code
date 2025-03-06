@@ -1,15 +1,16 @@
 //! Trivial enums that do not contain complex structure
 //! and so can be used from input till output.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::data::{data::PartialResult, preview::{PreviewSet, PreviewSource}};
-
+use crate::data::{
+    data::PartialResult, id::PreviewSetId, preview::{PreviewSet, PreviewSource}
+};
 
 /// Refers to a page in a book or paper. If pdf is available it should refer its
 /// page in pdf instead of the label.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Page{
+pub enum Page {
     Pp(u32),
     Unknown,
     NotApplicable,
@@ -60,12 +61,12 @@ pub enum Cpx {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CpxTime {
     // with deeper processing, we would be able to devise these from the resulting equations directly
-    Constant,   // O(1)
-    Linear,     // O(N)
-    Polynomial, // N^{O(1)}
-    Exponential,// 2^{O(N)}
-    Tower,      // 2^2^...^N
-    Exists,     // f(N) where f is a computable function
+    Constant,    // O(1)
+    Linear,      // O(N)
+    Polynomial,  // N^{O(1)}
+    Exponential, // 2^{O(N)}
+    Tower,       // 2^2^...^N
+    Exists,      // f(N) where f is a computable function
 }
 
 /// What we know about parameter increase over a binary relation A with B.
@@ -75,7 +76,10 @@ pub enum CpxInfo {
     Equal,
     /// Value of B is at least mn(A) and at most mx(A). Either mn or mx can be omitted
     /// if that bound is unknown, but at least one be should always present.
-    Inclusion{mn: Option<CpxTime>, mx: Option<CpxTime>},
+    Inclusion {
+        mn: Option<CpxTime>,
+        mx: Option<CpxTime>,
+    },
     /// Value of B is not bounded by any function of A.
     Exclusion,
     /// There is no information about whether B is bounded by the value of A.
@@ -90,8 +94,14 @@ pub enum BoundType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SourcedBound {
-    Direct { typ: BoundType, source: PreviewSource },
-    Indirect { typ: BoundType, source: usize }, // idx to data
+    Direct {
+        typ: BoundType,
+        source: PreviewSource,
+    },
+    Indirect {
+        typ: BoundType,
+        source: usize,
+    }, // idx to data
 }
 
 // Saved indices point to 'data.partial_results'
@@ -110,16 +120,23 @@ pub enum CreatedBy {
 /// A processed variant of CpxInfo which has links to sources that lead to a given result
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SourcedCpxInfo {
-    Equal{source: PartialResult},
-    Inclusion{mn: Option<(CpxTime, PartialResult)>, mx: Option<(CpxTime, PartialResult)>},
-    Exclusion{source: PartialResult},
+    Equal {
+        source: PartialResult,
+    },
+    Inclusion {
+        mn: Option<(CpxTime, PartialResult)>,
+        mx: Option<(CpxTime, PartialResult)>,
+    },
+    Exclusion {
+        source: PartialResult,
+    },
     Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum RawDrawing {
-    Table(Vec<String>),
-    Hasse(Vec<String>),
+    Table(Vec<PreviewSetId>),
+    Hasse(Vec<PreviewSetId>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -129,11 +146,13 @@ pub enum Drawing {
 }
 
 impl CpxInfo {
-
     pub fn get_mx(&self) -> Option<CpxTime> {
         match self {
             CpxInfo::Equal => Some(CpxTime::Linear),
-            CpxInfo::Inclusion { mn: _, mx: Some(ref x) } => Some(x.clone()),
+            CpxInfo::Inclusion {
+                mn: _,
+                mx: Some(ref x),
+            } => Some(x.clone()),
             CpxInfo::Inclusion { .. } => None,
             CpxInfo::Exclusion => None,
             CpxInfo::Unknown => None,
@@ -142,41 +161,40 @@ impl CpxInfo {
 
     pub fn to_sourced(self, partial_result: PartialResult) -> SourcedCpxInfo {
         match self.clone() {
-            CpxInfo::Equal => SourcedCpxInfo::Equal { source: partial_result },
-            CpxInfo::Inclusion { mn, mx } => {
-                SourcedCpxInfo::Inclusion {
-                    mn: match mn {
-                        Option::Some(x) => Some((x, partial_result.clone())),
-                        Option::None => None,
-                    },
-                    mx: match mx {
-                        Option::Some(x) => Some((x, partial_result.clone())),
-                        Option::None => None,
-                    },
-                }
+            CpxInfo::Equal => SourcedCpxInfo::Equal {
+                source: partial_result,
             },
-            CpxInfo::Exclusion => SourcedCpxInfo::Exclusion { source: partial_result },
+            CpxInfo::Inclusion { mn, mx } => SourcedCpxInfo::Inclusion {
+                mn: match mn {
+                    Option::Some(x) => Some((x, partial_result.clone())),
+                    Option::None => None,
+                },
+                mx: match mx {
+                    Option::Some(x) => Some((x, partial_result.clone())),
+                    Option::None => None,
+                },
+            },
+            CpxInfo::Exclusion => SourcedCpxInfo::Exclusion {
+                source: partial_result,
+            },
             CpxInfo::Unknown => SourcedCpxInfo::Unknown,
         }
     }
-
 }
 
 impl Into<CpxInfo> for SourcedCpxInfo {
     fn into(self) -> CpxInfo {
         match self {
             SourcedCpxInfo::Equal { source } => CpxInfo::Equal,
-            SourcedCpxInfo::Inclusion { mn, mx } => {
-                CpxInfo::Inclusion {
-                    mn: match mn {
-                        Some((x, _)) => Some(x),
-                        Option::None => None,
-                    },
-                    mx: match mx {
-                        Some((x, _)) => Some(x),
-                        Option::None => None,
-                    },
-                }
+            SourcedCpxInfo::Inclusion { mn, mx } => CpxInfo::Inclusion {
+                mn: match mn {
+                    Some((x, _)) => Some(x),
+                    Option::None => None,
+                },
+                mx: match mx {
+                    Some((x, _)) => Some(x),
+                    Option::None => None,
+                },
             },
             SourcedCpxInfo::Exclusion { source: _ } => CpxInfo::Exclusion,
             SourcedCpxInfo::Unknown => CpxInfo::Unknown,
@@ -192,7 +210,6 @@ pub enum ComparisonResult {
 }
 
 impl ComparisonResult {
-
     pub fn flip(self) -> Self {
         match self {
             Self::Better => Self::Worse,
@@ -201,5 +218,4 @@ impl ComparisonResult {
             Self::Equivalent => Self::Equivalent,
         }
     }
-
 }

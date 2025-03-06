@@ -1,165 +1,169 @@
-
 use std::collections::HashMap;
 
 use biblatex::Entry;
 use log::error;
 
-use crate::data::data::{Date, PartialResultsBuilder, Provider, ProviderLink, Relation, Showed, ShowedFact, Source, Tag};
+use crate::data::data::{
+    PartialResultsBuilder, PreviewShowed, Provider, ProviderLink, Relation, ShowedFact, Source, Tag
+};
+use crate::data::id::{Id, PreviewId, PreviewRelationId, PreviewSetId, RelationId};
+use crate::data::preview::*;
 use crate::general::enums::{CreatedBy, Drawing, RawDrawing, SourceKey, SourcedCpxInfo};
 use crate::input::raw::*;
-use crate::data::preview::*;
+use crate::work::date::Date;
 
+// impl Into<PreviewSourceKey> for RawSourceKey {
+// fn into(self) -> PreviewSourceKey {
+// match self {
+// Self::Bibtex { key } => PreviewSourceKey::Bibtex { key },
+// Self::Online { url } => PreviewSourceKey::Online { url },
+// Self::Other { name, description: _ } => PreviewSourceKey::Other { name },
+// }
+// }
+// }
 
-impl Into<PreviewSourceKey> for RawSourceKey {
-    fn into(self) -> PreviewSourceKey {
-        match self {
-            Self::Bibtex { key } => PreviewSourceKey::Bibtex { key },
-            Self::Online { url } => PreviewSourceKey::Online { url },
-            Self::Other { name, description: _ } => PreviewSourceKey::Other { name },
+impl From<&RawType> for PreviewType {
+    fn from(raw: &RawType) -> PreviewType {
+        match raw {
+            RawType::Parameter => PreviewType::Parameter,
+            RawType::GraphClass => PreviewType::GraphClass,
         }
     }
 }
 
-impl Into<PreviewType> for RawType {
-    fn into(self) -> PreviewType {
-        match self {
-            Self::Parameter => PreviewType::Parameter,
-            Self::GraphClass => PreviewType::GraphClass,
-        }
-    }
-}
-
-impl Into<Provider> for RawProvider {
-    fn into(self) -> Provider {
+impl Provider {
+    pub fn from(raw: RawProvider, links: Vec<ProviderLink>) -> Provider {
         Provider {
-            name: self.name,
-            url: self.url,
+            id: raw.id,
+            name: raw.name,
+            url: raw.url,
+            links,
         }
     }
 }
 
-impl RawProviderLink {
-    pub fn preprocess(self, provider: &Provider) -> ProviderLink {
+impl ProviderLink {
+    pub fn from(item: RawProviderLink, name: String) -> Self {
         ProviderLink {
-            provider: provider.clone(),
-            set: self.set.into(),
-            url: self.url.into(),
+            provider_name: name,
+            set: item.set,
+            url: item.url,
         }
     }
 }
 
-impl Into<PreviewSet> for RawSet {
-    fn into(self) -> PreviewSet {
+impl From<&RawSet> for PreviewSet {
+    fn from(raw: &RawSet) -> Self {
         PreviewSet {
-            id: self.id,
-            name: self.name,
-            typ: self.typ.into(),
-            relevance: self.relevance,
+            id: raw.id.preview(),
+            name: raw.name.clone(),
+            typ: PreviewType::from(&raw.typ),
+            relevance: raw.relevance,
         }
     }
 }
 
-impl RawShowed {
-    pub fn preprocess(self, sourcekey: &SourceKey) -> Showed {
-        Showed {
-            id: self.id,
-            text: self.text,
-            fact: self.fact.preprocess(&sourcekey),
-            page: self.page,
+impl From<&RawShowed> for PreviewShowed {
+    fn from(raw: &RawShowed) -> PreviewShowed {
+        PreviewShowed {
+            id: raw.id.preview(),
+            text: raw.text.clone(),
+            fact: ShowedFact::from(&raw.fact),
+            page: raw.page.clone(),
         }
     }
 }
 
-impl RawShowedFact {
-    pub fn preprocess(self, sourcekey: &SourceKey) -> ShowedFact {
-        match self {
-            Self::Relation(x) => ShowedFact::Relation(x.into()),
-            Self::Citation(x) => ShowedFact::Citation(x.preprocess(&sourcekey)),
-            Self::Definition(x) => ShowedFact::Definition(x.into()),
+impl From<&RawShowedFact> for ShowedFact {
+    fn from(raw: &RawShowedFact) -> ShowedFact {
+        match raw {
+            RawShowedFact::Relation(x) => ShowedFact::Relation(x.clone()),
+            // Self::Citation(x) => ShowedFact::Citation(x.preprocess(&sourcekey)),
+            RawShowedFact::Definition(x) => ShowedFact::Definition(x.clone()),
         }
     }
 }
 
-impl RawTag {
-    pub fn preprocess(self, sets: Vec<PreviewSet>) -> Tag {
-        Tag {
-            preview: self.clone().into(),
-            id: self.id,
-            name: self.name,
-            description: self.description,
+impl Tag {
+    pub fn from(raw: RawTag, sets: Vec<PreviewSet>) -> Self {
+        Self {
+            preview: PreviewTag::from(&raw),
+            id: raw.id,
+            name: raw.name,
+            description: raw.description,
             sets,
         }
     }
 }
 
-impl Into<PreviewTag> for RawTag {
-    fn into(self) -> PreviewTag {
+impl From<&RawTag> for PreviewTag {
+    fn from(raw: &RawTag) -> PreviewTag {
         PreviewTag {
-            id: self.id,
-            name: self.name,
+            id: raw.id.preview(),
+            name: raw.name.clone(),
         }
     }
 }
 
-impl Into<WorkRelation> for &mut Relation {
-    fn into(self) -> WorkRelation {
-        WorkRelation {
-            subset: self.subset.clone(),
-            superset: self.superset.clone(),
-        }
-    }
-}
+// impl From<&Relation> for WorkRelation {
+// fn from(rel: &Relation) -> WorkRelation {
+// WorkRelation {
+// subset: rel.subset.clone(),
+// superset: rel.superset.clone(),
+// }
+// }
+// }
 
-impl Into<WorkRelation> for PreviewRelation {
-    fn into(self) -> WorkRelation {
-        WorkRelation {
-            subset: self.subset.clone(),
-            superset: self.superset.clone(),
-        }
-    }
-}
+// impl From<PreviewRelation> for WorkRelation {
+// fn from(raw: PreviewRelation) -> WorkRelation {
+// WorkRelation {
+// subset: raw.subset.clone(),
+// superset: raw.superset.clone(),
+// }
+// }
+// }
 
-impl Into<PreviewRelation> for RawRelation {
-    fn into(self) -> PreviewRelation {
-        let preview_subset = self.subset.into();
-        let preview_superset = self.superset.into();
-        PreviewRelation {
-            id: Relation::id(&preview_subset, &preview_superset),
-            subset: preview_subset,
-            superset: preview_superset,
-            cpx: self.cpx,
-        }
-    }
-}
+// impl From<&RawRelation> for PreviewRelation { // todo
+    // fn from(raw: &RawRelation) -> PreviewRelation {
+        // let preview_subset: PreviewSetId = raw.subset.into();
+        // let preview_superset: PreviewSetId = raw.superset.into();
+        // PreviewRelation {
+            // id: PreviewRelationId::new(&preview_subset, &preview_superset),
+            // subset: preview_subset,
+            // superset: preview_superset,
+            // cpx: raw.cpx,
+        // }
+    // }
+// }
 
-fn str_to_preview_set(list: Vec<String>, preview_set_map: &HashMap<String, PreviewSet>) -> Vec<PreviewSet> {
+fn str_to_preview_set(list: Vec<PreviewSetId>, preview_set_map: &HashMap<PreviewSetId, PreviewSet>) -> Vec<PreviewSet> {
     let mut res = vec![];
     for el in list {
         match preview_set_map.get(&el) {
             Some(x) => res.push(x.clone()),
             None => {
-                error!("didn't find set with id {}", el);
+                error!("didn't find set with id {}", el.to_string());
             },
         }
     }
     res
 }
 
-impl RawDrawing {
-    pub fn preprocess(&self, preview_set_map: &HashMap<String, PreviewSet>) -> Drawing {
-        match self {
+impl Drawing {
+    pub fn from(raw: &RawDrawing, preview_set_map: &HashMap<PreviewSetId, PreviewSet>) -> Drawing {
+        match raw {
             RawDrawing::Table(q) => Drawing::Table(str_to_preview_set(q.clone(), preview_set_map)),
             RawDrawing::Hasse(q) => Drawing::Hasse(str_to_preview_set(q.clone(), preview_set_map)),
         }
     }
 }
 
-impl RawSource {
-    pub fn preprocess(self, sourcekey: &SourceKey) -> PreviewSource {
-        PreviewSource {
-            id: self.id,
-            sourcekey: sourcekey.clone(),
-            time: Date::empty(),
-        }
-    }
-}
+// impl PreviewSource {
+// pub fn from(raw: &RawSource, sourcekey: &SourceKey) -> PreviewSource {
+// PreviewSource {
+// id: raw.id.preview(),
+// sourcekey: sourcekey.clone(),
+// time: Date::empty(),
+// }
+// }
+// }

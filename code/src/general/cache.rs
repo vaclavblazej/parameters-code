@@ -1,9 +1,9 @@
-use std::path::PathBuf;
 use std::marker::PhantomData;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use log::{debug, error};
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::general::file;
 
@@ -42,10 +42,10 @@ impl<T> Cache<T> {
             Ok(res) => res,
             Err(err) => {
                 error!("{:?}", err);
-                return None
-            },
+                return None;
+            }
         };
-        serde_json::from_str(&serialized).unwrap_or_else(|err|{
+        serde_json::from_str(&serialized).unwrap_or_else(|err| {
             error!("{:?}", err);
             return None;
         })

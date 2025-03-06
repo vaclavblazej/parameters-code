@@ -2,24 +2,23 @@
 
 use std::collections::HashMap;
 
-use crate::general::enums::{CpxInfo, Drawing, Page, RawDrawing, TransferGroup};
+use crate::{
+    data::id::{
+        Id, PreviewId, PreviewProviderId, PreviewRelationId, PreviewSetId, PreviewSourceId, PreviewTagId, ProviderId, RelationId, SetId, ShowedId, SourceId, TagId, BaseId
+    },
+    general::enums::{CpxInfo, Drawing, Page, RawDrawing, TransferGroup},
+};
 
-
-/// General identification of all database entities.
-pub trait Id{
-    fn get_id(&self) -> String;
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum RawType {
     Parameter,
     GraphClass,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug)]
 pub enum Composition {
     None,
-    Intersection(Vec<RawSet>),
+    Intersection(Vec<PreviewSetId>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -30,75 +29,67 @@ pub enum RawSourceKey {
 }
 
 impl RawSourceKey {
-    pub fn to_str(&self) -> String{
+    pub fn to_str(&self) -> String {
         match self {
             RawSourceKey::Bibtex { key } => key.clone(),
             RawSourceKey::Online { url } => url.clone(),
-            RawSourceKey::Other { name, description: _ } => name.clone(),
+            RawSourceKey::Other {
+                name,
+                description: _,
+            } => name.clone(),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct RawSource {
-    pub id: String,
+    pub id: SourceId,
     pub rawsourcekey: RawSourceKey,
     pub relevance: u32, // from 0 to 9
     pub drawings: Vec<RawDrawing>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct BuiltRawSource {
-    pub id: String,
+    pub id: SourceId,
     pub rawsourcekey: RawSourceKey,
     pub relevance: u32, // from 0 to 9
     pub drawings: Vec<RawDrawing>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug)]
 pub struct BuiltRawSet {
-    pub id: String,
+    pub id: SetId,
     pub name: String,
     pub typ: RawType,
     pub composed: Composition,
     pub relevance: u32, // from 0 to 9
-    pub tags: Vec<RawTag>,
     pub aka: Vec<String>,
     pub abbr: Option<String>,
+    pub tags: Vec<PreviewTagId>,
 }
 
-impl Into<RawSet> for BuiltRawSet {
-    fn into(self) -> RawSet {
-        RawSet {
-            id: self.id,
-            name: self.name,
-            typ: self.typ,
-            composed: self.composed,
-            relevance: self.relevance,
-            tags: self.tags,
-            aka: self.aka,
-            abbr: self.abbr,
-        }
-    }
-}
-
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug)]
 pub struct RawSet {
-    pub id: String,
+    pub id: SetId,
     pub name: String,
     pub typ: RawType,
     pub composed: Composition,
     pub relevance: u32, // from 0 to 9
-    pub tags: Vec<RawTag>,
     pub aka: Vec<String>,
     pub abbr: Option<String>,
 }
 
 impl BuiltRawSet {
-    pub fn new(id: String, name: String, typ: RawType, composed: Composition, relevance: u32) -> Self {
+    pub fn new(
+        id: String,
+        name: String,
+        typ: RawType,
+        composed: Composition,
+        relevance: u32,
+    ) -> Self {
         Self {
-            id,
+            id: Id::new(id),
             name,
             typ,
             composed,
@@ -110,26 +101,21 @@ impl BuiltRawSet {
     }
 }
 
-impl Id for RawSet {
-    fn get_id(&self) -> String{
-        self.id.clone()
-    }
-}
-
-
 /// Holds into on whether bounded `subset` implies bounded `superset`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct RawRelation {
+    pub id: RelationId,
     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
-    pub subset: RawSet,
+    pub subset: PreviewSetId,
     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
-    pub superset: RawSet,
+    pub superset: PreviewSetId,
     pub cpx: CpxInfo,
 }
 
 impl RawRelation {
-    pub fn new(subset: &RawSet, superset: &RawSet, cpx: CpxInfo) -> RawRelation {
-        RawRelation{
+    pub fn new(subset: &PreviewSetId, superset: &PreviewSetId, cpx: CpxInfo) -> RawRelation {
+        RawRelation {
+            id: RelationId::new(subset, superset),
             subset: subset.clone(),
             superset: superset.clone(),
             cpx,
@@ -137,58 +123,66 @@ impl RawRelation {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct RawTag {
-    pub id: String,
+    pub id: TagId,
     pub name: String,
     pub description: String,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct RawProvider {
+    pub id: ProviderId,
     pub name: String,
     pub url: String,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct RawProviderLink {
-    pub set: RawSet,
+    pub provider: PreviewProviderId,
+    pub set: PreviewSetId,
     pub url: String,
 }
 
 pub struct RawData {
     pub sets: Vec<RawSet>,
-    pub factoids: Vec<(String, RawShowed)>,
+    pub relations: Vec<RawRelation>,
+    pub factoids: Vec<(PreviewSourceId, RawShowed)>,
     pub sources: Vec<RawSource>,
-    pub provider_links: HashMap<RawProvider, Vec<RawProviderLink>>,
+    pub providers: Vec<RawProvider>,
+    pub provider_links: Vec<RawProviderLink>,
     pub tags: Vec<RawTag>,
-    pub transfer: HashMap<TransferGroup, Vec<(RawSet, RawSet)>>,
+    pub tag_set: Vec<(PreviewTagId, PreviewSetId)>,
+    pub transfer: HashMap<TransferGroup, Vec<(PreviewSetId, PreviewSetId)>>,
 }
 
 impl RawData {
     pub fn new() -> Self {
         Self {
             sets: Vec::new(),
+            relations: Vec::new(),
             factoids: Vec::new(),
             sources: Vec::new(),
-            provider_links: HashMap::new(),
+            providers: Vec::new(),
+            provider_links: Vec::new(),
             tags: Vec::new(),
+            tag_set: Vec::new(),
             transfer: HashMap::new(),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RawShowed {
-    pub id: String,
+    pub id: ShowedId,
     pub text: String,
     pub fact: RawShowedFact,
     pub page: Page,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum RawShowedFact {
-    Relation(RawRelation),
-    Definition(RawSet),
-    Citation(RawSource),
+    Relation(PreviewRelationId),
+    Definition(PreviewSetId),
+    // Citation(RawSource),
 }

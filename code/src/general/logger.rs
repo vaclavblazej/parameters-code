@@ -1,7 +1,7 @@
 // warn! error! info! debug! trace!
 
-use log::{Record, Level, Metadata};
-use log::{SetLoggerError, LevelFilter};
+use log::{Level, Metadata, Record};
+use log::{LevelFilter, SetLoggerError};
 
 static LOGGER: SimpleLogger = SimpleLogger;
 

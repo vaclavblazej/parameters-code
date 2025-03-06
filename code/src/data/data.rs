@@ -1,92 +1,38 @@
 //! Collection of preview datapoints together with their mutual relations.
 //! More complex structures use Preview structures to refer to each other.
 
-use std::fmt;
 use std::collections::HashMap;
+use std::fmt;
 
 use log::trace;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::data::preview::{PreviewType, PreviewRelation, PreviewSet, PreviewSource, PreviewTag};
-use crate::general::enums::{Cpx, CpxInfo, CpxTime, CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo, TransferGroup};
-use crate::work::processing::Sets;
+use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewTag, PreviewType};
+use crate::general::enums::{
+    Cpx, CpxInfo, CpxTime, CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo, TransferGroup,
+};
+use crate::work::date::Date;
+use crate::work::processing::{RelatedSets, Sets};
 
+use super::id::{
+    Id, BaseId, PreviewId, PreviewProviderId, PreviewRelationId, PreviewSetId, PreviewShowedId, PreviewSourceId, PreviewSubsetId, ProviderId, RelationId, SetId, ShowedId, SourceId, TagId
+};
 use super::preview::WorkRelation;
 
-
-pub trait Linkable {
-    fn get_url(&self) -> String;
-    fn get_name(&self) -> String;
-}
-
-pub trait HasId {
-    fn id(&self) -> String;
-}
-impl HasId for Set { fn id(&self) -> String { self.id.clone() } }
-impl HasId for Relation { fn id(&self) -> String { self.id.clone() } }
-impl HasId for Source { fn id(&self) -> String { self.id.clone() } }
-impl HasId for Tag { fn id(&self) -> String { self.id.clone() } }
-
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
-pub struct Date {
-    pub year: Option<i32>,
-    pub month: Option<u8>,
-    pub day: Option<u8>,
-}
-
-impl Date {
-    pub fn empty() -> Date {
-        Date {
-            year: None,
-            month: None,
-            day: None,
-        }
-    }
-}
-
-impl fmt::Display for Date {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut result: String = "".to_string();
-        if let Some(y) = self.year {
-            result.push_str(&y.to_string());
-        } else {
-            return write!(f, "unknown")
-        }
-        if let Some(m) = self.month {
-            result.push('/');
-            result.push_str(&format!("{:0>2}", m.to_string()));
-        } else {
-            return write!(f, "{}", result)
-        }
-        if let Some(d) = self.day {
-            result.push('/');
-            result.push_str(&format!("{:0>2}", d.to_string()));
-        }
-        write!(f, "{}", result)
-    }
-}
-
-impl fmt::Debug for Date {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{}", &self))
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SourceSubset {
     pub preview: PreviewSource,
-    pub id: String,
+    pub source: PreviewSourceId,
     pub sourcekey: SourceKey,
-    pub showed: Vec<Showed>,
+    pub showed: Vec<PreviewShowed>,
     pub time: Date,
 }
 
 /// A general structure for parameters, graph classes, any other structures.
-// todo - Set is a heavy structure and ideally should not have #derive[clone]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Set {
     pub preview: PreviewSet,
-    pub id: String,
+    pub id: SetId,
     pub name: String,
     pub typ: PreviewType,
     pub aka: Vec<String>,
@@ -94,46 +40,44 @@ pub struct Set {
     pub tags: Vec<PreviewTag>,
     pub providers: Vec<ProviderLink>,
     pub timeline: Vec<SourceSubset>,
-    pub equivsets: Vec<PreviewSet>,
-    pub supersets: Sets,
-    pub subsets: Sets,
-    pub super_exclusions: Sets,
-    pub sub_exclusions: Sets,
-    pub unknown: Sets,
+    pub related_sets: RelatedSets,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Provider {
+    pub id: ProviderId,
     pub name: String,
     pub url: String,
+    pub links: Vec<ProviderLink>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProviderLink {
-    pub provider: Provider,
-    pub set: PreviewSet,
+    pub provider_name: String,
+    pub set: PreviewSetId,
     pub url: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
     pub preview: PreviewTag,
-    pub id: String,
+    pub id: TagId,
     pub name: String,
     pub description: String,
     pub sets: Vec<PreviewSet>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Source {
     pub preview: PreviewSource,
-    pub id: String,
+    pub id: SourceId,
     pub sourcekey: SourceKey,
-    pub showed: Vec<Showed>,
+    pub showed: Vec<PreviewShowed>,
     pub time: Date,
     pub drawings: Vec<Drawing>,
 }
 
+// todo, remove clone?
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PartialResult {
     pub handle: usize,
@@ -157,7 +101,11 @@ pub struct Data {
     #[serde(skip)]
     pub set_idx: HashMap<PreviewSet, usize>,
     #[serde(skip)]
+    pub set_id_idx: HashMap<PreviewSetId, usize>,
+    #[serde(skip)]
     pub relation_idx: HashMap<(PreviewSet, PreviewSet), usize>,
+    #[serde(skip)]
+    pub relation_id_idx: HashMap<PreviewRelationId, usize>,
 }
 
 pub fn compute_set_idx(sets: &Vec<Set>) -> HashMap<PreviewSet, usize> {
@@ -181,20 +129,37 @@ pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, P
 }
 
 impl Data {
-    pub fn new(mut sets: Vec<Set>, relations: Vec<Relation>, sources: Vec<Source>, providers: Vec<Provider>, tags: Vec<Tag>, partial_results: Vec<PartialResult>) -> Self {
+    pub fn new(
+        mut sets: Vec<Set>,
+        relations: Vec<Relation>,
+        sources: Vec<Source>,
+        providers: Vec<Provider>,
+        tags: Vec<Tag>,
+        partial_results: Vec<PartialResult>,
+    ) -> Self {
         trace!("new data");
-        sets.sort_by_key(|x|x.name.to_lowercase().clone());
+        sets.sort_by_key(|x| x.name.to_lowercase().clone());
         let set_idx = compute_set_idx(&sets);
         let relation_idx = compute_relation_idx(&relations);
+        let mut relation_id_idx = HashMap::new();
+        for (idx, relation) in relations.iter().enumerate() {
+            relation_id_idx.insert(relation.id.preview(), idx);
+        }
+        let mut set_id_idx = HashMap::new();
+        for (idx, set) in sets.iter().enumerate() {
+            set_id_idx.insert(set.id.preview(), idx);
+        }
         Self {
             sets,
             relations,
             sources,
             providers,
             tags,
-            set_idx,
-            relation_idx,
             partial_results,
+            set_idx,
+            set_id_idx,
+            relation_idx,
+            relation_id_idx,
         }
     }
 
@@ -204,20 +169,49 @@ impl Data {
     }
 
     pub fn get_sets<I>(&self, key: I) -> Vec<&Set>
-        where I: IntoIterator<Item = PreviewSet>, {
-        key.into_iter().map(|x|self.get_set(&x)).collect()
+    where
+        I: IntoIterator<Item = PreviewSet>,
+    {
+        key.into_iter().map(|x| self.get_set(&x)).collect()
     }
 
     pub fn get_set(&self, key: &PreviewSet) -> &Set {
-        trace!("get set {} {}", key.id, key.name);
-        let idx: usize = *self.set_idx.get(&key).expect(&format!("preview set not found {:?}", key));
+        trace!("get set {} {}", key.id.to_string(), key.name);
+        let idx: usize = *self
+            .set_idx
+            .get(&key)
+            .expect(&format!("preview set not found {:?}", key));
         &self.sets[idx]
     }
 
+    pub fn get_set_by_id(&self, id: &PreviewSetId) -> &Set {
+        trace!("get set id {}", id.to_string());
+        let idx: usize = *self
+            .set_id_idx
+            .get(id)
+            .expect(&format!("preview set not found {:?}", id.to_string()));
+        &self.sets[idx]
+    }
+
+
     pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> Option<&Relation> {
-        trace!("get relation from {} {} to {} {}", subset.id, subset.name, superset.id, superset.name);
+        trace!(
+            "get relation from {} {} to {} {}",
+            subset.id.to_string(),
+            subset.name,
+            superset.id.to_string(),
+            superset.name
+        );
         let key = (subset.clone(), superset.clone());
         match self.relation_idx.get(&key) {
+            Some(&idx) => Some(&self.relations[idx]),
+            None => None,
+        }
+    }
+
+    pub fn get_relation_by_id(&self, id: &PreviewRelationId) -> Option<&Relation> {
+        trace!("get relation id {}", id.to_string());
+        match self.relation_id_idx.get(id) {
             Some(&idx) => Some(&self.relations[idx]),
             None => None,
         }
@@ -228,9 +222,9 @@ impl Data {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Relation {
-    pub id: String,
+    pub id: RelationId,
     pub handle: usize,
     pub preview: PreviewRelation,
     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
@@ -240,9 +234,10 @@ pub struct Relation {
     pub cpx: SourcedCpxInfo,
 }
 
+// showed is a lightweight structure, hence it has no preview variant
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Showed {
-    pub id: String,
+pub struct PreviewShowed {
+    pub id: PreviewShowedId,
     pub text: String,
     pub fact: ShowedFact,
     pub page: Page,
@@ -250,7 +245,7 @@ pub struct Showed {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShowedFact {
-    Relation(PreviewRelation),
-    Definition(PreviewSet),
-    Citation(PreviewSource),
+    Relation(PreviewRelationId),
+    Definition(PreviewSetId),
+    // Citation(PreviewSource),
 }

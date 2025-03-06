@@ -1,6 +1,10 @@
 //! Utilities for processing files and folders.
 
-use std::{path::PathBuf, fs::{File, self}, io::{Read, Write}};
+use std::{
+    fs::{self, File},
+    io::{Read, Write},
+    path::PathBuf,
+};
 
 use anyhow::Result;
 use log::error;
@@ -42,7 +46,11 @@ pub fn read_file_content(source_path: &PathBuf) -> Result<String> {
 }
 
 pub fn append_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
-    let mut target_file = fs::OpenOptions::new().write(true).append(true).create(true).open(target_path)?;
+    let mut target_file = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(target_path)?;
     target_file.write_all(content.as_bytes())?;
     Ok(())
 }
@@ -51,5 +59,11 @@ pub fn write_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
     fs::create_dir_all(target_path.parent().unwrap())?;
     let mut target_file = File::create(target_path)?;
     target_file.write_all(content.as_bytes())?;
+    Ok(())
+}
+
+pub fn copy_file(source_path: &PathBuf, target_path: &PathBuf) -> Result<()> {
+    fs::create_dir_all(target_path.parent().unwrap())?;
+    fs::copy(source_path, target_path)?;
     Ok(())
 }

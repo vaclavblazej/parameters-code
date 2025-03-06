@@ -3,33 +3,42 @@
 
 use std::collections::HashMap;
 
-use crate::{data::{data::{Data, PartialResult, Set}, preview::{PreviewRelation, PreviewSet}}, general::enums::SourcedCpxInfo, work::combine::combine_serial};
+use crate::{
+    data::{
+        data::{Data, PartialResult, Set},
+        preview::{PreviewRelation, PreviewSet, WorkRelation},
+    },
+    general::enums::SourcedCpxInfo,
+    work::combine::combine_serial,
+};
 
 use super::enums::CpxInfo;
 
-
-
 fn rel_can_be_implied_through(
-    map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>,
+    map: &HashMap<WorkRelation, PreviewRelation>,
     relation: &PreviewRelation,
-    midset: &PreviewSet
-    ) -> bool {
+    midset: &PreviewSet,
+) -> bool {
     if let Some(mx) = relation.cpx.get_mx() {
         assert_ne!(relation.subset, relation.superset);
         assert_ne!(midset, &relation.superset);
         assert_ne!(midset, &relation.subset);
-        if let (Some(upper_relation), Some(lower_relation)) = (map.get(&(&relation.subset, midset)), map.get(&(midset, &relation.superset))) {
+        let upper_work = WorkRelation::new(&relation.subset.id, &midset.id);
+        let lower_work = WorkRelation::new(&midset.id, &relation.superset.id);
+        if let (Some(upper_relation), Some(lower_relation)) =
+            (map.get(&upper_work), map.get(&lower_work))
+        {
             let mock_a = PartialResult {
                 handle: 0,
                 created_by: crate::general::enums::CreatedBy::Todo,
                 cpx: CpxInfo::Unknown,
-                relation: upper_relation.clone().into(),
+                relation: upper_work.clone(),
             };
             let mock_b = PartialResult {
                 handle: 0,
                 created_by: crate::general::enums::CreatedBy::Todo,
                 cpx: CpxInfo::Unknown,
-                relation: lower_relation.clone().into(),
+                relation: lower_work.clone(),
             };
             // todo fix
             if let (Some(a), Some(b)) = (upper_relation.cpx.get_mx(), lower_relation.cpx.get_mx()) {
@@ -43,7 +52,11 @@ fn rel_can_be_implied_through(
     false
 }
 
-fn could_be_hidden(map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>, relation: &PreviewRelation, with_respect_to: &Vec<PreviewSet>) -> bool {
+fn could_be_hidden(
+    map: &HashMap<WorkRelation, PreviewRelation>,
+    relation: &PreviewRelation,
+    with_respect_to: &Vec<PreviewSet>,
+) -> bool {
     if relation.superset == relation.subset {
         return true;
     }
@@ -53,22 +66,22 @@ fn could_be_hidden(map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>, r
                 continue;
             }
             // cannot use this midset to hide the relation if it does not imply it
-            if !rel_can_be_implied_through(map, &relation, midset){
+            if !rel_can_be_implied_through(map, &relation, midset) {
                 continue;
             }
             // even if connection through mid implies the relation we still need
             // to prevent mutual hiding for sets that bound each other
             // case 1 -- subset and midset are mutually bounded
-            if let Some(same) = map.get(&(midset, &relation.superset)){
-                if rel_can_be_implied_through(map, same, &relation.subset){
+            if let Some(same) = map.get(&WorkRelation::new(&midset.id, &relation.superset.id)) {
+                if rel_can_be_implied_through(map, same, &relation.subset) {
                     if relation.subset.is_more_relevant_than(midset) {
                         continue;
                     }
                 }
             }
             // case 2 -- superset and midset are mutually bounded
-            if let Some(same) = map.get(&(&relation.subset, midset)){
-                if rel_can_be_implied_through(map, same, &relation.superset){
+            if let Some(same) = map.get(&WorkRelation::new(&relation.subset.id, &midset.id)) {
+                if rel_can_be_implied_through(map, same, &relation.superset) {
                     if relation.superset.is_more_relevant_than(midset) {
                         continue;
                     }
@@ -80,10 +93,13 @@ fn could_be_hidden(map: &HashMap<(&PreviewSet, &PreviewSet), PreviewRelation>, r
     false
 }
 
-pub fn filter_hidden(potential_relations: Vec<PreviewRelation>, displayed_sets: &Vec<PreviewSet>) -> Vec<PreviewRelation> {
-    let mut map = HashMap::new();
+pub fn filter_hidden(
+    potential_relations: Vec<PreviewRelation>,
+    displayed_sets: &Vec<PreviewSet>,
+) -> Vec<PreviewRelation> {
+    let mut map: HashMap<WorkRelation, PreviewRelation> = HashMap::new();
     for pr in &potential_relations {
-        map.insert((&pr.subset, &pr.superset), pr.clone());
+        map.insert(WorkRelation::new(&pr.subset.id, &pr.superset.id), pr.clone());
     }
     let mut drawn_relations = Vec::new();
     for relation in &potential_relations {

@@ -1,44 +1,43 @@
 #![allow(unused)]
 
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
-use std::path::{PathBuf,Path};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 
 use anyhow::Result;
 use biblatex::Bibliography;
-use data::data::Linkable;
-use general::cache::Cache;
-use general::logger;
-use general::progress::ProgressDisplay;
-use log::{error, warn, info, debug, trace};
-use work::bibliography::load_bibliography;
-use rayon::prelude::*;
+use log::{debug, error, info, trace, warn};
+
 use data::data::Data;
 use data::data::Relation;
 use data::data::Set;
+use data::id::{Id, PreviewId};
+use data::preview::PreviewSet;
+use data::preview::PreviewType;
+use data::simple_index::SimpleIndex;
+use general::cache::Cache;
 use general::enums::CpxInfo;
 use general::enums::CpxTime;
+use general::file;
+use general::logger;
+use general::progress::ProgressDisplay;
+use output::diagram::make_drawing;
 use output::markdown::Mappable;
-
-use crate::data::preview::PreviewType;
-use crate::data::preview::PreviewSet;
-use crate::output::diagram::make_drawing;
-use crate::output::markdown::Address;
-use crate::output::markdown::Markdown;
-use crate::output::pages;
-use crate::output::pages::TargetPage;
-use crate::output::pages::add_content;
-use crate::data::simple_index::SimpleIndex;
-use crate::output::table::render_table;
-use crate::work::processing::process_raw_data;
-use crate::general::file;
+use output::markdown::Markdown;
+use output::markdown::{Address, Linkable};
+use output::pages;
+use output::pages::add_content;
+use output::pages::TargetPage;
+use output::table::render_table;
+use work::bibliography::load_bibliography;
+use work::processing::process_raw_data;
 
 mod data {
     pub mod data;
+    pub mod id;
     pub mod preview;
     pub mod simple_index;
 }
@@ -74,20 +73,22 @@ mod output {
     pub mod to_markdown;
 }
 mod test {
-    pub mod collection;
     pub mod all;
+    pub mod collection;
 }
 mod collection;
 
-fn build_page(page: &TargetPage,
-              markdown: &Markdown,
-              paths: &Paths,
-              map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
+fn build_page(
+    page: &TargetPage,
+    markdown: &Markdown,
+    paths: &Paths,
+    map: &HashMap<&str, Mappable>,
+) -> anyhow::Result<()> {
     let content = match page.substitute {
         Some(substitute) => {
             // info!("generating {:?}", page.target);
             substitute.object.get_page(&markdown, paths)
-        },
+        }
         None => "[[handcrafted]]".into(),
     };
     let mut local_map = map.clone();
@@ -101,11 +102,13 @@ fn build_page(page: &TargetPage,
                 fs::copy(&source, &page.target)?;
                 return Ok(());
             }
-        },
-        None => { "".into() },
+        }
+        None => "".into(),
     };
     local_map.insert("handcrafted", Mappable::String(handcrafted_content));
-    if page.target.exists() { fs::remove_file(&page.target)?; }
+    if page.target.exists() {
+        fs::remove_file(&page.target)?;
+    }
     if let Some(parent) = page.target.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -114,32 +117,41 @@ fn build_page(page: &TargetPage,
     Ok(())
 }
 
-fn generate_pages(pages: &Vec<TargetPage>,
-                  markdown: &Markdown,
-                  paths: &Paths,
-                  map: &HashMap<&str, Mappable>) -> anyhow::Result<()> {
+fn generate_pages(
+    pages: &Vec<TargetPage>,
+    markdown: &Markdown,
+    paths: &Paths,
+    map: &HashMap<&str, Mappable>,
+) -> anyhow::Result<()> {
     let mut progress = ProgressDisplay::new("generating pages", pages.len() as u32);
     // todo - maybe use par_iter for iterating parallely to speed up the computation?
-    let res: Result<Vec<()>> = pages.iter().map(|page| -> anyhow::Result<()>{
-        progress.increase(1);
-        build_page(page, markdown, paths, map)
-    }).collect();
+    let res: Result<Vec<()>> = pages
+        .iter()
+        .map(|page| -> anyhow::Result<()> {
+            progress.increase(1);
+            build_page(page, markdown, paths, map)
+        })
+        .collect();
     progress.done();
     Ok(())
 }
 
 fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappable>) -> String {
-    let altered_content = content.lines().map(|line| {
-        let mut strline = line.into();
-        for _ in 1..10 {
-            let newline = markdown.substitute_custom_markdown(&strline, map);
-            if newline == strline {
-                return newline;
+    let altered_content = content
+        .lines()
+        .map(|line| {
+            let mut strline = line.into();
+            for _ in 1..10 {
+                let newline = markdown.substitute_custom_markdown(&strline, map);
+                if newline == strline {
+                    return newline;
+                }
+                strline = newline;
             }
-            strline = newline;
-        }
-        strline
-    }).collect::<Vec<String>>().join("\n");
+            strline
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
     altered_content
 }
 
@@ -147,7 +159,9 @@ fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>, paths: &Pat
     let done_pdf = render_table(&data, draw_sets, &paths.table_tikz_folder).unwrap();
     let final_pdf = paths.html_dir.join(format!("{}.pdf", name));
     info!("copy the pdf to {:?}", &final_pdf);
-    fs::copy(&done_pdf, &final_pdf);
+    if let Err(err) = fs::copy(&done_pdf, &final_pdf){
+        error!("{}", err);
+    }
 }
 
 struct Timer {
@@ -156,7 +170,9 @@ struct Timer {
 
 impl Timer {
     fn new() -> Self {
-        Self{ instant: Instant::now(), }
+        Self {
+            instant: Instant::now(),
+        }
     }
 
     pub fn print(&self, message: &str) {
@@ -200,28 +216,47 @@ struct Paths {
 }
 
 impl Computation {
-
     fn new() -> Self {
         let rawargs: Vec<String> = env::args().collect();
         let mut args = HashSet::new();
         for (i, arg) in rawargs.iter().enumerate() {
-            if i == 0 { continue; }
+            if i == 0 {
+                continue;
+            }
             match arg.as_str() {
-                "preprocess" => {args.insert(Args::PREPROCESS);},
-                "dots" => {args.insert(Args::DOTS);},
-                "pages" => {args.insert(Args::PAGES);},
-                "relations" => {args.insert(Args::RELATIONS);},
-                "table" => {args.insert(Args::TABLE);},
-                "clear" => {args.insert(Args::CLEAR);},
-                "mock" => {args.insert(Args::MOCK);},
-                "trace" => {args.insert(Args::TRACE);},
-                "debug" => {args.insert(Args::DEBUG);},
+                "preprocess" => {
+                    args.insert(Args::PREPROCESS);
+                }
+                "dots" => {
+                    args.insert(Args::DOTS);
+                }
+                "pages" => {
+                    args.insert(Args::PAGES);
+                }
+                "relations" => {
+                    args.insert(Args::RELATIONS);
+                }
+                "table" => {
+                    args.insert(Args::TABLE);
+                }
+                "clear" => {
+                    args.insert(Args::CLEAR);
+                }
+                "mock" => {
+                    args.insert(Args::MOCK);
+                }
+                "trace" => {
+                    args.insert(Args::TRACE);
+                }
+                "debug" => {
+                    args.insert(Args::DEBUG);
+                }
                 "fast" => {
                     args.insert(Args::CLEAR);
                     args.insert(Args::PREPROCESS);
                     args.insert(Args::DOTS);
                     args.insert(Args::PAGES);
-                },
+                }
                 "all" => {
                     args.insert(Args::CLEAR);
                     args.insert(Args::PREPROCESS);
@@ -229,11 +264,11 @@ impl Computation {
                     args.insert(Args::PAGES);
                     args.insert(Args::RELATIONS);
                     args.insert(Args::TABLE);
-                },
+                }
                 other => panic!("unknown parameter: '{}'", other),
             }
         }
-        logger::init(if args.contains(&Args::TRACE){
+        logger::init(if args.contains(&Args::TRACE) {
             log::LevelFilter::Trace
         } else if args.contains(&Args::DEBUG) {
             log::LevelFilter::Debug
@@ -253,7 +288,7 @@ impl Computation {
         Self {
             args,
             time: Timer::new(),
-            paths: Paths{
+            paths: Paths {
                 parent: parent.to_path_buf(),
                 table_tikz_folder,
                 handcrafted_dir,
@@ -279,14 +314,21 @@ impl Computation {
     }
 
     fn clear(&mut self) {
-        if self.args.contains(&Args::CLEAR){
-            info!("clearing the final directory");
-            info!("removing folder of {}", self.paths.final_dir.to_str().unwrap());
-            fs::remove_dir_all(&self.paths.final_dir);
-            fs::create_dir(&self.paths.final_dir);
-            info!("removing folder of {}", self.paths.hugo_public_dir.to_str().unwrap());
-            fs::remove_dir_all(&self.paths.hugo_public_dir);
+        if !self.args.contains(&Args::CLEAR) {
+            return;
         }
+        info!("clearing the final directory");
+        info!(
+            "removing folder of {}",
+            self.paths.final_dir.to_str().unwrap()
+        );
+        fs::remove_dir_all(&self.paths.final_dir);
+        fs::create_dir(&self.paths.final_dir);
+        info!(
+            "removing folder of {}",
+            self.paths.hugo_public_dir.to_str().unwrap()
+        );
+        fs::remove_dir_all(&self.paths.hugo_public_dir);
     }
 
     fn retrieve_and_process_data(&mut self) {
@@ -294,7 +336,7 @@ impl Computation {
         self.bibliography = load_bibliography(&self.paths.bibliography_file);
         let cch: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
         if !mock && !self.args.contains(&Args::PREPROCESS) {
-            if let Some(mut res) = cch.load(){
+            if let Some(mut res) = cch.load() {
                 info!("deserialized data");
                 res.recompute();
                 self.some_data = Some(res);
@@ -307,10 +349,10 @@ impl Computation {
             true => test::collection::build_collection(),
         };
         self.time.print("processing data");
-        let res = process_raw_data(&rawdata, &self.bibliography);
+        let res = process_raw_data(rawdata, &self.bibliography);
         if !mock {
-            match cch.save(&res){
-                Ok(()) => {},
+            match cch.save(&res) {
+                Ok(()) => {}
                 Err(err) => info!("{:?}", err),
             }
         }
@@ -323,25 +365,34 @@ impl Computation {
         }
         let data = self.get_data();
         self.time.print("creating main page dots");
-        let parameters: Vec<&Set> = data.sets.iter()
-            .filter(|x|x.typ == PreviewType::Parameter)
-            .filter(|x|x.preview.relevance >= self.hide_irrelevant_parameters_below)
+        let parameters: Vec<&Set> = data
+            .sets
+            .iter()
+            .filter(|x| x.typ == PreviewType::Parameter)
+            .filter(|x| x.preview.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
-        let simplified_parameters: Vec<&Set> = data.sets.iter()
-            .filter(|x|x.typ == PreviewType::Parameter)
-            .filter(|x|x.preview.relevance >= self.simplified_hide_irrelevant_parameters_below)
+        let simplified_parameters: Vec<&Set> = data
+            .sets
+            .iter()
+            .filter(|x| x.typ == PreviewType::Parameter)
+            .filter(|x| x.preview.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
-        let graphs: Vec<&Set> = data.sets.iter().filter(|x|x.typ == PreviewType::GraphClass).collect();
-        self.time.print("drawing parameters & graphs");
+        let graphs: Vec<&Set> = data
+            .sets
+            .iter()
+            .filter(|x| x.typ == PreviewType::GraphClass)
+            .collect();
         for (name, set) in [
             ("parameters", &parameters),
             ("graphs", &graphs),
             ("parameters_simplified", &simplified_parameters),
         ] {
-            if let Ok(done_dot) = make_drawing(&data, &self.paths.working_dir, name, set, None){
+            if let Ok(done_dot) = make_drawing(&data, &self.paths.working_dir, name, set, None) {
                 let final_dot = self.paths.html_dir.join(format!("{}.dot", name));
                 info!("copy dot to {:?}", &final_dot);
-                fs::copy(&done_dot, &final_dot);
+                if let Err(err) = file::copy_file(&done_dot, &final_dot) {
+                    error!("{}", err);
+                }
             }
         }
     }
@@ -352,26 +403,40 @@ impl Computation {
         }
         let data = self.get_data();
         self.time.print("fetching generated pages");
-        let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new();
+        let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new(); // todo unified type for previews
         let mut generated_pages = HashMap::new();
-        add_content(&data.sets, &self.paths.final_dir, &mut generated_pages);
-        for set in &data.sets {
-            linkable.insert(set.id.clone(), Box::new(set.preview.clone()));
+        let Data {
+            sets,
+            relations,
+            sources,
+            providers,
+            tags,
+            partial_results,
+            set_idx: _,
+            set_id_idx: _,
+            relation_idx: _,
+            relation_id_idx: _,
+        } = data;
+        for set in sets {
+            linkable.insert(set.id.to_string(), Box::new(set.preview.clone()));
         }
         if self.args.contains(&Args::RELATIONS) {
-            add_content(&data.relations, &self.paths.final_dir, &mut generated_pages);
-            for rel in &data.relations {
-                linkable.insert(rel.id.clone(), Box::new(rel.preview.clone()));
+            for rel in relations {
+                linkable.insert(rel.id.to_string(), Box::new(rel.preview.clone()));
             }
         }
-        add_content(&data.sources, &self.paths.final_dir, &mut generated_pages);
-        for source in &data.sources {
-            linkable.insert(source.id.clone(), Box::new(source.preview.clone()));
+        for source in sources {
+            linkable.insert(source.id.to_string(), Box::new(source.preview.clone()));
         }
-        add_content(&data.tags, &self.paths.final_dir, &mut generated_pages);
-        for tag in &data.tags {
-            linkable.insert(tag.id.clone(), Box::new(tag.preview.clone()));
+        for tag in tags {
+            linkable.insert(tag.id.to_string(), Box::new(tag.preview.clone()));
         }
+        add_content(sets, &self.paths.final_dir, &mut generated_pages);
+        if self.args.contains(&Args::RELATIONS) {
+            add_content(relations, &self.paths.final_dir, &mut generated_pages);
+        }
+        add_content(sources, &self.paths.final_dir, &mut generated_pages);
+        add_content(tags, &self.paths.final_dir, &mut generated_pages);
         self.time.print("fetching handcrafted pages");
         let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
         for source in file::iterate_folder_recursively(&self.paths.handcrafted_dir) {
@@ -387,13 +452,21 @@ impl Computation {
         }
         self.time.print("merging generated and handcrafted pages");
         let mut target_keys = HashSet::new();
-        for (k, _) in &generated_pages { target_keys.insert(k); }
-        for (k, _) in &handcrafted_pages { target_keys.insert(k); }
+        for (k, _) in &generated_pages {
+            target_keys.insert(k);
+        }
+        for (k, _) in &handcrafted_pages {
+            target_keys.insert(k);
+        }
         let mut pages = vec![];
         for target in target_keys {
             let substitute = generated_pages.get(target);
             let source = handcrafted_pages.get(target);
-            pages.push(TargetPage{ target, substitute, source });
+            pages.push(TargetPage {
+                target,
+                substitute,
+                source,
+            });
         }
         self.time.print("building general substitution map");
         let mut map: HashMap<&str, Mappable> = HashMap::new();
@@ -409,15 +482,19 @@ impl Computation {
         }
         let data = self.get_data();
         self.time.print("generating relation tables");
-        let table_sets: Vec<PreviewSet> = data.sets.iter()
-            .map(|x|x.preview.clone())
-            .filter(|x|x.typ==PreviewType::Parameter)
-            .filter(|x|x.relevance >= self.hide_irrelevant_parameters_below)
+        let table_sets: Vec<PreviewSet> = data
+            .sets
+            .iter()
+            .map(|x| x.preview.clone())
+            .filter(|x| x.typ == PreviewType::Parameter)
+            .filter(|x| x.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
-        let simplified_table_sets: Vec<PreviewSet> = data.sets.iter()
-            .map(|x|x.preview.clone())
-            .filter(|x|x.typ==PreviewType::Parameter)
-            .filter(|x|x.relevance >= self.simplified_hide_irrelevant_parameters_below)
+        let simplified_table_sets: Vec<PreviewSet> = data
+            .sets
+            .iter()
+            .map(|x| x.preview.clone())
+            .filter(|x| x.typ == PreviewType::Parameter)
+            .filter(|x| x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
         for (name, set) in [
             ("table", &table_sets),
@@ -426,7 +503,6 @@ impl Computation {
             generate_relation_table(&data, set, &self.paths, name);
         }
     }
-
 }
 
 fn main() {
@@ -434,7 +510,6 @@ fn main() {
     computation.clear();
     computation.retrieve_and_process_data();
     computation.make_dots();
-    computation.make_pages();
     computation.make_relation_table();
+    computation.make_pages();
 }
-

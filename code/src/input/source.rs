@@ -1,192 +1,343 @@
 use log::warn;
 
-use super::raw::{BuiltRawSource, RawData, RawProvider, RawProviderLink, RawRelation, RawSet, RawShowed, RawShowedFact, RawSource};
-use crate::general::enums::{Cpx, CpxTime, Page, RawDrawing, CpxInfo::*};
+use super::{build::Builder, raw::{
+    BuiltRawSource, RawData, RawProvider, RawProviderLink, RawRelation, RawShowed, RawShowedFact, RawSource
+}};
+use crate::{
+    data::id::{BaseId, PreviewRelationId, PreviewSetId, PreviewSourceId, RelationId, ShowedId},
+    general::enums::{Cpx, CpxInfo::{self, *}, CpxTime, Page, RawDrawing},
+};
 
-pub struct RawDataSource<'a> {
+pub struct RawDataSource {
     source: BuiltRawSource,
-    data: &'a mut RawData,
+    factoids: Vec<RawShowed>,
+    relations: Vec<RawRelation>,
 }
 
-pub struct CollectiveSource<'a> {
-    raw: RawDataSource<'a>,
+pub struct CollectiveSource {
+    raw: RawDataSource,
     page: Page,
-    text: &'a str,
+    text: String,
 }
 
-pub struct RawDataProvider<'a> {
-    data: &'a mut RawData,
+pub struct RawDataProvider {
     provider: RawProvider,
+    links: Vec<RawProviderLink>,
     format_url: Box<dyn Fn(&str) -> String>,
 }
 
-impl<'a> RawDataProvider<'a> {
-
-    pub fn new(data: &'a mut RawData, provider: RawProvider, format_url: Box<dyn Fn(&str) -> String>) -> Self {
-        RawDataProvider { data, provider, format_url }
+impl RawDataProvider {
+    pub fn new(
+        provider: RawProvider,
+        format_url: Box<dyn Fn(&str) -> String>,
+    ) -> Self {
+        RawDataProvider {
+            provider,
+            links: Vec::new(),
+            format_url,
+        }
     }
 
-    pub fn link(mut self, set: &RawSet, id: &str) -> Self {
-        let r = self.data.provider_links.entry(self.provider.clone()).or_insert_with(Vec::new);
-        let provider_link = RawProviderLink{
+    pub fn link(mut self, set: &PreviewSetId, id: &str) -> Self {
+        let provider_id = self.provider.id.preview();
+        let provider_link = RawProviderLink {
+            provider: provider_id,
             set: set.clone(),
             url: (self.format_url)(id),
         };
-        r.push(provider_link);
+        self.links.push(provider_link);
         self
     }
 
-    pub fn done(self) {}
+    pub fn done(self, builder: &mut Builder) {
+        let RawDataProvider {
+            provider,
+            mut links,
+            format_url: _,
+        } = self;
+        builder.data.providers.push(provider);
+        builder.data.provider_links.append(&mut links);
+    }
 }
 
-impl<'a> CollectiveSource<'a> {
+impl CollectiveSource {
 
-    pub fn showed(mut self, id: &str, subset: &RawSet, superset: &RawSet, cpx: Cpx, ) -> Self {
-        self.raw = self.raw.showed(id, self.page.clone(), subset, superset, cpx, self.text);
+    pub fn showed(
+        mut self,
+        id: &str,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+    ) -> Self {
+        self.raw.ref_showed(id, self.page.clone(), subset, superset, cpx, self.text.as_str());
         self
     }
 
-    pub fn done(self) -> RawDataSource<'a> {
+    pub fn done(self) -> RawDataSource {
         self.raw
     }
 
 }
 
-impl<'a> RawDataSource<'a> {
+impl RawDataSource {
 
-    pub fn new(source: &BuiltRawSource, data: &'a mut RawData) -> Self {
-        RawDataSource { source: source.clone(), data }
+    pub fn new(source: BuiltRawSource) -> Self {
+        RawDataSource {
+            source,
+            factoids: Vec::new(),
+            relations: Vec::new(),
+        }
     }
 
-    pub fn defined(self, id: &str, page: Page, set: &RawSet, text: &str) -> Self {
+    pub fn defined(mut self, id: &str, page: Page, set: &PreviewSetId, text: &str) -> Self {
+        self.ref_defined(id, page, set, text);
+        self
+    }
+
+    pub fn ref_defined(&mut self, id: &str, page: Page, set: &PreviewSetId, text: &str) -> &mut Self {
         let showed = RawShowed {
-            id: id.into(),
+            id: ShowedId::new(id.into()),
             text: text.into(),
             fact: RawShowedFact::Definition(set.clone()),
             page,
         };
-        self.data.factoids.push((self.source.id.clone(), showed));
+        self.factoids.push(showed);
         self
     }
 
-    pub fn proper_graph_inclusion(self, id: &str, subset: &RawSet, superset: &RawSet) -> Self {
+    fn relation(&mut self, subset: &PreviewSetId, superset: &PreviewSetId, cpx: CpxInfo) -> PreviewRelationId {
+        let relation = RawRelation::new(subset, superset, cpx);
+        let res = relation.id.preview();
+        self.relations.push(relation);
+        res
+    }
+
+    pub fn proper_graph_inclusion(
+        &mut self,
+        id: &str,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+    ) -> &mut Self {
         let inclusion = RawShowed {
-            id: format!("{}_in", id),
+            id: ShowedId::new(id.into()),
             text: "".into(),
-            fact: RawShowedFact::Relation(RawRelation {
-                subset: subset.clone(),
-                superset: superset.clone(),
-                cpx: Inclusion { mn: Some(CpxTime::Constant), mx: Some(CpxTime::Constant) },
-            }),
+            fact: RawShowedFact::Relation(self.relation(
+                    subset,
+                    superset,
+                    Inclusion {
+                        mn: Some(CpxTime::Constant),
+                        mx: Some(CpxTime::Constant),
+                    }
+            )),
             page: Page::NotApplicable,
         };
         let exclusion = RawShowed {
-            id: format!("{}_ex", id),
+            id: ShowedId::new(id.into()),
             text: "".into(),
-            fact: RawShowedFact::Relation(RawRelation {
-                subset: superset.clone(),
-                superset: subset.clone(),
-                cpx: Exclusion,
-            }),
+            fact: RawShowedFact::Relation(self.relation(
+                superset,
+                subset,
+                Exclusion,
+            )),
             page: Page::NotApplicable,
         };
-        self.data.factoids.push((self.source.id.clone(), inclusion));
-        self.data.factoids.push((self.source.id.clone(), exclusion));
+        self.factoids.push(inclusion);
+        self.factoids.push(exclusion);
         self
     }
 
-    pub fn showed(self, id: &str, page: Page, subset: &RawSet, superset: &RawSet, cpx: Cpx, text: &str) -> Self {
+    pub fn showed(
+        mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+    ) -> Self {
+        self.ref_showed(id, page, subset, superset, cpx, text);
+        self
+    }
+
+    pub fn ref_showed(
+        &mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+    ) -> &mut Self {
         let relations = match cpx {
-            Cpx::Bounds(a, b) => vec![RawRelation::new(subset, superset, Inclusion{mn: Some(a.clone()), mx: Some(b.clone())})],
-            Cpx::Exactly(a) => vec![RawRelation::new(subset, superset, Inclusion{mn: Some(a.clone()), mx: Some(a.clone())})],
-            Cpx::UpperBound(b) => vec![RawRelation::new(subset, superset, Inclusion{mn: Some(CpxTime::Constant), mx: Some(b.clone())})],
-            Cpx::Todo => vec![RawRelation::new(subset, superset, Inclusion { mn: Some(CpxTime::Constant), mx: Some(CpxTime::Exists) })],
-            Cpx::Equal => vec![RawRelation::new(subset, superset, Equal), RawRelation::new(superset, subset, Equal)],
-            Cpx::Equivalent(a, b) => vec![
-                RawRelation::new(subset, superset, Inclusion { mn: Some(CpxTime::Constant), mx: Some(a) }), RawRelation::new(superset, subset, Inclusion { mn: Some(CpxTime::Constant), mx: Some(b) }),
+            Cpx::Bounds(a, b) => vec![self.relation(
+                subset,
+                superset,
+                Inclusion {
+                    mn: Some(a.clone()),
+                    mx: Some(b.clone()),
+                },
+            )],
+            Cpx::Exactly(a) => vec![self.relation(
+                subset,
+                superset,
+                Inclusion {
+                    mn: Some(a.clone()),
+                    mx: Some(a.clone()),
+                },
+            )],
+            Cpx::UpperBound(b) => vec![self.relation(
+                subset,
+                superset,
+                Inclusion {
+                    mn: Some(CpxTime::Constant),
+                    mx: Some(b.clone()),
+                },
+            )],
+            Cpx::Todo => vec![self.relation(
+                subset,
+                superset,
+                Inclusion {
+                    mn: Some(CpxTime::Constant),
+                    mx: Some(CpxTime::Exists),
+                },
+            )],
+            Cpx::Equal => vec![
+                self.relation(subset, superset, Equal),
+                self.relation(superset, subset, Equal),
             ],
-            Cpx::Exclusion => vec![RawRelation::new(subset, superset, Exclusion)],
+            Cpx::Equivalent(a, b) => vec![
+                self.relation(
+                    subset,
+                    superset,
+                    Inclusion {
+                        mn: Some(CpxTime::Constant),
+                        mx: Some(a),
+                    },
+                ),
+                self.relation(
+                    superset,
+                    subset,
+                    Inclusion {
+                        mn: Some(CpxTime::Constant),
+                        mx: Some(b),
+                    },
+                ),
+            ],
+            Cpx::Exclusion => vec![self.relation(subset, superset, Exclusion)],
             Cpx::Incomparable => vec![
-                RawRelation::new(subset, superset, Exclusion),
-                RawRelation::new(superset, subset, Exclusion),
+                self.relation(subset, superset, Exclusion),
+                self.relation(superset, subset, Exclusion),
             ],
             Cpx::StrictUpperBound(a) => vec![
-                RawRelation::new(subset, superset, Inclusion{mn: Some(CpxTime::Constant), mx: Some(a.clone())}),
-                RawRelation::new(superset, subset, Exclusion),
+                self.relation(
+                    subset,
+                    superset,
+                    Inclusion {
+                        mn: Some(CpxTime::Constant),
+                        mx: Some(a.clone()),
+                    },
+                ),
+                self.relation(superset, subset, Exclusion),
             ],
         };
 
         for relation in relations {
             let showed = RawShowed {
-                id: id.into(),
+                id: ShowedId::new(id.into()),
                 text: text.into(),
                 fact: RawShowedFact::Relation(relation),
                 page: page.clone(),
             };
-            self.data.factoids.push((self.source.id.clone(), showed));
+            self.factoids.push(showed);
         }
         self
     }
 
-    pub fn asked(self, id: &str, page: Page, subset: &RawSet, superset: &RawSet, text: &str) -> Self {
+    pub fn asked(
+        self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        text: &str,
+    ) -> Self {
         // todo - implement asked: source listed a relation as an open question
         self
     }
 
-    pub fn collective(self, page: Page, text: &'a str) -> CollectiveSource<'a> {
-        CollectiveSource { raw: self, page, text }
+    pub fn collective(mut self, page: Page, text: &str) -> CollectiveSource {
+        CollectiveSource {
+            raw: self,
+            page,
+            text: text.into(),
+        }
     }
 
-    pub fn cited(self, id: &str, page: Page, who: RawSource, text: &str) -> Self {
-        let showed = RawShowed {
-            id: id.into(),
-            text: text.into(),
-            fact: RawShowedFact::Citation(who),
-            page,
-        };
-        self.data.factoids.push((self.source.id.clone(), showed));
-        self
-    }
+    // pub fn cited(self, id: &str, page: Page, who: &RawSource, text: &str) -> Self {
+    // let showed = RawShowed {
+    // id: id.into(),
+    // text: text.into(),
+    // fact: RawShowedFact::Citation(who.id.preview()),
+    // page,
+    // };
+    // self.data.factoids.push((self.source.id.clone(), showed));
+    // self
+    // }
 
     /// Notes that a source contains a hasse diagram of the listed sets.
     /// This method recreates that diagram with results from HOPS.
     pub fn hasse(mut self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
-        self.source.drawings.push(RawDrawing::Hasse(sets.iter().map(|x|x.to_string()).collect()));
+        self.source.drawings.push(RawDrawing::Hasse(
+            sets.iter().map(|x| PreviewSetId::from(x.to_string())).collect(),
+        ));
         self
     }
 
     /// Notes that a source has a complete comparison table of the listed sets.
     /// This recreates the same table from the results in HOPS.
     pub fn table(mut self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
-        self.source.drawings.push(RawDrawing::Table(sets.iter().map(|x|x.to_string()).collect()));
+        self.source.drawings.push(RawDrawing::Table(
+            sets.iter().map(|x| PreviewSetId::from(x.to_string())).collect(),
+        ));
         self
     }
 
-    pub fn todo_rest(self) -> RawSource {
-        warn!("todo: rest of the source {} should be processed", self.source.id);
-        self.done()
+    pub fn todo_rest(mut self, builder: &mut Builder) -> PreviewSourceId {
+        warn!(
+            "todo: rest of the source {} should be processed",
+            self.source.id.to_string()
+        );
+        self.done(builder)
     }
 
-    pub fn done(self) -> RawSource {
-        let res = self.source.clone().into();
+    pub fn done(mut self, builder: &mut Builder) -> PreviewSourceId {
+        self.data_done(&mut builder.data)
+    }
+
+    pub fn data_done(mut self, data: &mut RawData) -> PreviewSourceId {
+        let RawDataSource {
+            source,
+            factoids,
+            mut relations,
+        } = self;
+        for factoid in factoids {
+            data.factoids.push((source.id.preview(), factoid));
+        }
+        data.relations.append(&mut relations);
+        let res = source.id.preview();
+        data.sources.push(RawSource::from(source));
         res
     }
 
 }
 
-impl Into<RawSource> for BuiltRawSource {
-    fn into(self) -> RawSource {
+impl From<BuiltRawSource> for RawSource {
+    fn from(raw: BuiltRawSource) -> Self {
         RawSource {
-            id: self.id,
-            rawsourcekey: self.rawsourcekey,
-            relevance: self.relevance,
-            drawings: self.drawings,
+            id: raw.id,
+            rawsourcekey: raw.rawsourcekey,
+            relevance: raw.relevance,
+            drawings: raw.drawings,
         }
-    }
-}
-
-impl<'a> Drop for RawDataSource<'a> {
-    fn drop(&mut self) {
-        self.data.sources.push(self.source.clone().into());
     }
 }

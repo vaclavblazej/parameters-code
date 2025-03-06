@@ -7,14 +7,19 @@ use std::process::Command;
 use log::error;
 
 use crate::data::data::{Data, Set};
-use crate::data::preview::{PreviewType, PreviewSet};
-use crate::general::enums::{CpxTime, CpxInfo::*};
+use crate::data::id::PreviewSetId;
+use crate::data::preview::{PreviewSet, PreviewType};
+use crate::general::enums::{CpxInfo::*, CpxTime};
 
 use super::color::{relation_color, Color};
 
-
 fn table_format_par(i: usize, a: &PreviewSet) -> String {
-    format!("\\parname{{{}}}{{{}}}{{../{}}}", i + 1, a.name, a.id)
+    format!(
+        "\\parname{{{}}}{{{}}}{{../{}}}",
+        i + 1,
+        a.name,
+        a.id.to_string()
+    )
 }
 
 fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
@@ -30,7 +35,7 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
     }
     for preview in sets {
         let set = data.get_set(&preview);
-        for subset in &set.supersets.all {
+        for subset in &set.related_sets.supersets.all {
             if let Some(el) = predecesors.get_mut(subset) {
                 *el += 1;
             }
@@ -43,7 +48,7 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
             queue.push(set.clone());
         }
     }
-    let mut resolved: HashSet<String> = HashSet::new();
+    let mut resolved: HashSet<PreviewSetId> = HashSet::new();
     let mut result = Vec::new();
     loop {
         let current = match eqqueue.pop() {
@@ -59,14 +64,20 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
         resolved.insert(current.id.clone());
         result.push(current.clone());
         let set = data.get_set(&current);
-        for elem in &set.equivsets {
+        for elem in &set.related_sets.equivsets {
             if predecesors.contains_key(elem) {
                 eqqueue.push(elem.clone());
             }
         }
-        let children: Vec<&PreviewSet> = set.supersets.all.iter().filter(|x|x.typ == PreviewType::Parameter).collect();
+        let children: Vec<&PreviewSet> = set
+            .related_sets
+            .supersets
+            .all
+            .iter()
+            .filter(|x| x.typ == PreviewType::Parameter)
+            .collect();
         for neighbor in children {
-            if predecesors.contains_key(neighbor){
+            if predecesors.contains_key(neighbor) {
                 *predecesors.get_mut(neighbor).unwrap() -= 1;
                 if predecesors[&neighbor] == 0 {
                     queue.push(neighbor.clone());
@@ -78,7 +89,11 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
     result
 }
 
-pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &PathBuf) -> anyhow::Result<PathBuf> {
+pub fn render_table(
+    data: &Data,
+    draw_sets: &Vec<PreviewSet>,
+    table_folder: &PathBuf,
+) -> anyhow::Result<PathBuf> {
     let size_str = format!("\\def\\parlen{{{}}}\n", draw_sets.len());
     let ordered_pars = order_sets_from_sources(data, draw_sets);
 
@@ -91,7 +106,7 @@ pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &Pat
         for (bi, b) in ordered_pars.iter().enumerate() {
             let sa = data.get_set(a);
             let sb = data.get_set(b);
-            let color = relation_color(sa, sb);
+            let color = relation_color(&sa.related_sets, sa.id.to_string(), &sb.preview);
             content.push(table_format_link(ai, bi, &color.name(), "todo"));
         }
     }
@@ -102,7 +117,11 @@ pub fn render_table(data: &Data, draw_sets: &Vec<PreviewSet>, table_folder: &Pat
         let line = line?;
         if line == "%COLORS" {
             for color in Color::list() {
-                res.push(format!("\\tikzset{{{}/.style={{fill={}}}}}", color.name(), color.tikz()));
+                res.push(format!(
+                    "\\tikzset{{{}/.style={{fill={}}}}}",
+                    color.name(),
+                    color.tikz()
+                ));
             }
         } else if line == "%SIZE" {
             res.push(size_str.clone());

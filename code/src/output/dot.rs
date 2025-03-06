@@ -14,16 +14,12 @@ pub struct Node {
 }
 
 impl IntoDot for Node {
-    fn to_dot(&self) -> String{
+    fn to_dot(&self) -> String {
         let mut res: String = String::new();
         res.push_str(&format!(
-                "\t\"n_{}\" [label=\"{}\" URL=\"/parameters/html/{}\" color=\"{}\" {}]\n", // todo remove the hardcoded '/parameters'
-                self.id,
-                self.label,
-                self.id,
-                self.color,
-                self.attributes,
-                ));
+            "\t\"n_{}\" [label=\"{}\" URL=\"/parameters/html/{}\" color=\"{}\" {}]\n", // todo remove the hardcoded '/parameters'
+            self.id, self.label, self.id, self.color, self.attributes,
+        ));
         res
     }
 }
@@ -32,7 +28,7 @@ impl Into<Node> for &Set {
     fn into(self) -> Node {
         let attributes = "shape=box".into();
         Node {
-            id: self.id.clone(),
+            id: self.id.to_string(),
             label: self.name.clone(),
             color: "#dddddd".into(),
             attributes,
@@ -49,12 +45,12 @@ pub struct Edge {
 }
 
 impl IntoDot for Edge {
-    fn to_dot(&self) -> String{
+    fn to_dot(&self) -> String {
         let mut res: String = String::new();
         res.push_str(&format!(
-                "\t\"n_{}\" -> \"n_{}\" [label=\"{}\" {}]\n",
-                self.from, self.to, self.label, self.attributes
-                ));
+            "\t\"n_{}\" -> \"n_{}\" [label=\"{}\" {}]\n",
+            self.from, self.to, self.label, self.attributes
+        ));
         res
     }
 }
@@ -64,11 +60,11 @@ impl Into<Edge> for &PreviewRelation {
         let attributes = String::new();
         // attributes.append() ... todo
         Edge {
-            from: self.subset.id.clone(),
-            to: self.superset.id.clone(),
+            from: self.subset.id.to_string(),
+            to: self.superset.id.to_string(),
             label: "O".to_string(),
             attributes,
-            url: self.id.clone(),
+            url: self.id.to_string(),
         }
     }
 }
@@ -81,7 +77,6 @@ pub struct Graph {
 }
 
 impl Graph {
-
     pub fn new(name: &str, color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> Graph {
         Graph {
             name: name.into(),
@@ -104,7 +99,7 @@ impl Graph {
     }
 
     pub fn to_dot(&self) -> String {
-        let test_set: HashSet<String> = HashSet::from_iter(self.nodes.iter().map(|n|n.id.clone()));
+        let test_set: HashSet<String> = HashSet::from_iter(self.nodes.iter().map(|n| n.id.clone()));
         for edge in &self.edges {
             assert!(test_set.contains(&edge.from));
             assert!(test_set.contains(&edge.to));
@@ -124,19 +119,17 @@ impl Graph {
         dot.push_str("}\n");
         dot
     }
-
 }
 
 fn main() {
     let mut nodes = Vec::new();
-    nodes.push(
-        Node {
-            id: "dS6OgO".to_string(),
-            label: "carving-width".to_string(),
-            color: "#dddddd".into(),
-            attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box".to_string(),
-        },
-    );
+    nodes.push(Node {
+        id: "dS6OgO".to_string(),
+        label: "carving-width".to_string(),
+        color: "#dddddd".into(),
+        attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box"
+            .to_string(),
+    });
     fn color_fn(set: &Set) -> String {
         "gray".into()
     };
