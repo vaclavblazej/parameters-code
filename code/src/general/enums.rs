@@ -151,7 +151,7 @@ impl CpxInfo {
             CpxInfo::Equal => Some(CpxTime::Linear),
             CpxInfo::Inclusion {
                 mn: _,
-                mx: Some(ref x),
+                mx: Some(x),
             } => Some(x.clone()),
             CpxInfo::Inclusion { .. } => None,
             CpxInfo::Exclusion => None,

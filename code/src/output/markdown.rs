@@ -630,11 +630,11 @@ impl<'a> Markdown<'a> {
     pub fn link_id(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let some_id = keys.pop_front();
         if let Some(id) = some_id {
-            if let Some(link) = self.urls.get(&id) {
+            match self.urls.get(&id) { Some(link) => {
                 Ok(format!("[{}]({})", link.get_name(), link.get_url()))
-            } else {
+            } _ => {
                 Err(MarkdownError::ErrSubstitutingId(id))
-            }
+            }}
         } else {
             Err(MarkdownError::ErrSubstituting)
         }
