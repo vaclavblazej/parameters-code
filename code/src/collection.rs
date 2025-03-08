@@ -25,26 +25,26 @@ pub fn build_collection() -> RawData {
     // let branch_decomposition = create.tag("KaLXjx", "branch decomposition", "");
 
     let connected = graph_class("KlMP0i", "connected", 2)
-        .defined("mIBYMD", "A graph is connected if there is a path between any pair of its vertices.")
+        .main_definition("mIBYMD", "A graph is connected if there is a path between any pair of its vertices.")
         .done(&mut create);
     let bipartite = graph_class("cLHJkW", "bipartite", 8)
-        .defined("1iQ54v", "A graph is bipartite if it can be partitioned into two independent sets.")
+        .main_definition("1iQ54v", "A graph is bipartite if it can be partitioned into two independent sets.")
         .tag(&tag_coloring)
         .done(&mut create);
     let block = graph_class("QrxQsH", "block", 4)
-        .defined("2kG0kY", "In a block graph every block (maximal 2-connected subgraph) is a clique.")
+        .main_definition("2kG0kY", "In a block graph every block (maximal 2-connected subgraph) is a clique.")
         .done(&mut create);
     let chordal = graph_class("Cv1PaJ", "chordal", 5)
         .tag(&tag_vertex_order)
         .tag(&tree_decomposition)
         .done(&mut create);
     let cluster = graph_class("WAU7vf", "cluster", 6)
-        .defined("roSFzV", "Disjoint union of complete graphs.")
-        .defined("pUnhFT", "Every connected component is a complete graph.")
-        .defined("4aKorn", "Does not include path on three vertices as an induced subgraph.")
+        .main_definition("roSFzV", "Disjoint union of complete graphs.")
+        .main_definition("pUnhFT", "Every connected component is a complete graph.")
+        .main_definition("4aKorn", "Does not include path on three vertices as an induced subgraph.")
         .done(&mut create);
     let co_cluster = graph_class("7HR4uV", "co-cluster", 6)
-        .defined("FDbIDy", "Complete multipartite graph.")
+        .main_definition("FDbIDy", "Complete multipartite graph.")
         .tag(&tag_coloring)
         .done(&mut create);
     let cograph = graph_class("9Qd0Mx", "cograph", 7)
@@ -77,22 +77,22 @@ pub fn build_collection() -> RawData {
         .tag(&tag_topology)
         .done(&mut create);
     let stars = graph_class("10JR3F", "stars", 4)
-        .defined("51KDFn", "Disjoint union of stars.")
+        .main_definition("51KDFn", "Disjoint union of stars.")
         .done(&mut create);
     let star = create
         .intersection("CortlU", &connected, &stars, "star", 3)
         .done(&mut create);
     let cycles = graph_class("2iJr52", "cycles", 4)
-        .defined("sAZHF4", "Every component is a cycle.")
+        .main_definition("sAZHF4", "Every component is a cycle.")
         .done(&mut create);
     let cycle = create
         .intersection("Ti0asF", &connected, &cycles, "cycle", 2)
         .done(&mut create);
     let disjoint_cycles = graph_class("AGnF5Z", "disjoint cycles", 4)
-        .defined("cBDurK", "All cycles in the graph are disjoint. Can contain arbitrary trees attached to and between the cycles.")
+        .main_definition("cBDurK", "All cycles in the graph are disjoint. Can contain arbitrary trees attached to and between the cycles.")
         .done(&mut create);
     let grid = graph_class("lfYXuK", "grid", 6)
-        .defined("sp6LGE", "Cartesian product of two paths.")
+        .main_definition("sp6LGE", "Cartesian product of two paths.")
         .done(&mut create);
     let disconnected = graph_class("lA0K71", "disconnected", 1)
         .hide()
@@ -379,10 +379,10 @@ pub fn build_collection() -> RawData {
     // let bip_sub_free = parameter("LoQADQ", "$K_{t,t}$-subgraph-free", 5)
     // .done(&mut create);
     let bipartite_number = parameter("1dQQ87", "bipartite number", 2)
-        .defined("QmlowC", "Bipartite number of $G$ is the maximum order of an induced bipartite subgraph.")
+        .main_definition("QmlowC", "Bipartite number of $G$ is the maximum order of an induced bipartite subgraph.")
         .done(&mut create);
     let treelength = parameter("JA2nKw", "treelength", 6)
-        .defined("H4YERL", "Treelength of a tree decomposition is the maxmimum distance of two vertices that appear in the same bag. Treelength of a graph is the minimum treelength over tree decompositions.")
+        .main_definition("H4YERL", "Treelength of a tree decomposition is the maxmimum distance of two vertices that appear in the same bag. Treelength of a graph is the minimum treelength over tree decompositions.")
         .tag(&tree_decomposition)
         .done(&mut create);
 
@@ -647,6 +647,7 @@ pub fn build_collection() -> RawData {
         .ref_showed("aTjwcL", NotApplicable, &dist_to_planar, &acyclic_chromatic_number, UpperBound(Exists), "")
         .ref_showed("VYcUHd", NotApplicable, &max_independent_set, &clique_cover_num, Exclusion, "")
         .ref_showed("Zv5i0U", NotApplicable, &domination_num, &max_independent_set, Exclusion, "")
+        .ref_showed("", NotApplicable, &genus, &chromatic_num, UpperBound(Linear), "in fact, bounded by square root") // jansen mensions this is in Graphs, Colourings And The Four-Colour Theorem Get access Arrow by Robert A Wilson
         ;
 
     create
@@ -931,6 +932,7 @@ pub fn build_collection() -> RawData {
         .showed("ZHXKjC", Unknown, &carving_width, &max_degree, UpperBound(Linear), "Observation 1. Let $G$ be a graph. Then $cw(G) \\ge \\Delta(G)$.")
         .todo_rest(&mut create);
     let jansen2013 = source("FLOjic", "Jansen2013", 1)
+        .hasse("u6oAPX", Pp(46), &vec!["4lp9Yj", "BN92vX", "2LDMQ6", "yk7XP0", "TLx1pz", "aP5a38", "SnA7Eq", "GNOiyB", "OdZQna", "lPHVWU", "VHClqR", "Ve5ruW", "5Q7fuR", "gbaHdw", "kJZKgd", "w7MmyW"])
         .defined("PV6tGG", Unknown, &topological_bandwidth, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all subdivisions of $G$")
         .todo_rest(&mut create);
     let adler2015 = source("rhj9my", "Adler2015", 2)
@@ -966,6 +968,7 @@ pub fn build_collection() -> RawData {
         .showed("sq0brL", Unknown, &treedepth, &shrub_depth, UpperBound(Linear), "Proposition 3.2. If $G$ is of tree-depth $d$, then $G \\in \\mathcal{TM}_{2^d}(d)$. ...")
         .todo_rest(&mut create);
     let sorge2019 = source("VnTIL0", "Sorge2019", 7)
+        .hasse("Im1xnN", Pp(2), &vec!["2LDMQ6", "4lp9Yj", "BN92vX", "aP5a38", "UyQ5yM", "wUdmUb", "gbaHdw", "HTk9PZ", "KEP2qM", "VHClqR", "5Q7fuR", "lPHVWU", "GNOiyB", "yk7XP0", "aXw3Co", "AVc2K6", "OdZQna", "hbfWwE", "uDXX2i", "VomShB", "mHtXUU", "Gq0onN", "p4bTjp", "zH8PpT", "BCwUeT", "kJZKgd", "1yW82F", "wg5HuV", "fTqo40", "a7MpiT", "QGZuUW", "VowkuW", "w7MmyW", "q7zHeT", "z0y4TW", "GPmOeT", "KRV6tI", "ZL7BOP", "GNTwUS"])
         .defined("ddviDI", Pp(3), &acyclic_chromatic_number, "The \\emph{acyclic chromatic number} of a graph $G = (V,E)$ is the smallest size of a vertex partition $P=\\{V_1,\\dots,V_\\ell\\}$ such that each $V_i$ is an independent set and for all $V_i,V_j$ the graph $G[V_i \\cup V_j]$ does not contain a cycle.")
         // .cited("KrMa3o", Pp(3), &grunbaum1973, "Introduced by Grünbaum [18]")
         // .defined("aUvKTa", Pp(3), &path_number, "The \\emph{path number} of a graph $G$ is the minimum number of paths the edges of $G$ can be partitioned into [2].")
@@ -1230,5 +1233,3 @@ pub fn build_collection() -> RawData {
 // ErDFlH
 // CsXrRe
 // qOc9n0
-// Im1xnN
-// u6oAPX

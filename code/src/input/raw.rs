@@ -67,6 +67,7 @@ pub struct BuiltRawSet {
     pub aka: Vec<String>,
     pub abbr: Option<String>,
     pub tags: Vec<PreviewTagId>,
+    pub main_definition: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -78,6 +79,7 @@ pub struct RawSet {
     pub relevance: u32, // from 0 to 9
     pub aka: Vec<String>,
     pub abbr: Option<String>,
+    pub main_definition: Vec<String>,
 }
 
 impl BuiltRawSet {
@@ -94,9 +96,10 @@ impl BuiltRawSet {
             typ,
             composed,
             relevance,
-            tags: vec![],
-            aka: vec![],
+            tags: Vec::new(),
+            aka: Vec::new(),
             abbr: None,
+            main_definition: Vec::new(),
         }
     }
 }

@@ -71,14 +71,25 @@ fn process_set(
     tag_map: &HashMap<PreviewTagId, PreviewTag>,
     preview_collection: &PreviewCollection,
 ) -> Set {
+    let preview = PreviewSet::from(&set);
+    let RawSet{
+        id,
+        name,
+        typ,
+        composed,
+        relevance,
+        aka,
+        abbr,
+        main_definition,
+    } = set;
     let mut timeline_map: HashMap<PreviewSourceId, Vec<PreviewShowed>> = HashMap::new();
     for (source_id, showed) in &preview_collection.factoids {
         let should_save = match &showed.fact {
             ShowedFact::Relation(relation_id) => {
                 let relation = preview_collection.preview_relation_map.get(relation_id).unwrap();
-                relation.superset.id == set.id.preview() || relation.subset.id == set.id.preview()
+                relation.superset.id == id.preview() || relation.subset.id == id.preview()
             }
-            ShowedFact::Definition(defined_set_id) if defined_set_id == &set.id.preview() => {
+            ShowedFact::Definition(defined_set_id) if defined_set_id == &id.preview() => {
                 true
             }
             // ShowedFact::Citation( .. ) => false, // todo
@@ -105,7 +116,6 @@ fn process_set(
     .collect();
     timeline.sort_by_key(|subset| subset.time.clone());
     timeline.reverse();
-    let preview = PreviewSet::from(&set);
     let subsets = help.get_subsets(&preview);
     let supersets = help.get_supersets(&preview);
     let sub_exclusions = help.get_antisubsets(&preview);
@@ -129,21 +139,22 @@ fn process_set(
     // let transfers = HashMap::new(); // todo
     let mut tags: Vec<PreviewTag> = vec![];
     for (tag, set_id) in tag_set {
-        if set_id == &set.id.preview() {
+        if set_id == &id.preview() {
             tags.push(tag_map.get(tag).unwrap().clone());
         }
     }
     Set {
         preview: preview.clone(),
-        id: set.id,
+        id,
         name: preview.name.clone(),
         typ: preview.typ.clone(),
         providers,
         timeline,
-        aka: set.aka.clone(),
-        abbr: set.abbr.clone(),
+        aka,
+        abbr,
         tags,
         // transfers,
+        main_definition,
         related_sets: RelatedSets {
             equivsets: help.get_eqsets(&preview),
             subsets: prepare_extremes(subsets, help),

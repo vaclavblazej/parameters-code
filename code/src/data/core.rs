@@ -41,6 +41,7 @@ pub struct Set {
     pub providers: Vec<ProviderLink>,
     pub timeline: Vec<SourceSubset>,
     pub related_sets: RelatedSets,
+    pub main_definition: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -188,7 +189,7 @@ impl Data {
     }
 
     pub fn get_set(&self, key: &PreviewSet) -> &Set {
-        trace!("get set {} {}", key.id.to_string(), key.name);
+        trace!("get set {} {}", key.id, key.name);
         let idx: usize = *self
             .set_idx
             .get(key)
@@ -197,11 +198,11 @@ impl Data {
     }
 
     pub fn get_set_by_id(&self, id: &PreviewSetId) -> &Set {
-        trace!("get set id {}", id.to_string());
+        trace!("get set id {}", id);
         let idx: usize = *self
             .set_id_idx
             .get(id)
-            .unwrap_or_else(||panic!("preview set not found {:?}", id.to_string()));
+            .unwrap_or_else(||panic!("preview set not found {:?}", id));
         &self.sets[idx]
     }
 
@@ -209,9 +210,9 @@ impl Data {
     pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> Option<&Relation> {
         trace!(
             "get relation from {} {} to {} {}",
-            subset.id.to_string(),
+            subset.id,
             subset.name,
-            superset.id.to_string(),
+            superset.id,
             superset.name
         );
         let key = (subset.clone(), superset.clone());
@@ -222,11 +223,16 @@ impl Data {
     }
 
     pub fn get_relation_by_id(&self, id: &PreviewRelationId) -> Option<&Relation> {
-        trace!("get relation id {}", id.to_string());
+        trace!("get relation id {}", id);
         match self.relation_id_idx.get(id) {
             Some(&idx) => Some(&self.relations[idx]),
             None => None,
         }
+    }
+
+    pub fn get_relation_by_ids(&self, a: &PreviewSetId, b: &PreviewSetId) -> Option<&Relation> {
+        trace!("get relation ids {} {}", a, b);
+        self.get_relation_by_id(&RelationId::new(a, b).preview())
     }
 
     pub fn get_partial_result(&self, handle: &usize) -> &PartialResult {

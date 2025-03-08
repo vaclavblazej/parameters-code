@@ -9,6 +9,7 @@ use std::{env, fmt};
 
 use biblatex::Bibliography;
 use log::{error, info, trace};
+use rand::seq::IndexedRandom;
 use regex::Regex;
 
 use crate::data::core::{Data, ProviderLink, Relation, Set, ShowedFact, Source, Tag};
@@ -186,6 +187,17 @@ impl GeneratedPage for Set {
             let provider_strings: Vec<String> =
                 self.providers.iter().map(|x| builder.linkto(x)).collect();
             res += &format!("providers: {}\n\n", provider_strings.join(", "));
+        }
+        if !self.main_definition.is_empty() {
+            if self.main_definition.len() == 1 {
+                res += &format!("**Definition:** {}\n\n", self.main_definition.first().unwrap());
+            } else {
+                res += "**Definitions:**\n\n";
+                for definition in &self.main_definition {
+                    res += &format!("1. {}\n", definition);
+                }
+                res += "\n";
+            }
         }
         res += "[[handcrafted]]\n\n";
         for drawing_path in [

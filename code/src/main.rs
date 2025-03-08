@@ -86,7 +86,6 @@ fn build_page(
 ) -> anyhow::Result<()> {
     let content = match page.substitute {
         Some(substitute) => {
-            // info!("generating {:?}", page.target);
             substitute.object.get_page(markdown, paths)
         }
         None => "[[handcrafted]]".into(),
@@ -105,9 +104,6 @@ fn build_page(
         None => "".into(),
     };
     local_map.insert("handcrafted", Mappable::String(handcrafted_content));
-    if page.target.file_name().unwrap() == "_index.md" {
-        println!("{:?}", page.target);
-    }
     let mut altered_content = content;
     for _ in 0..2 {
         altered_content = substitute(&altered_content, markdown, &local_map);

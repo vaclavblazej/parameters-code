@@ -43,18 +43,9 @@ impl SetBuilder {
         self
     }
 
-    pub fn defined(mut self, id: &str, text: &str) -> Self {
-        let id_local: String = id.into();
-        let text_local: String = text.into();
-        let res = self.add_callback(Box::new(move |builder: &mut Builder, raw_set: &RawSet| {
-            builder.assumed_source().ref_defined(
-                id_local.as_str(),
-                NotApplicable,
-                &raw_set.id.preview(),
-                text_local.as_str(),
-            );
-        }));
-        res
+    pub fn main_definition(mut self, id: &str, text: &str) -> Self {
+        self.set.main_definition.push(text.into());
+        self
     }
 
     pub fn hide(mut self) -> Self {
@@ -72,8 +63,9 @@ impl SetBuilder {
             aka,
             abbr,
             tags,
+            main_definition,
         } = self.set;
-        let res = RawSet { id, name, typ, composed, relevance, aka, abbr, };
+        let res = RawSet { id, name, typ, composed, relevance, aka, abbr, main_definition };
         for operation in &self.later_operations {
             operation(builder, &res);
         }
