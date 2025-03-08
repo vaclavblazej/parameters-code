@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use biblatex::Entry;
 use log::error;
 
-use crate::data::data::{
+use crate::data::core::{
     PartialResultsBuilder, PreviewShowed, Provider, ProviderLink, Relation, ShowedFact, Source, Tag
 };
 use crate::data::id::{Id, PreviewId, PreviewRelationId, PreviewSetId, RelationId};

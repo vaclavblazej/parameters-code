@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::{
-    data::PartialResult, id::PreviewSetId, preview::{PreviewSet, PreviewSource}
+    core::PartialResult, id::PreviewSetId, preview::{PreviewSet, PreviewSource}
 };
 
 /// Refers to a page in a book or paper. If pdf is available it should refer its
@@ -159,20 +159,14 @@ impl CpxInfo {
         }
     }
 
-    pub fn to_sourced(self, partial_result: PartialResult) -> SourcedCpxInfo {
+    pub fn into_sourced(self, partial_result: PartialResult) -> SourcedCpxInfo {
         match self.clone() {
             CpxInfo::Equal => SourcedCpxInfo::Equal {
                 source: partial_result,
             },
             CpxInfo::Inclusion { mn, mx } => SourcedCpxInfo::Inclusion {
-                mn: match mn {
-                    Option::Some(x) => Some((x, partial_result.clone())),
-                    Option::None => None,
-                },
-                mx: match mx {
-                    Option::Some(x) => Some((x, partial_result.clone())),
-                    Option::None => None,
-                },
+                mn: mn.map(|x| (x, partial_result.clone())),
+                mx: mx.map(|x| (x, partial_result.clone())),
             },
             CpxInfo::Exclusion => SourcedCpxInfo::Exclusion {
                 source: partial_result,
@@ -182,19 +176,13 @@ impl CpxInfo {
     }
 }
 
-impl Into<CpxInfo> for SourcedCpxInfo {
-    fn into(self) -> CpxInfo {
-        match self {
+impl From<SourcedCpxInfo> for CpxInfo {
+    fn from(sourced: SourcedCpxInfo) -> CpxInfo {
+        match sourced {
             SourcedCpxInfo::Equal { source } => CpxInfo::Equal,
             SourcedCpxInfo::Inclusion { mn, mx } => CpxInfo::Inclusion {
-                mn: match mn {
-                    Some((x, _)) => Some(x),
-                    Option::None => None,
-                },
-                mx: match mx {
-                    Some((x, _)) => Some(x),
-                    Option::None => None,
-                },
+                mn: mn.map(|(x, _)| x),
+                mx: mx.map(|(x, _)| x),
             },
             SourcedCpxInfo::Exclusion { source: _ } => CpxInfo::Exclusion,
             SourcedCpxInfo::Unknown => CpxInfo::Unknown,

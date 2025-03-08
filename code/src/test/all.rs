@@ -2,7 +2,7 @@
 mod tests {
     use std::env;
 
-    use crate::data::data::Relation;
+    use crate::data::core::Relation;
     use crate::general::enums::{Cpx, CpxInfo};
     use crate::general::enums::{
         CpxTime::*,

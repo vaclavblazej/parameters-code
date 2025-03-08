@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use crate::general::enums::CpxInfo;
 
 use super::{
-    data::Relation,
+    core::Relation,
     preview::{PreviewRelation, PreviewSet},
 };
 
@@ -63,25 +63,25 @@ impl SimpleIndex {
     }
 
     pub fn get_eqsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
-        let mut seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a).into_iter());
+        let mut seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a));
         let mut setb: HashSet<PreviewSet> =
-            HashSet::from_iter(self.get_all_supersets(a).into_iter());
+            HashSet::from_iter(self.get_all_supersets(a));
         seta.insert(a.clone());
         setb.insert(a.clone());
-        let res: Vec<PreviewSet> = seta.intersection(&setb).into_iter().cloned().collect();
+        let res: Vec<PreviewSet> = seta.intersection(&setb).cloned().collect();
         res
     }
 
     pub fn get_subsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
-        let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a).into_iter());
-        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_eqsets(a).into_iter());
-        seta.difference(&setb).into_iter().cloned().collect()
+        let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a));
+        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_eqsets(a));
+        seta.difference(&setb).cloned().collect()
     }
 
     pub fn get_supersets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
-        let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_supersets(a).into_iter());
-        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_eqsets(a).into_iter());
-        seta.difference(&setb).into_iter().cloned().collect()
+        let seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_supersets(a));
+        let setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_eqsets(a));
+        seta.difference(&setb).cloned().collect()
     }
 
     pub fn get_antisubsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {

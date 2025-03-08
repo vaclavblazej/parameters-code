@@ -1,5 +1,5 @@
 use crate::{
-    data::{data::Set, preview::PreviewSet},
+    data::{core::Set, preview::PreviewSet},
     work::processing::RelatedSets,
 };
 
@@ -121,19 +121,19 @@ impl Color {
 
     pub fn tikz(&self) -> String {
         let (r, g, b) = color_to_number(&self.hex());
-        format!("{{rgb,255:red,{};green,{};blue,{}}}", r, g, b).into()
+        format!("{{rgb,255:red,{};green,{};blue,{}}}", r, g, b)
     }
 }
 
 pub fn relation_color(related_sets: &RelatedSets, aid: String, other: &PreviewSet) -> Color {
-    let a_eq_b = related_sets.equivsets.contains(&other);
-    let a_gte_b = related_sets.supersets.all.contains(&other);
-    let a_lte_b = related_sets.subsets.all.contains(&other);
-    let a_ngte_b = related_sets.super_exclusions.all.contains(&other);
-    let a_nlte_b = related_sets.sub_exclusions.all.contains(&other);
+    let a_eq_b = related_sets.equivsets.contains(other);
+    let a_gte_b = related_sets.supersets.all.contains(other);
+    let a_lte_b = related_sets.subsets.all.contains(other);
+    let a_ngte_b = related_sets.super_exclusions.all.contains(other);
+    let a_nlte_b = related_sets.sub_exclusions.all.contains(other);
     match (a_gte_b, a_lte_b, a_ngte_b, a_nlte_b) {
-        (true, _, true, _) | (_, true, _, true) => panic!("impossible resulting case between form set {} to {}", aid, other.id.to_string()),
-        (true, true, false, false)   => panic!("unexpected equivalence which should be in set.equivsets instead of being just contained in subsets and supersets for {} and {}", aid, other.id.to_string()),
+        (true, _, true, _) | (_, true, _, true) => panic!("impossible resulting case between form set {} to {}", aid, other.id),
+        (true, true, false, false)   => panic!("unexpected equivalence which should be in set.equivsets instead of being just contained in subsets and supersets for {} and {}", aid, other.id),
         (false, true, true, false)   => Color::Green,
         (false, false, true, true)   => Color::Blue,
         (true, false, false, true)   => Color::Red,

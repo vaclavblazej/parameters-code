@@ -49,13 +49,13 @@ impl fmt::Display for Date {
 
 impl fmt::Debug for Date {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{}", &self))
+        write!(f, "{}", &self)
     }
 }
 
-impl Into<Date> for &Entry {
-    fn into(self) -> Date {
-        match self.date() {
+impl From<&Entry> for Date {
+    fn from(entry: &Entry) -> Date {
+        match entry.date() {
             Ok(permissive_date) => {
                 match permissive_date {
                     PermissiveType::Chunks(chunks) => {
@@ -63,7 +63,7 @@ impl Into<Date> for &Entry {
                     }
                     PermissiveType::Typed(date) => match date.value {
                         DateValue::At(datetime) => {
-                            let year = Some(datetime.year).into();
+                            let year = Some(datetime.year);
                             let mut month = datetime.month;
                             if let Some(m) = month {
                                 month = Some(m + 1);

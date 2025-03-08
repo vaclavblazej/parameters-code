@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::{
     data::{
-        data::{PartialResult, PartialResultsBuilder, Relation}, id::PreviewSetId, preview::{PreviewSet, WorkRelation}
+        core::{PartialResult, PartialResultsBuilder, Relation}, id::PreviewSetId, preview::{PreviewSet, WorkRelation}
     },
     general::enums::{
         ComparisonResult, CpxInfo, CpxTime, CreatedBy, SourcedCpxInfo::{self, *},
@@ -26,6 +26,7 @@ impl fmt::Display for CombinationError {
 }
 
 impl PartialResultsBuilder {
+
     pub fn new() -> Self {
         Self { arr: vec![] }
     }
@@ -49,6 +50,12 @@ impl PartialResultsBuilder {
 
     pub fn done(self) -> Vec<PartialResult> {
         self.arr
+    }
+}
+
+impl Default for PartialResultsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -228,14 +235,14 @@ impl PartialResult {
     }
 
     pub fn to_sourced(&self) -> SourcedCpxInfo {
-        self.cpx.clone().to_sourced(self.clone())
+        self.cpx.clone().into_sourced(self.clone())
     }
 }
 
 impl SourcedCpxInfo {
     pub fn combine_plus(&self, other: &Self) -> SourcedCpxInfo {
         debug!("{:?} {:?}", self.clone(), other.clone());
-        let cpx = match (self.clone(), other.clone()) {
+        match (self.clone(), other.clone()) {
             (Unknown, _) | (_, Unknown) => Unknown,
             (Equal { source }, a) | (a, Equal { source }) => a.clone(),
             (
@@ -267,7 +274,6 @@ impl SourcedCpxInfo {
                     mx: Option::None,
                 },
             ) => Unknown,
-        };
-        cpx
+        }
     }
 }

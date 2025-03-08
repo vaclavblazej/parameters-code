@@ -108,7 +108,7 @@ pub struct Data {
     pub relation_id_idx: HashMap<PreviewRelationId, usize>,
 }
 
-pub fn compute_set_idx(sets: &Vec<Set>) -> HashMap<PreviewSet, usize> {
+fn compute_set_idx(sets: &[Set]) -> HashMap<PreviewSet, usize> {
     trace!("computing set indices");
     let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
     for (idx, set) in sets.iter().enumerate() {
@@ -117,7 +117,7 @@ pub fn compute_set_idx(sets: &Vec<Set>) -> HashMap<PreviewSet, usize> {
     set_idx
 }
 
-pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, PreviewSet), usize> {
+fn compute_relation_idx(relations: &[Relation]) -> HashMap<(PreviewSet, PreviewSet), usize> {
     trace!("computing relation indices");
     let mut relation_idx: HashMap<(PreviewSet, PreviewSet), usize> = HashMap::new();
     for (idx, relation) in relations.iter().enumerate() {
@@ -126,6 +126,22 @@ pub fn compute_relation_idx(relations: &Vec<Relation>) -> HashMap<(PreviewSet, P
         relation_idx.insert(pair, idx);
     }
     relation_idx
+}
+
+fn compute_relation_id_idx(relations: &[Relation]) -> HashMap<PreviewRelationId, usize> {
+    let mut relation_id_idx = HashMap::new();
+    for (idx, relation) in relations.iter().enumerate() {
+        relation_id_idx.insert(relation.id.preview(), idx);
+    }
+    relation_id_idx
+}
+
+fn compute_set_id_idx(sets: &[Set]) -> HashMap<PreviewSetId, usize> {
+    let mut set_id_idx = HashMap::new();
+    for (idx, set) in sets.iter().enumerate() {
+        set_id_idx.insert(set.id.preview(), idx);
+    }
+    set_id_idx
 }
 
 impl Data {
@@ -140,15 +156,9 @@ impl Data {
         trace!("new data");
         sets.sort_by_key(|x| x.name.to_lowercase().clone());
         let set_idx = compute_set_idx(&sets);
+        let set_id_idx = compute_set_id_idx(&sets);
         let relation_idx = compute_relation_idx(&relations);
-        let mut relation_id_idx = HashMap::new();
-        for (idx, relation) in relations.iter().enumerate() {
-            relation_id_idx.insert(relation.id.preview(), idx);
-        }
-        let mut set_id_idx = HashMap::new();
-        for (idx, set) in sets.iter().enumerate() {
-            set_id_idx.insert(set.id.preview(), idx);
-        }
+        let relation_id_idx = compute_relation_id_idx(&relations);
         Self {
             sets,
             relations,
@@ -165,7 +175,9 @@ impl Data {
 
     pub fn recompute(&mut self) {
         self.set_idx = compute_set_idx(&self.sets);
+        self.set_id_idx = compute_set_id_idx(&self.sets);
         self.relation_idx = compute_relation_idx(&self.relations);
+        self.relation_id_idx = compute_relation_id_idx(&self.relations);
     }
 
     pub fn get_sets<I>(&self, key: I) -> Vec<&Set>
@@ -179,8 +191,8 @@ impl Data {
         trace!("get set {} {}", key.id.to_string(), key.name);
         let idx: usize = *self
             .set_idx
-            .get(&key)
-            .expect(&format!("preview set not found {:?}", key));
+            .get(key)
+            .unwrap_or_else(||panic!("preview set not found {:?}", key));
         &self.sets[idx]
     }
 
@@ -189,7 +201,7 @@ impl Data {
         let idx: usize = *self
             .set_id_idx
             .get(id)
-            .expect(&format!("preview set not found {:?}", id.to_string()));
+            .unwrap_or_else(||panic!("preview set not found {:?}", id.to_string()));
         &self.sets[idx]
     }
 

@@ -3,11 +3,11 @@
 use std::{
     fs::{self, File},
     io::{Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Result;
-use log::error;
+use log::{error, warn};
 
 pub fn iterate_folder_recursively(path: &PathBuf) -> Vec<PathBuf> {
     let mut res = vec![];
@@ -47,7 +47,6 @@ pub fn read_file_content(source_path: &PathBuf) -> Result<String> {
 
 pub fn append_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
     let mut target_file = fs::OpenOptions::new()
-        .write(true)
         .append(true)
         .create(true)
         .open(target_path)?;
@@ -56,14 +55,33 @@ pub fn append_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
 }
 
 pub fn write_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
-    fs::create_dir_all(target_path.parent().unwrap())?;
+    // assert!(!target_path.exists());
+    try_create_parent_folder(target_path)?;
     let mut target_file = File::create(target_path)?;
     target_file.write_all(content.as_bytes())?;
     Ok(())
 }
 
 pub fn copy_file(source_path: &PathBuf, target_path: &PathBuf) -> Result<()> {
-    fs::create_dir_all(target_path.parent().unwrap())?;
+    assert!(source_path.exists());
+    assert!(source_path.is_file());
+    try_create_parent_folder(target_path)?;
     fs::copy(source_path, target_path)?;
+    Ok(())
+}
+
+pub fn remove_file(target_path: &PathBuf) -> Result<()> {
+    if target_path.exists() {
+        fs::remove_file(target_path)?;
+    } else {
+        warn!("tried to remove non-existent file {:?}", target_path);
+    }
+    Ok(())
+}
+
+pub fn try_create_parent_folder(target_path: &Path) -> Result<()> {
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     Ok(())
 }

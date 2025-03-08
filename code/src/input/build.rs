@@ -157,13 +157,13 @@ impl Builder {
     }
 
     /// Adds set to the collection while making a few sanity checks.
-    pub fn add_set<'a>(&mut self, set: RawSet) {
+    pub fn add_set(&mut self, set: RawSet) {
         if self.id_sanity_map.contains(&set.id.to_string()) {
-            panic!("id {} used multiple times", set.id.to_string());
+            panic!("id {} used multiple times", set.id);
         }
         if set.id.to_string().len() != 6 {
             // todo - polish id sanity check
-            error!("id {} has non-standard format", set.id.to_string());
+            error!("id {} has non-standard format", set.id);
         }
         if self.name_sanity_map.contains(&set.name) {
             error!("name {} used multiple times", set.name);
@@ -184,7 +184,7 @@ impl Builder {
         from: &PreviewSetId,
         to: &PreviewSetId,
     ) {
-        let r = self.data.transfer.entry(group).or_insert_with(Vec::new);
+        let r = self.data.transfer.entry(group).or_default();
         r.push((from.clone(), to.clone()));
     }
 
@@ -265,8 +265,8 @@ impl Builder {
         SetBuilder::new(res).add_callback(Box::new(
             move |builder: &mut Builder, newset: &RawSet| {
                 for set_id in &sets {
-                    let id = &format!("{}_{}", newset.id.to_string(), set_id.to_string());
-                    builder.assumed_source().ref_showed("", Page::NotApplicable, &newset.id.preview(), &set_id, upper_bound.clone(), "by definition");
+                    let id = &format!("{}_{}", newset.id, set_id);
+                    builder.assumed_source().ref_showed("", Page::NotApplicable, &newset.id.preview(), set_id, upper_bound.clone(), "by definition");
                 }
             },
         ))

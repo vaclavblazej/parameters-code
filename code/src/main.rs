@@ -11,9 +11,9 @@ use anyhow::Result;
 use biblatex::Bibliography;
 use log::{debug, error, info, trace, warn};
 
-use data::data::Data;
-use data::data::Relation;
-use data::data::Set;
+use data::core::Data;
+use data::core::Relation;
+use data::core::Set;
 use data::id::{Id, PreviewId};
 use data::preview::PreviewSet;
 use data::preview::PreviewType;
@@ -36,7 +36,7 @@ use work::bibliography::load_bibliography;
 use work::processing::process_raw_data;
 
 mod data {
-    pub mod data;
+    pub mod core;
     pub mod id;
     pub mod preview;
     pub mod simple_index;
@@ -87,7 +87,7 @@ fn build_page(
     let content = match page.substitute {
         Some(substitute) => {
             // info!("generating {:?}", page.target);
-            substitute.object.get_page(&markdown, paths)
+            substitute.object.get_page(markdown, paths)
         }
         None => "[[handcrafted]]".into(),
     };
@@ -98,21 +98,20 @@ fn build_page(
                 file::read_file_content(source)?
             } else {
                 let target_folder = &page.target.parent().unwrap();
-                fs::create_dir_all(target_folder)?;
-                fs::copy(&source, &page.target)?;
+                file::copy_file(source, page.target)?;
                 return Ok(());
             }
         }
         None => "".into(),
     };
     local_map.insert("handcrafted", Mappable::String(handcrafted_content));
-    if page.target.exists() {
-        fs::remove_file(&page.target)?;
+    if page.target.file_name().unwrap() == "_index.md" {
+        println!("{:?}", page.target);
     }
-    if let Some(parent) = page.target.parent() {
-        fs::create_dir_all(parent)?;
+    let mut altered_content = content;
+    for _ in 0..2 {
+        altered_content = substitute(&altered_content, markdown, &local_map);
     }
-    let altered_content = substitute(&content, &markdown, &local_map);
     file::write_file_content(page.target, &altered_content)?;
     Ok(())
 }
@@ -136,32 +135,19 @@ fn generate_pages(
     Ok(())
 }
 
-fn substitute(content: &String, markdown: &Markdown, map: &HashMap<&str, Mappable>) -> String {
-    let altered_content = content
+fn substitute(content: &str, markdown: &Markdown, map: &HashMap<&str, Mappable>) -> String {
+    content
         .lines()
-        .map(|line| {
-            let mut strline = line.into();
-            for _ in 1..10 {
-                let newline = markdown.substitute_custom_markdown(&strline, map);
-                if newline == strline {
-                    return newline;
-                }
-                strline = newline;
-            }
-            strline
-        })
+        .map(|line| markdown.substitute_custom_markdown(line, map))
         .collect::<Vec<String>>()
-        .join("\n");
-    altered_content
+        .join("\n")
 }
 
 fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>, paths: &Paths, name: &str) {
-    let done_pdf = render_table(&data, draw_sets, &paths.table_tikz_folder).unwrap();
+    let done_pdf = render_table(data, draw_sets, &paths.table_tikz_folder).unwrap();
     let final_pdf = paths.html_dir.join(format!("{}.pdf", name));
     info!("copy the pdf to {:?}", &final_pdf);
-    if let Err(err) = fs::copy(&done_pdf, &final_pdf){
-        error!("{}", err);
-    }
+    file::copy_file(&done_pdf, &final_pdf);
 }
 
 struct Timer {
@@ -182,15 +168,15 @@ impl Timer {
 
 #[derive(Hash, PartialEq, Eq)]
 enum Args {
-    PREPROCESS,
-    DOTS,
-    PAGES,
-    RELATIONS,
-    TABLE,
-    CLEAR,
-    MOCK,
-    DEBUG,
-    TRACE,
+    Preprocess,
+    Dots,
+    Pages,
+    Relations,
+    Table,
+    Clear,
+    Mock,
+    Debug,
+    Trace,
 }
 
 struct Computation {
@@ -225,52 +211,52 @@ impl Computation {
             }
             match arg.as_str() {
                 "preprocess" => {
-                    args.insert(Args::PREPROCESS);
+                    args.insert(Args::Preprocess);
                 }
                 "dots" => {
-                    args.insert(Args::DOTS);
+                    args.insert(Args::Dots);
                 }
                 "pages" => {
-                    args.insert(Args::PAGES);
+                    args.insert(Args::Pages);
                 }
                 "relations" => {
-                    args.insert(Args::RELATIONS);
+                    args.insert(Args::Relations);
                 }
                 "table" => {
-                    args.insert(Args::TABLE);
+                    args.insert(Args::Table);
                 }
                 "clear" => {
-                    args.insert(Args::CLEAR);
+                    args.insert(Args::Clear);
                 }
                 "mock" => {
-                    args.insert(Args::MOCK);
+                    args.insert(Args::Mock);
                 }
                 "trace" => {
-                    args.insert(Args::TRACE);
+                    args.insert(Args::Trace);
                 }
                 "debug" => {
-                    args.insert(Args::DEBUG);
+                    args.insert(Args::Debug);
                 }
                 "fast" => {
-                    args.insert(Args::CLEAR);
-                    args.insert(Args::PREPROCESS);
-                    args.insert(Args::DOTS);
-                    args.insert(Args::PAGES);
+                    args.insert(Args::Clear);
+                    args.insert(Args::Preprocess);
+                    args.insert(Args::Dots);
+                    args.insert(Args::Pages);
                 }
                 "all" => {
-                    args.insert(Args::CLEAR);
-                    args.insert(Args::PREPROCESS);
-                    args.insert(Args::DOTS);
-                    args.insert(Args::PAGES);
-                    args.insert(Args::RELATIONS);
-                    args.insert(Args::TABLE);
+                    args.insert(Args::Clear);
+                    args.insert(Args::Preprocess);
+                    args.insert(Args::Dots);
+                    args.insert(Args::Pages);
+                    args.insert(Args::Relations);
+                    args.insert(Args::Table);
                 }
                 other => panic!("unknown parameter: '{}'", other),
             }
         }
-        logger::init(if args.contains(&Args::TRACE) {
+        logger::init(if args.contains(&Args::Trace) {
             log::LevelFilter::Trace
-        } else if args.contains(&Args::DEBUG) {
+        } else if args.contains(&Args::Debug) {
             log::LevelFilter::Debug
         } else {
             log::LevelFilter::Info
@@ -308,13 +294,13 @@ impl Computation {
 
     fn get_data(&self) -> &Data {
         match self.some_data {
-            Some(ref data) => &data,
+            Some(ref data) => data,
             None => panic!("unwrap empty data"),
         }
     }
 
     fn clear(&mut self) {
-        if !self.args.contains(&Args::CLEAR) {
+        if !self.args.contains(&Args::Clear) {
             return;
         }
         info!("clearing the final directory");
@@ -332,10 +318,10 @@ impl Computation {
     }
 
     fn retrieve_and_process_data(&mut self) {
-        let mock = self.args.contains(&Args::MOCK);
+        let mock = self.args.contains(&Args::Mock);
         self.bibliography = load_bibliography(&self.paths.bibliography_file);
         let cch: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
-        if !mock && !self.args.contains(&Args::PREPROCESS) {
+        if !mock && !self.args.contains(&Args::Preprocess) {
             if let Some(mut res) = cch.load() {
                 info!("deserialized data");
                 res.recompute();
@@ -360,7 +346,7 @@ impl Computation {
     }
 
     fn make_dots(&self) {
-        if !self.args.contains(&Args::DOTS) {
+        if !self.args.contains(&Args::Dots) {
             return;
         }
         let data = self.get_data();
@@ -387,7 +373,7 @@ impl Computation {
             ("graphs", &graphs),
             ("parameters_simplified", &simplified_parameters),
         ] {
-            if let Ok(done_dot) = make_drawing(&data, &self.paths.working_dir, name, set, None) {
+            if let Ok(done_dot) = make_drawing(data, &self.paths.working_dir, name, set, None) {
                 let final_dot = self.paths.html_dir.join(format!("{}.dot", name));
                 info!("copy dot to {:?}", &final_dot);
                 if let Err(err) = file::copy_file(&done_dot, &final_dot) {
@@ -398,7 +384,7 @@ impl Computation {
     }
 
     fn make_pages(&self) {
-        if !self.args.contains(&Args::PAGES) {
+        if !self.args.contains(&Args::Pages) {
             return;
         }
         let data = self.get_data();
@@ -420,7 +406,7 @@ impl Computation {
         for set in sets {
             linkable.insert(set.id.to_string(), Box::new(set.preview.clone()));
         }
-        if self.args.contains(&Args::RELATIONS) {
+        if self.args.contains(&Args::Relations) {
             for rel in relations {
                 linkable.insert(rel.id.to_string(), Box::new(rel.preview.clone()));
             }
@@ -432,7 +418,7 @@ impl Computation {
             linkable.insert(tag.id.to_string(), Box::new(tag.preview.clone()));
         }
         add_content(sets, &self.paths.final_dir, &mut generated_pages);
-        if self.args.contains(&Args::RELATIONS) {
+        if self.args.contains(&Args::Relations) {
             add_content(relations, &self.paths.final_dir, &mut generated_pages);
         }
         add_content(sources, &self.paths.final_dir, &mut generated_pages);
@@ -443,19 +429,20 @@ impl Computation {
             let relative = source.strip_prefix(&self.paths.handcrafted_dir).unwrap();
             let target_file = self.paths.final_dir.join(relative);
             if source.is_file() {
+                debug!("file {:?}", target_file);
                 handcrafted_pages.insert(target_file.clone(), source.clone());
             } else if source.is_dir() {
-                info!("directory {:?}", target_file);
+                debug!("directory {:?}", target_file);
             } else {
-                info!("unprocessable file {:?}", target_file);
+                warn!("unprocessable file {:?}", target_file);
             }
         }
         self.time.print("merging generated and handcrafted pages");
         let mut target_keys = HashSet::new();
-        for (k, _) in &generated_pages {
+        for k in generated_pages.keys() {
             target_keys.insert(k);
         }
-        for (k, _) in &handcrafted_pages {
+        for k in handcrafted_pages.keys() {
             target_keys.insert(k);
         }
         let mut pages = vec![];
@@ -472,12 +459,12 @@ impl Computation {
         let mut map: HashMap<&str, Mappable> = HashMap::new();
         // todo add custom entries to the hash map for [[key]] notation in the handcrafted pages
         // map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
-        let markdown = Markdown::new(&data, linkable, &self.bibliography);
+        let markdown = Markdown::new(data, linkable, &self.bibliography);
         generate_pages(&pages, &markdown, &self.paths, &map); // takes long
     }
 
     fn make_relation_table(&self) {
-        if !self.args.contains(&Args::TABLE) {
+        if !self.args.contains(&Args::Table) {
             return;
         }
         let data = self.get_data();
@@ -500,7 +487,7 @@ impl Computation {
             ("table", &table_sets),
             ("table_simplified", &simplified_table_sets),
         ] {
-            generate_relation_table(&data, set, &self.paths, name);
+            generate_relation_table(data, set, &self.paths, name);
         }
     }
 }

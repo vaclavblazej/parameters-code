@@ -8,10 +8,10 @@ use std::process::Command;
 use std::{env, fmt};
 
 use biblatex::Bibliography;
-use log::{error, info};
+use log::{error, info, trace};
 use regex::Regex;
 
-use crate::data::data::{Data, ProviderLink, Relation, Set, ShowedFact, Source, Tag};
+use crate::data::core::{Data, ProviderLink, Relation, Set, ShowedFact, Source, Tag};
 use crate::data::id::{BaseId, PreviewId};
 use crate::data::preview::{
     PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType,
@@ -134,20 +134,16 @@ pub trait GeneratedPage {
     fn get_page(&self, builder: &Markdown, path: &Paths) -> String;
 }
 
-fn copy_file_to_final_location(file: &PathBuf, to_directory: &PathBuf) {
-    assert!(file.exists());
-    assert!(file.is_file());
+fn copy_file_to_final_location(file: &PathBuf, to_directory: &Path) {
     let filename = file
         .file_name()
         .expect("Result file has no name")
         .to_owned();
-    fs::create_dir_all(&to_directory);
-    assert!(to_directory.is_dir());
     let final_path = to_directory.join(&filename);
-    fs::copy(&file, &final_path).expect("Failed to copy result to final directory");
+    file::copy_file(file, &final_path).expect("Failed to copy result to final directory");
 }
 
-fn include_dot_file(drawing: anyhow::Result<PathBuf>, final_dir: &PathBuf) -> String {
+fn include_dot_file(drawing: anyhow::Result<PathBuf>, final_dir: &Path) -> String {
     match drawing {
         Ok(result_pdf_file) => {
             copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
@@ -194,15 +190,15 @@ impl GeneratedPage for Set {
         res += "[[handcrafted]]\n\n";
         for drawing_path in [
             make_focus_drawing(
-                &format!("local_{}", self.id.to_string()),
-                &builder.data,
+                &format!("local_{}", self.id),
+                builder.data,
                 self,
                 2,
                 &paths.working_dir,
             ),
             make_subset_drawing(
-                &format!("dif_inclusions_{}", self.id.to_string()),
-                &builder.data,
+                &format!("dif_inclusions_{}", self.id),
+                builder.data,
                 self,
                 builder
                     .data
@@ -213,8 +209,8 @@ impl GeneratedPage for Set {
                 &paths.working_dir,
             ),
             make_subset_drawing(
-                &format!("same_inclusions_{}", self.id.to_string()),
-                &builder.data,
+                &format!("same_inclusions_{}", self.id),
+                builder.data,
                 self,
                 builder
                     .data
@@ -244,7 +240,7 @@ impl GeneratedPage for Set {
         // }
         // res += "\n";
         // }
-        res += &format!("---\n\n## Relations\n\n");
+        res += "---\n\n## Relations\n\n";
         let mut relation_table = Table::new(vec!["Other", "", "Relation from", "Relation to"]);
         for set in &builder.data.sets {
             let relation_fr_el: String =
@@ -281,7 +277,7 @@ impl GeneratedPage for Set {
         // make_subset_drawing
         let sources_timeline = &self.timeline;
         if !sources_timeline.is_empty() {
-            res += &format!("---\n\n## Results\n\n");
+            res += "---\n\n## Results\n\n";
             for source in sources_timeline {
                 if let Some(val) = source.to_markdown(builder) {
                     res += &val;
@@ -328,14 +324,14 @@ impl GeneratedPage for Source {
                 res += &format!("{}\n\n", description);
             }
             SourceKey::Online { url } => {
-                res += &format!("# Online source {}\n\n", self.id.to_string());
+                res += &format!("# Online source {}\n\n", self.id);
             }
         }
         for (idx, drawing) in self.drawings.iter().enumerate() {
-            let name = &format!("drawing_{}_{}", self.id.to_string(), idx);
+            let name = &format!("drawing_{}_{}", self.id, idx);
             match drawing {
                 Drawing::Table(list) => {
-                    generate_relation_table(builder.data, &list, &paths, name);
+                    generate_relation_table(builder.data, list, paths, name);
                     res += &format!("[[pdf ../{}.pdf]]\n\n", name);
                 }
                 Drawing::Hasse(list) => {
@@ -501,7 +497,7 @@ impl GeneratedPage for Relation {
         {
             format!("[→]({})", reverse_relation.preview.get_url())
         } else {
-            format!("→")
+            "→".to_string()
         };
         res += &format!(
             "# {} {} {}\n\n",
@@ -515,7 +511,7 @@ impl GeneratedPage for Relation {
             "color: [[color {}]]\n\n",
             relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview).name()
         );
-        res += &format_relation(&builder.data, &self);
+        res += &format_relation(builder.data, self);
         res
     }
 }
@@ -593,7 +589,7 @@ impl<'a> Markdown<'a> {
 
     pub fn substitute_custom_markdown(
         &self,
-        line: &String,
+        line: &str,
         map: &HashMap<&str, Mappable>,
     ) -> String {
         let pattern = Regex::new(r"\[\[(?P<capturegroup>[^\]]+)\]\]").unwrap();
@@ -602,7 +598,7 @@ impl<'a> Markdown<'a> {
             match part {
                 Some(raw_name) => {
                     let key = raw_name.as_str();
-                    match self.process_key(&key.into(), map) {
+                    match self.process_key(key, map) {
                         Ok(res) => res,
                         Err(error) => {
                             error!("  {}", error.to_string());
@@ -725,7 +721,7 @@ impl<'a> Markdown<'a> {
         }
     }
 
-    pub fn process_key(&self, input: &String, map: &HashMap<&str, Mappable>) -> Result<String> {
+    pub fn process_key(&self, input: &str, map: &HashMap<&str, Mappable>) -> Result<String> {
         let mut words: LinkedList<String> = LinkedList::new();
         for word in input.split(' ') {
             words.push_back(word.into());
@@ -770,7 +766,7 @@ impl<'a> Markdown<'a> {
     pub fn make_table(&self, table: Table) -> String {
         let mut content = String::new();
         content += &self.make_row(&table.head);
-        content += &self.make_row(&table.head.iter().map(|x| format!("---")).collect());
+        content += &self.make_row(&table.head.iter().map(|x| "---".to_string()).collect());
         for row in table.rows {
             content += &self.make_row(&row.iter().map(|x| x.into()).collect());
         }
@@ -778,7 +774,7 @@ impl<'a> Markdown<'a> {
     }
 
     pub fn embed_dot(&self, keys: &mut LinkedList<String>) -> Result<String> {
-        let filename: String = keys.pop_front().unwrap().into();
+        let filename: String = keys.pop_front().unwrap();
         Ok(format!(
             "<p><div id=\"{}\" class=\"svg-diagram\"></div></p>\
             <script>\
@@ -804,7 +800,7 @@ impl<'a> Markdown<'a> {
     }
 
     pub fn embed_pdf(&self, keys: &mut LinkedList<String>) -> Result<String> {
-        let name: String = keys.pop_front().unwrap().into();
+        let name: String = keys.pop_front().unwrap();
         let default = 480;
         let height: u32 = keys
             .pop_front()
@@ -821,7 +817,7 @@ impl<'a> Markdown<'a> {
     }
 
     pub fn color(&self, keys: &mut LinkedList<String>) -> Result<String> {
-        let colorname: String = keys.pop_front().unwrap().into();
+        let colorname: String = keys.pop_front().unwrap();
         let color = Color::from_str(&colorname);
         Ok(format!("<span style=\"color:{}\">■</span>", color.hex()))
     }
@@ -836,8 +832,7 @@ impl<'a> Markdown<'a> {
         final_markdown += &content;
         let filename = format!("./build/{}", pagename);
         let mut file = fs::File::create(&filename).expect("Unable to create file");
-        file.write_all(final_markdown.as_bytes())
-            .expect("Unable to write data to file");
+        file.write_all(final_markdown.as_bytes()).expect("Unable to write data to file");
         // println!("Saved website into {}", filename);
         // builder.make_page("_index.md", builder.landing_page_keys(&data));
         // for entry in &data.parameters {

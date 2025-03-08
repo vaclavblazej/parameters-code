@@ -6,7 +6,7 @@ use std::process::Command;
 
 use log::error;
 
-use crate::data::data::{Data, Set};
+use crate::data::core::{Data, Set};
 use crate::data::id::PreviewSetId;
 use crate::data::preview::{PreviewSet, PreviewType};
 use crate::general::enums::{CpxInfo::*, CpxTime};
@@ -18,7 +18,7 @@ fn table_format_par(i: usize, a: &PreviewSet) -> String {
         "\\parname{{{}}}{{{}}}{{../{}}}",
         i + 1,
         a.name,
-        a.id.to_string()
+        a.id
     )
 }
 
@@ -34,7 +34,7 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
         predecesors.insert(preview.clone(), 0);
     }
     for preview in sets {
-        let set = data.get_set(&preview);
+        let set = data.get_set(preview);
         for subset in &set.related_sets.supersets.all {
             if let Some(el) = predecesors.get_mut(subset) {
                 *el += 1;
@@ -79,7 +79,7 @@ fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSe
         for neighbor in children {
             if predecesors.contains_key(neighbor) {
                 *predecesors.get_mut(neighbor).unwrap() -= 1;
-                if predecesors[&neighbor] == 0 {
+                if predecesors[neighbor] == 0 {
                     queue.push(neighbor.clone());
                 }
             }
@@ -99,7 +99,7 @@ pub fn render_table(
 
     let mut content = Vec::new();
     for (i, a) in ordered_pars.iter().enumerate() {
-        content.push(table_format_par(i, &a));
+        content.push(table_format_par(i, a));
     }
 
     for (ai, a) in ordered_pars.iter().enumerate() {

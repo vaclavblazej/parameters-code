@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use crate::{
     data::{
-        data::{Data, PartialResult, Set},
+        core::{Data, PartialResult, Set},
         preview::{PreviewRelation, PreviewSet, WorkRelation},
     },
     general::enums::SourcedCpxInfo,
@@ -66,25 +66,23 @@ fn could_be_hidden(
                 continue;
             }
             // cannot use this midset to hide the relation if it does not imply it
-            if !rel_can_be_implied_through(map, &relation, midset) {
+            if !rel_can_be_implied_through(map, relation, midset) {
                 continue;
             }
             // even if connection through mid implies the relation we still need
             // to prevent mutual hiding for sets that bound each other
             // case 1 -- subset and midset are mutually bounded
             if let Some(same) = map.get(&WorkRelation::new(&midset.id, &relation.superset.id)) {
-                if rel_can_be_implied_through(map, same, &relation.subset) {
-                    if relation.subset.is_more_relevant_than(midset) {
+                if rel_can_be_implied_through(map, same, &relation.subset)
+                    && relation.subset.is_more_relevant_than(midset) {
                         continue;
-                    }
                 }
             }
             // case 2 -- superset and midset are mutually bounded
             if let Some(same) = map.get(&WorkRelation::new(&relation.subset.id, &midset.id)) {
-                if rel_can_be_implied_through(map, same, &relation.superset) {
-                    if relation.superset.is_more_relevant_than(midset) {
+                if rel_can_be_implied_through(map, same, &relation.superset)
+                    && relation.superset.is_more_relevant_than(midset) {
                         continue;
-                    }
                 }
             }
             return true;
@@ -103,11 +101,10 @@ pub fn filter_hidden(
     }
     let mut drawn_relations = Vec::new();
     for relation in &potential_relations {
-        if let Some(_) = &relation.cpx.get_mx() {
-            if !could_be_hidden(&map, &relation, displayed_sets) {
+        if relation.cpx.get_mx().is_some()
+            && !could_be_hidden(&map, relation, displayed_sets) {
                 drawn_relations.push(relation.clone());
             }
-        }
     }
     drawn_relations
 }

@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
 };
 
@@ -9,7 +9,7 @@ use crate::general::enums::{CpxInfo, CpxTime};
 use crate::output::dot::{Edge, Graph};
 use crate::{
     data::{
-        data::{Data, Relation, Set},
+        core::{Data, Relation, Set},
         preview::PreviewSet,
     },
     general::{enums::SourcedCpxInfo, hide::filter_hidden},
@@ -19,30 +19,28 @@ use crate::{
 use std::{fs, time};
 
 use super::{
-    color::{relation_color, Color},
-    markdown::Markdown,
+    color::{relation_color, Color}, dot::SetColorCallback, markdown::Markdown
 };
 
 fn inclusion_edge_style(mx: &CpxTime) -> String {
     let mut res: String = "decorate=true lblstyle=\"above, sloped\"".into();
-    res = res
-        + match mx {
-            CpxTime::Constant => &" weight=\"100\" penwidth=\"3.0\"",
-            CpxTime::Linear => &" weight=\"100\" penwidth=\"2.0\"",
-            CpxTime::Polynomial => &" weight=\"20\" penwidth=\"0.7\"",
-            CpxTime::Exponential => &" style=\"dotted\" weight=\"1\" penwidth=\"1.0\"",
-            CpxTime::Tower => &" style=\"dotted\" weight=\"1\" penwidth=\"0.8\"",
-            CpxTime::Exists => &" color=\"gray\" weight=\"1\"",
-        };
+    res += match mx {
+        CpxTime::Constant => " weight=\"100\" penwidth=\"3.0\"",
+        CpxTime::Linear => " weight=\"100\" penwidth=\"2.0\"",
+        CpxTime::Polynomial => " weight=\"20\" penwidth=\"0.7\"",
+        CpxTime::Exponential => " style=\"dotted\" weight=\"1\" penwidth=\"1.0\"",
+        CpxTime::Tower => " style=\"dotted\" weight=\"1\" penwidth=\"0.8\"",
+        CpxTime::Exists => " color=\"gray\" weight=\"1\"",
+    };
     res
 }
 
 pub fn make_drawing(
     data: &Data,
-    target_dir: &PathBuf,
+    target_dir: &Path,
     name: &str,
     displayed_sets: &Vec<&Set>,
-    color_fn: Option<Box<dyn Fn(&Set) -> String>>,
+    color_fn: Option<Box<SetColorCallback>>,
 ) -> anyhow::Result<PathBuf> {
     let mut displayed_sets_preview: HashSet<PreviewSet> =
         displayed_sets.iter().map(|x| x.preview.clone()).collect();
@@ -51,16 +49,13 @@ pub fn make_drawing(
         if displayed_sets_preview.contains(&relation.subset)
             && displayed_sets_preview.contains(&relation.superset)
         {
-            match &relation.cpx {
-                SourcedCpxInfo::Equal { source: _ } => {
-                    if relation.subset.relevance < relation.superset.relevance
-                        || (relation.subset.relevance == relation.superset.relevance
-                            && relation.subset.id < relation.superset.id)
+            if let SourcedCpxInfo::Equal { source: _ } = &relation.cpx {
+                if relation.subset.relevance < relation.superset.relevance
+                    || (relation.subset.relevance == relation.superset.relevance
+                        && relation.subset.id < relation.superset.id)
                     {
                         remove_sets_preview.insert(relation.subset.clone());
                     }
-                }
-                _ => {}
             }
         }
     }
@@ -69,18 +64,16 @@ pub fn make_drawing(
     }
     let mut graph = Graph::new(name, color_fn);
     for displayed_set_preview in &displayed_sets_preview {
-        let set = data.get_set(&displayed_set_preview);
+        let set = data.get_set(displayed_set_preview);
         graph.add_node(set);
     }
     let mut potential_relations = Vec::new();
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset)
             && displayed_sets_preview.contains(&relation.superset)
-        {
-            if let Some(_) = &relation.preview.cpx.get_mx() {
-                potential_relations.push(relation.preview.clone())
-            }
-        }
+                && relation.preview.cpx.get_mx().is_some() {
+                    potential_relations.push(relation.preview.clone())
+                }
     }
     // hiding cannot be global as it is implied by the set of items shown in the drawing
     let drawn_relations = filter_hidden(
@@ -102,7 +95,6 @@ pub fn make_drawing(
     }
     let dot_str = graph.to_dot();
     let dot_target_file = target_dir.join(format!("{}.dot", name));
-    fs::create_dir_all(&target_dir);
     file::write_file_content(&dot_target_file, &dot_str)?;
     // let pdf_target_file = target_dir.join(format!("{}.pdf", name));
     // Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).output().expect("dot command failed");
@@ -115,9 +107,9 @@ pub fn make_focus_drawing(
     data: &Data,
     set: &Set,
     distance: usize,
-    target_dir: &PathBuf,
+    target_dir: &Path,
 ) -> anyhow::Result<PathBuf> {
-    let set_distances = bfs_limit_distance(set, &data, 20);
+    let set_distances = bfs_limit_distance(set, data, 20);
     let mut relevance_visibility: HashMap<u32, usize> = HashMap::new();
     relevance_visibility.insert(0, 0);
     relevance_visibility.insert(1, 0);
@@ -134,12 +126,12 @@ pub fn make_focus_drawing(
         .filter(|(x, y)| x.typ == set.typ)
         .filter(|(x, y)| {
             let mut visibility = *relevance_visibility.get(&x.relevance).unwrap();
-            if set.related_sets.subsets.all.contains(&x)
-                || set.related_sets.supersets.all.contains(&x)
+            if set.related_sets.subsets.all.contains(x)
+                || set.related_sets.supersets.all.contains(x)
             {
                 visibility += 1;
             }
-            if set.related_sets.equivsets.contains(&x) {
+            if set.related_sets.equivsets.contains(x) {
                 visibility += 10;
             }
             visibility >= **y
@@ -162,7 +154,7 @@ pub fn make_subset_drawing(
     data: &Data,
     set: &Set,
     sets_to_draw: Vec<&Set>,
-    target_dir: &PathBuf,
+    target_dir: &Path,
 ) -> anyhow::Result<PathBuf> {
     make_drawing(
         data,
@@ -176,7 +168,7 @@ pub fn make_subset_drawing(
 fn mark_by_distance(
     distances: HashMap<PreviewSet, usize>,
     max_dist: usize,
-) -> Box<dyn Fn(&Set) -> String> {
+) -> Box<SetColorCallback> {
     Box::new(move |set: &Set| -> String {
         let dist = distances
             .get(&set.preview)
@@ -186,7 +178,7 @@ fn mark_by_distance(
     })
 }
 
-fn mark_by_inclusions(origin_set: &Set) -> Box<dyn Fn(&Set) -> String> {
+fn mark_by_inclusions(origin_set: &Set) -> Box<SetColorCallback> {
     let aset = origin_set.related_sets.clone();
     let aid = origin_set.id.to_string();
     Box::new(move |bset: &Set| -> String {

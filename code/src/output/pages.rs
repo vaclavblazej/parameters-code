@@ -1,6 +1,6 @@
 //! Utilities for building the final pages
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 use std::path::PathBuf;
 
 use crate::data::id::{AbstractId, HasId};
@@ -9,7 +9,7 @@ use super::markdown::GeneratedPage;
 
 pub struct Substitute<'a> {
     pub target: PathBuf,
-    pub object: Box<&'a dyn GeneratedPage>,
+    pub object: &'a dyn GeneratedPage,
 }
 
 /// Values that may be inserted into [[]] custom markdown tags
@@ -18,15 +18,15 @@ pub enum Keys {
     Id { id: String },
 }
 
-pub struct TargetPage<'a, 'b, 'c> {
-    pub target: &'c PathBuf,
+pub struct TargetPage<'a> {
+    pub target: &'a PathBuf,
     pub substitute: Option<&'a Substitute<'a>>,
-    pub source: Option<&'b PathBuf>,
+    pub source: Option<&'a PathBuf>,
 }
 
 pub fn add_content<'a, T>(
     collection: &'a Vec<T>,
-    final_dir: &PathBuf,
+    final_dir: &Path,
     generated_pages: &mut HashMap<PathBuf, Substitute<'a>>,
 ) where
     T: GeneratedPage + HasId + 'static,
@@ -38,7 +38,7 @@ pub fn add_content<'a, T>(
             target_file.clone(),
             Substitute {
                 target: target_file,
-                object: Box::new(element),
+                object: element,
             },
         );
     }

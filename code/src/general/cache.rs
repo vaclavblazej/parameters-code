@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, path::Path};
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -13,9 +13,9 @@ pub struct Cache<T> {
 }
 
 impl<T> Cache<T> {
-    pub fn new(file: &PathBuf) -> Self {
+    pub fn new(file: &Path) -> Self {
         Self {
-            file: file.clone(),
+            file: file.to_path_buf(),
             _marker: PhantomData,
         }
     }
@@ -47,7 +47,7 @@ impl<T> Cache<T> {
         };
         serde_json::from_str(&serialized).unwrap_or_else(|err| {
             error!("{:?}", err);
-            return None;
+            None
         })
     }
 }

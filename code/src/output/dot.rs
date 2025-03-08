@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::data::{data::Set, preview::PreviewRelation};
+use crate::data::{core::Set, preview::PreviewRelation};
 
 trait IntoDot {
     fn to_dot(&self) -> String;
@@ -24,12 +24,12 @@ impl IntoDot for Node {
     }
 }
 
-impl Into<Node> for &Set {
-    fn into(self) -> Node {
+impl From<&Set> for Node {
+    fn from(set: &Set) -> Node {
         let attributes = "shape=box".into();
         Node {
-            id: self.id.to_string(),
-            label: self.name.clone(),
+            id: set.id.to_string(),
+            label: set.name.clone(),
             color: "#dddddd".into(),
             attributes,
         }
@@ -55,29 +55,31 @@ impl IntoDot for Edge {
     }
 }
 
-impl Into<Edge> for &PreviewRelation {
-    fn into(self) -> Edge {
+impl From<&PreviewRelation> for Edge {
+    fn from(prev: &PreviewRelation) -> Edge {
         let attributes = String::new();
         // attributes.append() ... todo
         Edge {
-            from: self.subset.id.to_string(),
-            to: self.superset.id.to_string(),
+            from: prev.subset.id.to_string(),
+            to: prev.superset.id.to_string(),
             label: "O".to_string(),
             attributes,
-            url: self.id.to_string(),
+            url: prev.id.to_string(),
         }
     }
 }
 
+pub type SetColorCallback = dyn Fn(&Set) -> String;
+
 pub struct Graph {
     pub name: String,
-    pub color_fn: Option<Box<dyn Fn(&Set) -> String>>,
+    pub color_fn: Option<Box<SetColorCallback>>,
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
 }
 
 impl Graph {
-    pub fn new(name: &str, color_fn: Option<Box<dyn Fn(&Set) -> String>>) -> Graph {
+    pub fn new(name: &str, color_fn: Option<Box<SetColorCallback>>) -> Graph {
         Graph {
             name: name.into(),
             color_fn,
@@ -122,14 +124,15 @@ impl Graph {
 }
 
 fn main() {
-    let mut nodes = Vec::new();
-    nodes.push(Node {
-        id: "dS6OgO".to_string(),
-        label: "carving-width".to_string(),
-        color: "#dddddd".into(),
-        attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box"
-            .to_string(),
-    });
+    let nodes = vec![
+        Node {
+            id: "dS6OgO".to_string(),
+            label: "carving-width".to_string(),
+            color: "#dddddd".into(),
+            attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box"
+                .to_string(),
+        }
+    ];
     fn color_fn(set: &Set) -> String {
         "gray".into()
     };

@@ -7,9 +7,11 @@ use crate::{
     general::enums::Page::NotApplicable,
 };
 
+type SetBuilderCallback = dyn Fn(&mut Builder, &RawSet);
+
 pub struct SetBuilder {
     set: BuiltRawSet,
-    later_operations: Vec<Box<dyn Fn(&mut Builder, &RawSet)>>,
+    later_operations: Vec<Box<SetBuilderCallback>>,
 }
 
 impl SetBuilder {
@@ -26,7 +28,7 @@ impl SetBuilder {
     }
 
     pub fn abbr(mut self, abbreviation: &str) -> Self {
-        assert!(self.set.abbr == None);
+        assert!(self.set.abbr.is_none());
         self.set.abbr = Some(abbreviation.into());
         self
     }
@@ -36,7 +38,7 @@ impl SetBuilder {
         self
     }
 
-    pub fn add_callback(mut self, callback: Box<dyn Fn(&mut Builder, &RawSet)>) -> Self {
+    pub fn add_callback(mut self, callback: Box<SetBuilderCallback>) -> Self {
         self.later_operations.push(callback);
         self
     }

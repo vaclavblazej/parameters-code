@@ -1,10 +1,11 @@
-use std::marker::PhantomData;
+use core::fmt;
+use std::{fmt::Display, marker::PhantomData};
 
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    data::{Relation, Set, Source, Tag},
+    core::{Relation, Set, Source, Tag},
     preview::PreviewSet,
 };
 
@@ -23,9 +24,9 @@ pub struct PreviewId<T> {
     _marker: PhantomData<T>,
 }
 
-impl<T> PreviewId<T> {
-    pub fn to_string(&self) -> String {
-        self.id()
+impl<T> Display for PreviewId<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id())
     }
 }
 
@@ -33,6 +34,12 @@ impl<T> From<String> for PreviewId<T> {
     fn from(code: String) -> PreviewId<T> {
         // todo check existence
         Self::create(code)
+    }
+}
+
+impl<T> From<&str> for PreviewId<T> {
+    fn from(code: &str) -> PreviewId<T> {
+        Self::from(String::from(code))
     }
 }
 
@@ -54,9 +61,6 @@ where
 {
     fn get_tmp() -> Self;
     fn preview(&self) -> T;
-    // fn to_string(&self) -> String {
-        // self.id()
-    // }
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd)]
@@ -66,14 +70,17 @@ pub struct Id<T> {
 }
 
 impl<T> Id<T> {
-    pub fn to_string(&self) -> String {
-        self.id()
-    }
     pub fn preview(&self) -> PreviewId<T> {
         PreviewId::create(self.id())
     }
     pub fn new(code: String) -> Self {
         Id::create(code)
+    }
+}
+
+impl<T> Display for Id<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id())
     }
 }
 
@@ -144,9 +151,11 @@ impl RelationId {
     pub fn new(subset: &PreviewSetId, superset: &PreviewSetId) -> Self {
         RelationId::create(format!("{}_{}", subset.code, superset.code))
     }
-    pub fn to_string(&self) -> String {
-        // todo
-        self.id()
+}
+
+impl Display for RelationId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id())
     }
 }
 
