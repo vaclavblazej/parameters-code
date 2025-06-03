@@ -4,7 +4,7 @@ use std::{
     process::Command,
 };
 
-use crate::file;
+use crate::{data::preview::HasPreview, file};
 use crate::general::enums::{CpxInfo, CpxTime};
 use crate::output::dot::{Edge, Graph};
 use crate::{
@@ -43,7 +43,7 @@ pub fn make_drawing(
     color_fn: Option<Box<SetColorCallback>>,
 ) -> anyhow::Result<PathBuf> {
     let mut displayed_sets_preview: HashSet<PreviewSet> =
-        displayed_sets.iter().map(|x| x.preview.clone()).collect();
+        displayed_sets.iter().map(|x| x.preview()).collect();
     let mut remove_sets_preview: HashSet<PreviewSet> = HashSet::new();
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset)
@@ -71,14 +71,14 @@ pub fn make_drawing(
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset)
             && displayed_sets_preview.contains(&relation.superset)
-                && relation.preview.cpx.get_mx().is_some() {
-                    potential_relations.push(relation.preview.clone())
+                && relation.preview().cpx.get_mx().is_some() {
+                    potential_relations.push(relation.preview())
                 }
     }
     // hiding cannot be global as it is implied by the set of items shown in the drawing
     let drawn_relations = filter_hidden(
         potential_relations,
-        &displayed_sets.iter().map(|x| x.preview.clone()).collect(),
+        &displayed_sets.iter().map(|x| x.preview()).collect(),
     );
     for relation in drawn_relations {
         if let Some(mx) = relation.cpx.get_mx() {
@@ -171,7 +171,7 @@ fn mark_by_distance(
 ) -> Box<SetColorCallback> {
     Box::new(move |set: &Set| -> String {
         let dist = distances
-            .get(&set.preview)
+            .get(&set.preview())
             .expect("error getting distances");
         let ratio = ((*dist as f32) / (max_dist as f32)).clamp(0.0, 1.0);
         interpolate_colors("#78acff", "#dddde8", ratio)
@@ -182,7 +182,7 @@ fn mark_by_inclusions(origin_set: &Set) -> Box<SetColorCallback> {
     let aset = origin_set.related_sets.clone();
     let aid = origin_set.id.to_string();
     Box::new(move |bset: &Set| -> String {
-        match relation_color(&aset, aid.clone(), &bset.preview) {
+        match relation_color(&aset, aid.clone(), &bset.preview()) {
             Color::Gray => Color::Gray.hex(),
             color => color.light(),
         }

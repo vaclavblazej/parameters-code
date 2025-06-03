@@ -15,11 +15,11 @@ use regex::Regex;
 use crate::data::core::{Data, ProviderLink, Relation, Set, ShowedFact, Source, Tag};
 use crate::data::id::{BaseId, PreviewId};
 use crate::data::preview::{
-    PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType,
+    HasPreview, PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType
 };
 use crate::general::enums::{CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo};
 use crate::general::progress;
-use crate::{file, generate_relation_table, Paths};
+use crate::{file, generate_relation_table, Paths, Worker};
 
 use super::color::{relation_color, Color};
 use super::diagram::{make_drawing, make_focus_drawing, make_subset_drawing};
@@ -73,7 +73,7 @@ impl Linkable for ProviderLink {
 
 impl Linkable for PreviewRelation {
     fn get_url(&self) -> String {
-        html_base(&self.id.to_string())
+        html_base(&format!("relations#{}", &self.id.to_string()))
     }
     fn get_name(&self) -> String {
         format!("{} → {}", self.subset.name, self.superset.name)
@@ -216,7 +216,7 @@ impl GeneratedPage for Set {
                     .data
                     .sets
                     .iter()
-                    .filter(|x| x.typ != self.typ && x.preview.relevance > 0)
+                    .filter(|x| x.typ != self.typ && x.relevance > 0)
                     .collect(),
                 &paths.working_dir,
             ),
@@ -228,7 +228,7 @@ impl GeneratedPage for Set {
                     .data
                     .sets
                     .iter()
-                    .filter(|x| x.typ == self.typ && x.preview.relevance > 0)
+                    .filter(|x| x.typ == self.typ && x.relevance > 0)
                     .collect(),
                 &paths.working_dir,
             ),
@@ -256,25 +256,27 @@ impl GeneratedPage for Set {
         let mut relation_table = Table::new(vec!["Other", "", "Relation from", "Relation to"]);
         for set in &builder.data.sets {
             let relation_fr_el: String =
-                match builder.data.get_relation(&set.preview, &self.preview) {
+                match builder.data.get_relation(&set.preview(), &self.preview()) {
                     None => "unknown to HOPS".into(),
                     Some(rel) => {
-                        let name = rel.preview.short_description(builder);
-                        format!("[{}]({})", name, rel.preview.get_url())
+                        // let name = rel.preview().short_description(builder); // todo
+                        // format!("[{}]({})", name, rel.preview().get_url())
+                        rel.preview().short_description(builder)
                     }
                 };
             let relation_to_el: String =
-                match builder.data.get_relation(&self.preview, &set.preview) {
+                match builder.data.get_relation(&self.preview(), &set.preview()) {
                     None => "unknown to HOPS".into(),
                     Some(rel) => {
-                        let name = rel.preview.short_description(builder);
-                        format!("[{}]({})", name, rel.preview.get_url())
+                        // let name = rel.preview().short_description(builder);
+                        // format!("[{}]({})", name, rel.preview().get_url())
+                        rel.preview().short_description(builder)
                     }
                 };
             let colorname =
-                relation_color(&self.related_sets, set.id.to_string(), &set.preview).name();
+                relation_color(&self.related_sets, set.id.to_string(), &set.preview()).name();
             relation_table.add(vec![
-                builder.linkto(&set.preview),
+                builder.linkto(&set.preview()),
                 // the hidden span makes the color column sortable
                 format!(
                     "<span style=\"display:none\">{}</span>[[color {}]]",
@@ -311,7 +313,7 @@ impl GeneratedPage for Source {
                 entry,
                 relevance,
             } => {
-                res += &format!("# {}\n\n", self.preview.get_name());
+                res += &format!("# {}\n\n", self.preview().get_name());
                 if let Some(somebib) = builder.bibliography {
                     if let Some(val) = somebib.get(key) {
                         if let Ok(doi) = val.doi() {
@@ -343,7 +345,7 @@ impl GeneratedPage for Source {
             let name = &format!("drawing_{}_{}", self.id, idx);
             match drawing {
                 Drawing::Table(list) => {
-                    generate_relation_table(builder.data, list, paths, name);
+                    generate_relation_table(builder.data, list, paths, name, &builder.worker);
                     res += &format!("[[pdf ../{}.pdf]]\n\n", name);
                 }
                 Drawing::Hasse(list) => {
@@ -368,109 +370,45 @@ impl GeneratedPage for Source {
     }
 }
 
-fn format_created_by(data: &Data, created_by: &CreatedBy, indent: usize) -> String {
-    let (res, children): (&str, Option<String>) = match &created_by {
-        CreatedBy::TransferredFrom(transfer_groupe, handle) => (
-            "transferred",
-            Some(format_created_by(
-                data,
-                &data.get_partial_result(handle).created_by,
-                indent + 1,
-            )),
-        ),
-        CreatedBy::TransitiveInclusion(handlea, handleb) => {
-            let format_a = format_created_by(
-                data,
-                &data.get_partial_result(handlea).created_by,
-                indent + 1,
-            );
-            let format_b = format_created_by(
-                data,
-                &data.get_partial_result(handleb).created_by,
-                indent + 1,
-            );
-            (
-                "transitive inclusion",
-                Some(format!("{}\n{}", format_a, format_b)),
-            )
-        }
-        CreatedBy::TransitiveExclusion(handlea, handleb) => {
-            let format_a = format_created_by(
-                data,
-                &data.get_partial_result(handlea).created_by,
-                indent + 1,
-            );
-            let format_b = format_created_by(
-                data,
-                &data.get_partial_result(handleb).created_by,
-                indent + 1,
-            );
-            (
-                "transitive exclusion",
-                Some(format!("{}\n{}", format_a, format_b)),
-            )
-        }
-        CreatedBy::ParallelComposition(handlea, handleb) => {
-            let format_a = format_created_by(
-                data,
-                &data.get_partial_result(handlea).created_by,
-                indent + 1,
-            );
-            let format_b = format_created_by(
-                data,
-                &data.get_partial_result(handleb).created_by,
-                indent + 1,
-            );
-            (
-                "parallel composition",
-                Some(format!("{}\n{}", format_a, format_b)),
-            )
-        }
-        CreatedBy::Directly(source) => ("relation proved directly", None),
-        CreatedBy::Todo => ("relation known but reference is missing in HOPS", None),
-        CreatedBy::SumInclusion(handles) => {
-            let formatted: Vec<String> = handles
-                .iter()
-                .map(|handle| {
-                    format_created_by(
-                        data,
-                        &data.get_partial_result(handle).created_by,
-                        indent + 1,
-                    )
-                })
-                .collect();
-            ("summed from", Some(formatted.join("\n")))
-        }
-        CreatedBy::SameThroughEquivalence(handlea, handleb) => {
-            let format_a = format_created_by(
-                data,
-                &data.get_partial_result(handlea).created_by,
-                indent + 1,
-            );
-            let format_b = format_created_by(
-                data,
-                &data.get_partial_result(handleb).created_by,
-                indent + 1,
-            );
-            (
-                "implied through equivalence",
-                Some(format!("{}\n{}", format_a, format_b)),
-            )
-        }
-    };
-    let children_str = if let Some(str) = children {
-        &format!("\n{}", str)
-    } else {
-        ""
-    };
-    format!("{}* {}{}", " ".repeat(4 * indent), res, children_str)
+fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
+    match &created_by {
+        CreatedBy::TransferredFrom(transfer_group, handle) => {
+            format!("transferred from {}", handle)
+        },
+        CreatedBy::TransitiveInclusion(a, b) => {
+            format!("by {} and {}", a, b)
+        },
+        CreatedBy::TransitiveExclusion(a, b) => {
+            format!("by {} and {}", a, b)
+        },
+        CreatedBy::ParallelComposition(a, b) => {
+            format!("parallel composition of {} and {}", a, b)
+        },
+        CreatedBy::SameThroughEquivalence(a, b) => {
+            format!("due to equivalence {} and relation {}", a, b)
+        },
+        CreatedBy::SumInclusion(sumincl) => {
+            let sumstr: String = sumincl.iter()
+                .map(|x|x.to_string()).collect::<Vec<String>>().join(", ");
+            format!("implied by inclusion of summands {}", sumstr)
+        },
+        CreatedBy::TransferredFrom(group, a) => { // todo name the rule group
+            format!("transferred from {}", a)
+        },
+        CreatedBy::Directly(source) => {
+            format!("by [[{}]]", source.id)
+        },
+        CreatedBy::Todo => {
+            "todo".to_string()
+        },
+    }
 }
 
-fn format_relation(data: &Data, relation: &Relation) -> String {
-    let (res, children) = match &relation.cpx {
+fn format_complexity(data: &Data, cpx: &SourcedCpxInfo) -> String {
+    let (res, children) = match &cpx {
         SourcedCpxInfo::Unknown => ("unknown to HOPS", "".into()),
         SourcedCpxInfo::Equal { source } => {
-            let format_a = format_created_by(data, &source.created_by, 1);
+            let format_a = format_created_by(data, &source.created_by);
             ("equal", format_a)
         }
         SourcedCpxInfo::Inclusion { mn, mx } => {
@@ -478,54 +416,55 @@ fn format_relation(data: &Data, relation: &Relation) -> String {
             if let Some((a, sa)) = mn {
                 children.push(format!(
                     "lower bound {}",
-                    format_created_by(data, &sa.created_by, 1)
+                    format_created_by(data, &sa.created_by)
                 ));
             }
             if let Some((a, sa)) = mx {
                 children.push(format!(
                     "upper bound {}",
-                    format_created_by(data, &sa.created_by, 1)
+                    format_created_by(data, &sa.created_by)
                 ));
             };
             ("inclusion", children.join("\n"))
         }
         SourcedCpxInfo::Exclusion { source } => {
-            let format_a = format_created_by(data, &source.created_by, 1);
+            let format_a = format_created_by(data, &source.created_by);
             ("exclusion", format_a)
         }
     };
-    format!("* {}\n{}", res, children)
+    format!("{}: {}", res, children)
 }
 
-impl GeneratedPage for Relation {
-    fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
-        let mut res = String::new();
-        res += &format!(
-            "---\ntitle: \"{} to {}\"\n---\n\n",
-            &self.subset.name, &self.superset.name
-        );
+fn relations_list(builder: &Markdown) -> String {
+    let mut res = String::new();
+    for relation in &builder.data.relations {
+        let this_anchor = format!("<span id=\"{}\"></span>", relation.preview().get_url());
+        let this_el = format!("[$]({})", relation.preview().get_url());
         let join_el = if let Some(reverse_relation) =
-            builder.data.get_relation(&self.superset, &self.subset)
+            builder.data.get_relation(&relation.superset, &relation.subset)
         {
-            format!("[→]({})", reverse_relation.preview.get_url())
+            format!("[→]({})", reverse_relation.preview().get_url())
         } else {
             "→".to_string()
         };
+        let sub = builder.data.get_set(&relation.subset);
+        let sup = builder.data.get_set(&relation.superset);
+        // let color = &format!( // todo
+            // "color: [[color {}]]\n\n",
+            // relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview()).name()
+        // );
         res += &format!(
-            "# {} {} {}\n\n",
-            builder.linkto(&self.subset),
+            "\n{}{} {} {} {} -- {}\n",
+            this_anchor,
+            this_el,
+            builder.linkto(&relation.subset),
             join_el,
-            builder.linkto(&self.superset)
+            builder.linkto(&relation.superset),
+            &format_complexity(builder.data, &relation.cpx)
         );
-        let sub = builder.data.get_set(&self.subset);
-        let sup = builder.data.get_set(&self.superset);
-        res += &format!(
-            "color: [[color {}]]\n\n",
-            relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview).name()
-        );
-        res += &format_relation(builder.data, self);
-        res
+        res += "\n";
     }
+    res
 }
 
 impl GeneratedPage for Tag {
@@ -578,6 +517,7 @@ pub struct Markdown<'a> {
     pub data: &'a Data,
     pub urls: HashMap<String, Box<dyn Linkable>>,
     pub bibliography: &'a Option<Bibliography>,
+    pub worker: Worker,
 }
 
 #[derive(Clone, Debug)]
@@ -596,6 +536,7 @@ impl<'a> Markdown<'a> {
             data,
             urls,
             bibliography,
+            worker: Worker::new(),
         }
     }
 
@@ -660,10 +601,13 @@ impl<'a> Markdown<'a> {
                         ),
                     ]);
                     for set in &pars {
-                        let relstring = progress::bar(set.preview.relevance, 9);
-                        table.add(vec![self.linkto(&set.preview), relstring]);
+                        let relstring = progress::bar(set.relevance, 9);
+                        table.add(vec![self.linkto(&set.preview()), relstring]);
                     }
                     content += self.make_table(table).as_str();
+                }
+                "relations" => {
+                    content += &relations_list(self);
                 }
                 "graphs" => {
                     let mut graphs = self
@@ -681,8 +625,8 @@ impl<'a> Markdown<'a> {
                         ),
                     ]);
                     for set in &graphs {
-                        let relstring = progress::bar(set.preview.relevance, 9);
-                        table.add(vec![self.linkto(&set.preview), relstring]);
+                        let relstring = progress::bar(set.relevance, 9);
+                        table.add(vec![self.linkto(&set.preview()), relstring]);
                     }
                     content += self.make_table(table).as_str();
                 }
@@ -710,7 +654,7 @@ impl<'a> Markdown<'a> {
                                 format!("{:0>3}", index),
                                 source.time.to_string(),
                                 relstring,
-                                self.linkto(&source.preview),
+                                self.linkto(&source.preview()),
                             ]);
                             index += 1;
                         }
@@ -719,7 +663,7 @@ impl<'a> Markdown<'a> {
                 }
                 "tags" => {
                     for tag in &self.data.tags {
-                        content += &format!("* {}\n", self.linkto(&tag.preview));
+                        content += &format!("* {}\n", self.linkto(&tag.preview()));
                     }
                     content += "\n\n";
                 }

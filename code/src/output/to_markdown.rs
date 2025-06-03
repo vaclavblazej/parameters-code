@@ -1,5 +1,5 @@
 use crate::data::core::{PreviewShowed, ShowedFact, SourceSubset};
-use crate::data::preview::PreviewType;
+use crate::data::preview::{HasPreview, PreviewType};
 use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey};
 use crate::general::enums::{CpxInfo, CpxTime, Page, SourceKey};
 
@@ -238,13 +238,13 @@ impl ToMarkdown for ShowedFact {
         match self {
             Self::Relation(relation_id) => {
                 let relation = builder.data.get_relation_by_id(relation_id).unwrap();
-                if let Some(val) = relation.preview.long_description(builder) {
+                if let Some(val) = relation.preview().long_description(builder) {
                     res += &val;
                 }
             }
             Self::Definition(preview_set) => {
                 let set = builder.data.get_set_by_id(preview_set);
-                if let Some(val) = set.preview.to_markdown(builder) {
+                if let Some(val) = set.preview().to_markdown(builder) {
                     res += &val;
                 }
             }
@@ -279,8 +279,8 @@ impl ToMarkdown for SourceSubset {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         let mut res = String::new();
         res += "*";
-        if self.time.year.is_some() {
-            res += &format!(" {}", self.time);
+        if self.preview.time.year.is_some() {
+            res += &format!(" {}", self.preview.time);
         };
         res += &format!(" [[{}]]\n", &self.preview.id.to_string());
         for showed in &self.showed {

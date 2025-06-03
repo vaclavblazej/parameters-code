@@ -18,8 +18,7 @@ mod tests {
         let current = env::current_dir().unwrap();
         let parent = current.parent().unwrap();
         let handcrafted_dir = parent.join("handcrafted");
-        let bibliography_file = handcrafted_dir.join("main.bib");
-        bibliography_file
+        handcrafted_dir.join("main.bib")
     }
 
     #[test]
@@ -45,7 +44,7 @@ mod tests {
         let first = arr.first().unwrap();
         let last = arr.last().unwrap();
         let rel = data
-            .get_relation_by_id(&RelationId::new(&first, &last).preview())
+            .get_relation_by_id(&RelationId::new(first, last).preview())
             .unwrap();
         assert!(matches!(rel.cpx, Inclusion { .. }));
         assert_eq!(

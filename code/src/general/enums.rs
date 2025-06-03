@@ -1,6 +1,8 @@
 //! Trivial enums that do not contain complex structure
 //! and so can be used from input till output.
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 
 use crate::data::{
@@ -48,6 +50,7 @@ pub enum SourceKey {
 pub enum Cpx {
     Bounds(CpxTime, CpxTime),
     UpperBound(CpxTime),
+    LowerBound(CpxTime),
     StrictUpperBound(CpxTime),
     Exactly(CpxTime),
     Equivalent(CpxTime, CpxTime),

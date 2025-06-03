@@ -8,10 +8,14 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 use super::{
-    id::{
-        Id, PreviewId, PreviewRelationId, PreviewSetId, PreviewSourceId, PreviewTagId, RelationId,
-    },
+    core::{Relation, Set, Source, Tag}, id::{
+        BaseId, Id, PreviewId, PreviewRelationId, PreviewSetId, PreviewSourceId, PreviewTagId, RelationId
+    }
 };
+
+pub trait HasPreview<T> {
+    fn preview(&self) -> T;
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub enum PreviewType {
@@ -55,6 +59,47 @@ impl PreviewSet {
     pub fn is_more_relevant_than(&self, other: &PreviewSet) -> bool {
         (self.relevance == other.relevance && self.id < other.id)
             || self.relevance > other.relevance
+    }
+}
+
+impl HasPreview<PreviewSet> for Set {
+    fn preview(&self) -> PreviewSet {
+        PreviewSet {
+            id: self.id.preview(),
+            relevance: self.relevance,
+            typ: self.typ.clone(),
+            name: self.name.clone(),
+        }
+    }
+}
+
+impl HasPreview<PreviewTag> for Tag {
+    fn preview(&self) -> PreviewTag {
+        PreviewTag {
+            id: self.id.preview(),
+            name: self.name.clone(),
+        }
+    }
+}
+
+impl HasPreview<PreviewRelation> for Relation {
+    fn preview(&self) -> PreviewRelation {
+        PreviewRelation {
+            id: self.id.preview(),
+            subset: self.subset.clone(),
+            superset: self.superset.clone(),
+            cpx: CpxInfo::from(self.cpx.clone()),
+        }
+    }
+}
+
+impl HasPreview<PreviewSource> for Source {
+    fn preview(&self) -> PreviewSource {
+        PreviewSource {
+            id: self.id.preview(),
+            sourcekey: self.sourcekey.clone(),
+            time: self.time.clone(),
+        }
     }
 }
 

@@ -1,7 +1,11 @@
 #![allow(unused)]
+// #![deny(clippy::unwrap_used)]
+// #![deny(clippy::expect_used)]
+// #![deny(clippy::panic)]
+// #![deny(unused_must_use)]
 
 use std::collections::{HashMap, HashSet};
-use std::env;
+use std::{env, sync::mpsc};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -9,13 +13,14 @@ use std::time::Instant;
 
 use anyhow::Result;
 use biblatex::Bibliography;
+use general::worker::{Task, Worker};
 use log::{debug, error, info, trace, warn};
 
 use data::core::Data;
 use data::core::Relation;
 use data::core::Set;
 use data::id::{Id, PreviewId};
-use data::preview::PreviewSet;
+use data::preview::{HasPreview, PreviewSet};
 use data::preview::PreviewType;
 use data::simple_index::SimpleIndex;
 use general::cache::Cache;
@@ -33,7 +38,7 @@ use output::pages::add_content;
 use output::pages::TargetPage;
 use output::table::render_table;
 use work::bibliography::load_bibliography;
-use work::processing::process_raw_data;
+use work::processing::{order_sets_from_sources, process_raw_data, RelatedSets};
 
 mod data {
     pub mod core;
@@ -48,6 +53,7 @@ mod general {
     pub mod hide;
     pub mod logger;
     pub mod progress;
+    pub mod worker;
 }
 mod work {
     pub mod bibliography;
@@ -139,11 +145,18 @@ fn substitute(content: &str, markdown: &Markdown, map: &HashMap<&str, Mappable>)
         .join("\n")
 }
 
-fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>, paths: &Paths, name: &str) {
-    let done_pdf = render_table(data, draw_sets, &paths.table_tikz_folder).unwrap();
-    let final_pdf = paths.html_dir.join(format!("{}.pdf", name));
-    info!("copy the pdf to {:?}", &final_pdf);
-    file::copy_file(&done_pdf, &final_pdf);
+fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>, paths: &Paths, name: &str, worker: &Worker) {
+    let ordered_draw_sets = order_sets_from_sources(data, draw_sets);
+    let mut related_sets_map: HashMap<PreviewSet, RelatedSets> = HashMap::new();
+    for set in &ordered_draw_sets {
+        related_sets_map.insert(set.clone(), data.get_set(set).related_sets.clone());
+    }
+    worker.send(Task::CreateTable {
+        related_sets_map: related_sets_map.clone(),
+        ordered_draw_sets: ordered_draw_sets.clone(),
+        paths: Box::new(paths.clone()),
+        name: name.into()
+    });
 }
 
 struct Timer {
@@ -167,8 +180,8 @@ enum Args {
     Preprocess,
     Dots,
     Pages,
-    Relations,
     Table,
+    Api,
     Clear,
     Mock,
     Debug,
@@ -183,8 +196,10 @@ struct Computation {
     hide_irrelevant_parameters_below: u32,
     simplified_hide_irrelevant_parameters_below: u32,
     some_data: Option<Data>,
+    worker: Worker,
 }
 
+#[derive(Clone)]
 struct Paths {
     parent: PathBuf,
     table_tikz_folder: PathBuf,
@@ -194,6 +209,7 @@ struct Paths {
     hugo_public_dir: PathBuf,
     working_dir: PathBuf,
     html_dir: PathBuf,
+    api_dir: PathBuf,
     tmp_dir: PathBuf,
 }
 
@@ -214,9 +230,6 @@ impl Computation {
                 }
                 "pages" => {
                     args.insert(Args::Pages);
-                }
-                "relations" => {
-                    args.insert(Args::Relations);
                 }
                 "table" => {
                     args.insert(Args::Table);
@@ -244,7 +257,7 @@ impl Computation {
                     args.insert(Args::Preprocess);
                     args.insert(Args::Dots);
                     args.insert(Args::Pages);
-                    args.insert(Args::Relations);
+                    args.insert(Args::Api);
                     args.insert(Args::Table);
                 }
                 other => panic!("unknown parameter: '{}'", other),
@@ -266,6 +279,7 @@ impl Computation {
         let hugo_public_dir = parent.join("web").join("public");
         let working_dir = current.join("target");
         let html_dir = final_dir.join("html");
+        let api_dir = final_dir.join("api");
         let tmp_dir = current.join("tmp");
         Self {
             args,
@@ -279,12 +293,14 @@ impl Computation {
                 hugo_public_dir,
                 working_dir,
                 html_dir,
+                api_dir,
                 tmp_dir,
             },
             bibliography: None,
             hide_irrelevant_parameters_below: 1,
             simplified_hide_irrelevant_parameters_below: 5,
             some_data: None,
+            worker: Worker::new(),
         }
     }
 
@@ -315,7 +331,10 @@ impl Computation {
 
     fn retrieve_and_process_data(&mut self) {
         let mock = self.args.contains(&Args::Mock);
-        self.bibliography = load_bibliography(&self.paths.bibliography_file);
+        self.bibliography = match load_bibliography(&self.paths.bibliography_file) {
+            Ok(x) => Some(x),
+            Err(err) => { error!("{}", err); None },
+        };
         let cch: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
         if !mock && !self.args.contains(&Args::Preprocess) {
             if let Some(mut res) = cch.load() {
@@ -351,13 +370,13 @@ impl Computation {
             .sets
             .iter()
             .filter(|x| x.typ == PreviewType::Parameter)
-            .filter(|x| x.preview.relevance >= self.hide_irrelevant_parameters_below)
+            .filter(|x| x.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
         let simplified_parameters: Vec<&Set> = data
             .sets
             .iter()
             .filter(|x| x.typ == PreviewType::Parameter)
-            .filter(|x| x.preview.relevance >= self.simplified_hide_irrelevant_parameters_below)
+            .filter(|x| x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
         let graphs: Vec<&Set> = data
             .sets
@@ -377,6 +396,22 @@ impl Computation {
                 }
             }
         }
+    }
+
+    fn make_api(&self) -> Result<()> {
+        if !self.args.contains(&Args::Api) {
+            return Ok(());
+        }
+        let data = self.get_data();
+        self.time.print("generating api");
+        // data.sets.iter().map(|x|api_data.push(Box::new(x)));
+        for set in &data.sets {
+            let serialized = serde_json::to_string_pretty(set)?;
+            let filename = format!("{}.json", set.id);
+            let final_file = self.paths.api_dir.join(filename);
+            file::write_file_content(&final_file, serialized.as_str())?;
+        }
+        Ok(())
     }
 
     fn make_pages(&self) {
@@ -400,23 +435,15 @@ impl Computation {
             relation_id_idx: _,
         } = data;
         for set in sets {
-            linkable.insert(set.id.to_string(), Box::new(set.preview.clone()));
-        }
-        if self.args.contains(&Args::Relations) {
-            for rel in relations {
-                linkable.insert(rel.id.to_string(), Box::new(rel.preview.clone()));
-            }
+            linkable.insert(set.id.to_string(), Box::new(set.preview()));
         }
         for source in sources {
-            linkable.insert(source.id.to_string(), Box::new(source.preview.clone()));
+            linkable.insert(source.id.to_string(), Box::new(source.preview()));
         }
         for tag in tags {
-            linkable.insert(tag.id.to_string(), Box::new(tag.preview.clone()));
+            linkable.insert(tag.id.to_string(), Box::new(tag.preview()));
         }
         add_content(sets, &self.paths.final_dir, &mut generated_pages);
-        if self.args.contains(&Args::Relations) {
-            add_content(relations, &self.paths.final_dir, &mut generated_pages);
-        }
         add_content(sources, &self.paths.final_dir, &mut generated_pages);
         add_content(tags, &self.paths.final_dir, &mut generated_pages);
         self.time.print("fetching handcrafted pages");
@@ -457,6 +484,7 @@ impl Computation {
         // map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
         let markdown = Markdown::new(data, linkable, &self.bibliography);
         generate_pages(&pages, &markdown, &self.paths, &map); // takes long
+        markdown.worker.join();
     }
 
     fn make_relation_table(&self) {
@@ -468,14 +496,14 @@ impl Computation {
         let table_sets: Vec<PreviewSet> = data
             .sets
             .iter()
-            .map(|x| x.preview.clone())
+            .map(|x| x.preview())
             .filter(|x| x.typ == PreviewType::Parameter)
             .filter(|x| x.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
         let simplified_table_sets: Vec<PreviewSet> = data
             .sets
             .iter()
-            .map(|x| x.preview.clone())
+            .map(|x| x.preview())
             .filter(|x| x.typ == PreviewType::Parameter)
             .filter(|x| x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
@@ -483,9 +511,10 @@ impl Computation {
             ("table", &table_sets),
             ("table_simplified", &simplified_table_sets),
         ] {
-            generate_relation_table(data, set, &self.paths, name);
+            generate_relation_table(data, set, &self.paths, name, &self.worker);
         }
     }
+
 }
 
 fn main() {
@@ -494,5 +523,7 @@ fn main() {
     computation.retrieve_and_process_data();
     computation.make_dots();
     computation.make_relation_table();
+    computation.make_api();
     computation.make_pages();
+    computation.worker.join();
 }

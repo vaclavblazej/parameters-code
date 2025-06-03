@@ -5,8 +5,7 @@ use log::{debug, error, trace, warn};
 use rand::seq::IndexedRandom;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    path::PathBuf,
+    collections::{HashMap, HashSet, VecDeque}, ops::Sub, path::PathBuf
 };
 
 use crate::data::{id::PreviewTagId, preview::*};
@@ -37,8 +36,8 @@ use crate::{
 pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashMap<PreviewSet, usize> {
     let mut visited = HashMap::new();
     let mut queue = VecDeque::new();
-    visited.insert(set.preview.clone(), 0);
-    queue.push_back((set.preview.clone(), 0));
+    visited.insert(set.preview(), 0);
+    queue.push_back((set.preview(), 0));
     while let Some((raw_set, current_distance)) = queue.pop_front() {
         let set = data.get_set(&raw_set);
         if current_distance >= distance {
@@ -59,6 +58,69 @@ pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashMap<Pr
         }
     }
     visited
+}
+
+pub fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSet> {
+    let mut predecesors: HashMap<PreviewSet, usize> = HashMap::new();
+    let mut equivalent: HashSet<PreviewSet> = HashSet::new();
+    let sets_set: HashSet<PreviewSet> = HashSet::from_iter(sets.iter().cloned());
+    for preview in sets {
+        predecesors.insert(preview.clone(), 0);
+    }
+    for preview in sets {
+        let set = data.get_set(preview);
+        for subset in &set.related_sets.supersets.all {
+            if let Some(el) = predecesors.get_mut(subset) {
+                *el += 1;
+            }
+        }
+    }
+    let mut queue: Vec<PreviewSet> = Vec::new();
+    let mut eqqueue: Vec<PreviewSet> = Vec::new();
+    for (set, count) in &predecesors {
+        if *count == 0 {
+            queue.push(set.clone());
+        }
+    }
+    let mut resolved: HashSet<PreviewSetId> = HashSet::new();
+    let mut result = Vec::new();
+    loop {
+        let current = match eqqueue.pop() {
+            Some(c) => c,
+            None => match queue.pop() {
+                Some(c) => c,
+                None => break,
+            },
+        };
+        if resolved.contains(&current.id) {
+            continue;
+        }
+        resolved.insert(current.id.clone());
+        result.push(current.clone());
+        let set = data.get_set(&current);
+        for elem in &set.related_sets.equivsets {
+            if predecesors.contains_key(elem) {
+                eqqueue.push(elem.clone());
+            }
+        }
+        let children: Vec<&PreviewSet> = set
+            .related_sets
+            .supersets
+            .all
+            .iter()
+            .filter(|x| x.typ == PreviewType::Parameter)
+            .collect();
+        for neighbor in children {
+            if let Some(mut x) = predecesors.get_mut(neighbor) {
+                *x -= 1;
+                if *x == 0 {
+                    queue.push(neighbor.clone());
+                }
+            }
+        }
+    }
+    assert_eq!(resolved.len(), sets.len());
+    result
 }
 
 /// Given a RawSet create a full Set with all the information.
@@ -106,15 +168,14 @@ fn process_set(
                 ||panic!("A source id {} does not have a processed source. Use create.source() to add new sources.", source_id)
                 );
             SourceSubset {
-                preview: source.preview.clone(),
+                preview: source.preview(),
                 source: source.id.preview(),
                 sourcekey: source.sourcekey.clone(),
                 showed: showed_vec,
-                time: source.time.clone(),
             }
         })
     .collect();
-    timeline.sort_by_key(|subset| subset.time.clone());
+    timeline.sort_by_key(|subset| subset.preview.time.clone());
     timeline.reverse();
     let subsets = help.get_subsets(&preview);
     let supersets = help.get_supersets(&preview);
@@ -144,12 +205,12 @@ fn process_set(
         }
     }
     Set {
-        preview: preview.clone(),
         id,
         name: preview.name.clone(),
         typ: preview.typ.clone(),
         providers,
         timeline,
+        relevance,
         aka,
         abbr,
         tags,
@@ -267,13 +328,7 @@ fn process_source(
             showed.push(preview_showed.clone());
         }
     }
-    let preview = PreviewSource {
-        id: source.id.preview(),
-        sourcekey: sourcekey.clone(),
-        time: time.clone(),
-    };
     Source {
-        preview,
         id: source.id,
         sourcekey,
         showed,
@@ -385,7 +440,7 @@ fn process_relations(
                     let work_relation =
                         WorkRelation::new(&preview.subset.id, &preview.superset.id);
                     let partial_result = partial_results_builder.partial_result(
-                        CreatedBy::Directly(source.preview.clone()),
+                        CreatedBy::Directly(source.preview()),
                         preview.cpx.clone(),
                         work_relation.clone(),
                     );
@@ -683,20 +738,12 @@ fn process_relations(
 
 impl Relation {
     pub fn new(subset: PreviewSet, superset: PreviewSet, cpx: SourcedCpxInfo, handle: usize) -> Self {
-        let relation_id = RelationId::new(&subset.id, &superset.id);
-        let preview = PreviewRelation {
-            id: relation_id.preview(),
-            subset,
-            superset,
-            cpx: cpx.clone().into(),
-        };
         Self {
-            id: relation_id,
+            id: RelationId::new(&subset.id, &superset.id),
             handle,
             cpx,
-            subset: preview.subset.clone(),
-            superset: preview.superset.clone(),
-            preview,
+            subset,
+            superset,
         }
     }
 }
@@ -865,7 +912,7 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     }
     let mut tag_map: HashMap<PreviewTagId, PreviewTag> = HashMap::new();
     for tag in &tags {
-        tag_map.insert(tag.id.preview(), tag.preview.clone());
+        tag_map.insert(tag.id.preview(), tag.preview());
     }
     // transfers ///////////////////////////////////////////////////////////////
     let mut transfers: HashMap<TransferGroup, HashMap<PreviewSetId, Vec<PreviewSet>>> =

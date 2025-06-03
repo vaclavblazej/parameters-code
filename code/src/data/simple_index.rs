@@ -6,7 +6,7 @@ use crate::general::enums::CpxInfo;
 
 use super::{
     core::Relation,
-    preview::{PreviewRelation, PreviewSet},
+    preview::{HasPreview, PreviewRelation, PreviewSet},
 };
 
 /// This structure keeps which sets are with relations with other sets.
@@ -22,7 +22,7 @@ impl SimpleIndex {
             first_not_subset_of_second: HashSet::new(),
         };
         for rel in relations {
-            res.add(rel.preview.clone());
+            res.add(rel.preview());
         }
         res
     }

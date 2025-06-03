@@ -62,6 +62,27 @@ pub fn write_file_content(target_path: &PathBuf, content: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn reparent(target: &Path, old_ancestor: &Path, new_ancestor: &Path) -> Result<PathBuf> {
+    let rel_target = target.strip_prefix(old_ancestor)?;
+    let mut new_target = new_ancestor.to_path_buf();
+    new_target.extend(rel_target);
+    Ok(new_target)
+}
+
+pub fn copy_folder(source_path: &PathBuf, target_path: &Path) -> Result<()> {
+    assert!(source_path.exists());
+    assert!(source_path.is_dir());
+    // todo check that target is not a descendant of source
+    try_create_parent_folder(target_path)?;
+    let to_copy_files = iterate_folder_recursively(source_path);
+    for source_file in to_copy_files {
+        let target_file = reparent(&source_file, source_path, target_path)?;
+        try_create_parent_folder(&target_file)?;
+        fs::copy(source_file, target_file)?;
+    }
+    Ok(())
+}
+
 pub fn copy_file(source_path: &PathBuf, target_path: &PathBuf) -> Result<()> {
     assert!(source_path.exists());
     assert!(source_path.is_file());

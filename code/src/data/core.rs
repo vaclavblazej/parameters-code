@@ -7,7 +7,7 @@ use std::fmt;
 use log::trace;
 use serde::{Deserialize, Serialize};
 
-use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewTag, PreviewType};
+use crate::data::preview::{HasPreview, PreviewRelation, PreviewSet, PreviewSource, PreviewTag, PreviewType};
 use crate::general::enums::{
     Cpx, CpxInfo, CpxTime, CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo, TransferGroup,
 };
@@ -25,16 +25,15 @@ pub struct SourceSubset {
     pub source: PreviewSourceId,
     pub sourcekey: SourceKey,
     pub showed: Vec<PreviewShowed>,
-    pub time: Date,
 }
 
 /// A general structure for parameters, graph classes, any other structures.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Set {
-    pub preview: PreviewSet,
     pub id: SetId,
     pub name: String,
     pub typ: PreviewType,
+    pub relevance: u32,
     pub aka: Vec<String>,
     pub abbr: Option<String>,
     pub tags: Vec<PreviewTag>,
@@ -61,7 +60,6 @@ pub struct ProviderLink {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
-    pub preview: PreviewTag,
     pub id: TagId,
     pub name: String,
     pub description: String,
@@ -70,7 +68,6 @@ pub struct Tag {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Source {
-    pub preview: PreviewSource,
     pub id: SourceId,
     pub sourcekey: SourceKey,
     pub showed: Vec<PreviewShowed>,
@@ -113,7 +110,7 @@ fn compute_set_idx(sets: &[Set]) -> HashMap<PreviewSet, usize> {
     trace!("computing set indices");
     let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
     for (idx, set) in sets.iter().enumerate() {
-        set_idx.insert(set.preview.clone(), idx);
+        set_idx.insert(set.preview(), idx);
     }
     set_idx
 }
@@ -236,7 +233,7 @@ impl Data {
     }
 
     pub fn get_partial_result(&self, handle: &usize) -> &PartialResult {
-        self.partial_results.get(*handle).unwrap()
+        self.partial_results.get(*handle).unwrap_or_else(||panic!("handle {} not found in the partial results", handle))
     }
 }
 
@@ -244,7 +241,6 @@ impl Data {
 pub struct Relation {
     pub id: RelationId,
     pub handle: usize,
-    pub preview: PreviewRelation,
     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
     pub subset: PreviewSet,
     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.

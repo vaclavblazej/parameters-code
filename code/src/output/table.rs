@@ -10,103 +10,32 @@ use crate::data::core::{Data, Set};
 use crate::data::id::PreviewSetId;
 use crate::data::preview::{PreviewSet, PreviewType};
 use crate::general::enums::{CpxInfo::*, CpxTime};
+use crate::work::processing::RelatedSets;
 
 use super::color::{relation_color, Color};
 
 fn table_format_par(i: usize, a: &PreviewSet) -> String {
-    format!(
-        "\\parname{{{}}}{{{}}}{{../{}}}",
-        i + 1,
-        a.name,
-        a.id
-    )
+    format!("\\parname{{{}}}{{{}}}{{../{}}}", i + 1, a.name, a.id)
 }
 
 fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
     format!("\\cpxlink{{{}}}{{{}}}{{{}}}{{../{}}}", ai, bi, status, link)
 }
 
-fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSet> {
-    let mut predecesors: HashMap<PreviewSet, usize> = HashMap::new();
-    let mut equivalent: HashSet<PreviewSet> = HashSet::new();
-    let sets_set: HashSet<PreviewSet> = HashSet::from_iter(sets.iter().cloned());
-    for preview in sets {
-        predecesors.insert(preview.clone(), 0);
-    }
-    for preview in sets {
-        let set = data.get_set(preview);
-        for subset in &set.related_sets.supersets.all {
-            if let Some(el) = predecesors.get_mut(subset) {
-                *el += 1;
-            }
-        }
-    }
-    let mut queue: Vec<PreviewSet> = Vec::new();
-    let mut eqqueue: Vec<PreviewSet> = Vec::new();
-    for (set, count) in &predecesors {
-        if *count == 0 {
-            queue.push(set.clone());
-        }
-    }
-    let mut resolved: HashSet<PreviewSetId> = HashSet::new();
-    let mut result = Vec::new();
-    loop {
-        let current = match eqqueue.pop() {
-            Some(c) => c,
-            None => match queue.pop() {
-                Some(c) => c,
-                None => break,
-            },
-        };
-        if resolved.contains(&current.id) {
-            continue;
-        }
-        resolved.insert(current.id.clone());
-        result.push(current.clone());
-        let set = data.get_set(&current);
-        for elem in &set.related_sets.equivsets {
-            if predecesors.contains_key(elem) {
-                eqqueue.push(elem.clone());
-            }
-        }
-        let children: Vec<&PreviewSet> = set
-            .related_sets
-            .supersets
-            .all
-            .iter()
-            .filter(|x| x.typ == PreviewType::Parameter)
-            .collect();
-        for neighbor in children {
-            if predecesors.contains_key(neighbor) {
-                *predecesors.get_mut(neighbor).unwrap() -= 1;
-                if predecesors[neighbor] == 0 {
-                    queue.push(neighbor.clone());
-                }
-            }
-        }
-    }
-    assert_eq!(resolved.len(), sets.len());
-    result
-}
-
 pub fn render_table(
-    data: &Data,
-    draw_sets: &Vec<PreviewSet>,
+    set_info: &HashMap<PreviewSet, RelatedSets>,
+    ordered_draw_sets: &[PreviewSet],
     table_folder: &PathBuf,
 ) -> anyhow::Result<PathBuf> {
-    let size_str = format!("\\def\\parlen{{{}}}\n", draw_sets.len());
-    let ordered_pars = order_sets_from_sources(data, draw_sets);
-
+    let size_str = format!("\\def\\parlen{{{}}}\n", ordered_draw_sets.len());
     let mut content = Vec::new();
-    for (i, a) in ordered_pars.iter().enumerate() {
+    for (i, a) in ordered_draw_sets.iter().enumerate() {
         content.push(table_format_par(i, a));
     }
-
-    for (ai, a) in ordered_pars.iter().enumerate() {
-        for (bi, b) in ordered_pars.iter().enumerate() {
-            let sa = data.get_set(a);
-            let sb = data.get_set(b);
-            let color = relation_color(&sa.related_sets, sa.id.to_string(), &sb.preview);
+    for (ai, a) in ordered_draw_sets.iter().enumerate() {
+        for (bi, b) in ordered_draw_sets.iter().enumerate() {
+            let a_related = set_info.get(a).unwrap();
+            let color = relation_color(a_related, a.id.to_string(), b);
             content.push(table_format_link(ai, bi, &color.name(), "todo"));
         }
     }

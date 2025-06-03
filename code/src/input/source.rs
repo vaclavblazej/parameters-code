@@ -94,7 +94,7 @@ impl RawDataSource {
         self
     }
 
-    pub fn ref_defined(&mut self, id: &str, page: Page, set: &PreviewSetId, text: &str) -> &mut Self {
+    fn ref_defined(&mut self, id: &str, page: Page, set: &PreviewSetId, text: &str) -> &mut Self {
         let showed = RawShowed {
             id: ShowedId::new(id.into()),
             text: text.into(),
@@ -189,37 +189,53 @@ impl RawDataSource {
                 subset,
                 superset,
                 Inclusion {
-                    mn: Some(CpxTime::Constant),
+                    mn: None,
                     mx: Some(b.clone()),
+                },
+            )],
+            Cpx::LowerBound(b) => vec![self.relation(
+                subset,
+                superset,
+                Inclusion {
+                    mn: Some(b.clone()),
+                    mx: None,
                 },
             )],
             Cpx::Todo => vec![self.relation(
                 subset,
                 superset,
                 Inclusion {
-                    mn: Some(CpxTime::Constant),
+                    mn: None,
                     mx: Some(CpxTime::Exists),
                 },
             )],
-            Cpx::Equal => vec![
-                self.relation(subset, superset, Equal),
-                self.relation(superset, subset, Equal),
-            ],
-            Cpx::Equivalent(a, b) => vec![
+            Cpx::Equal => {
+                if subset == superset {
+                    vec![
+                        self.relation(subset, superset, Equal),
+                    ]
+                } else {
+                    vec![
+                        self.relation(subset, superset, Equal),
+                        self.relation(superset, subset, Equal),
+                    ]
+                }
+            },
+            Cpx::Equivalent(first_to_second_cpx, second_to_first_cpx) => vec![
                 self.relation(
                     subset,
                     superset,
                     Inclusion {
-                        mn: Some(CpxTime::Constant),
-                        mx: Some(a),
+                        mn: None,
+                        mx: Some(first_to_second_cpx),
                     },
                 ),
                 self.relation(
                     superset,
                     subset,
                     Inclusion {
-                        mn: Some(CpxTime::Constant),
-                        mx: Some(b),
+                        mn: None,
+                        mx: Some(second_to_first_cpx),
                     },
                 ),
             ],
@@ -233,7 +249,7 @@ impl RawDataSource {
                     subset,
                     superset,
                     Inclusion {
-                        mn: Some(CpxTime::Constant),
+                        mn: None,
                         mx: Some(a.clone()),
                     },
                 ),

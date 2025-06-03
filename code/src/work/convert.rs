@@ -12,16 +12,6 @@ use crate::general::enums::{CreatedBy, Drawing, RawDrawing, SourceKey, SourcedCp
 use crate::input::raw::*;
 use crate::work::date::Date;
 
-// impl Into<PreviewSourceKey> for RawSourceKey {
-// fn into(self) -> PreviewSourceKey {
-// match self {
-// Self::Bibtex { key } => PreviewSourceKey::Bibtex { key },
-// Self::Online { url } => PreviewSourceKey::Online { url },
-// Self::Other { name, description: _ } => PreviewSourceKey::Other { name },
-// }
-// }
-// }
-
 impl From<&RawType> for PreviewType {
     fn from(raw: &RawType) -> PreviewType {
         match raw {
@@ -87,7 +77,6 @@ impl From<&RawShowedFact> for ShowedFact {
 impl Tag {
     pub fn from(raw: RawTag, sets: Vec<PreviewSet>) -> Self {
         Self {
-            preview: PreviewTag::from(&raw),
             id: raw.id,
             name: raw.name,
             description: raw.description,
@@ -104,37 +93,6 @@ impl From<&RawTag> for PreviewTag {
         }
     }
 }
-
-// impl From<&Relation> for WorkRelation {
-// fn from(rel: &Relation) -> WorkRelation {
-// WorkRelation {
-// subset: rel.subset.clone(),
-// superset: rel.superset.clone(),
-// }
-// }
-// }
-
-// impl From<PreviewRelation> for WorkRelation {
-// fn from(raw: PreviewRelation) -> WorkRelation {
-// WorkRelation {
-// subset: raw.subset.clone(),
-// superset: raw.superset.clone(),
-// }
-// }
-// }
-
-// impl From<&RawRelation> for PreviewRelation { // todo
-    // fn from(raw: &RawRelation) -> PreviewRelation {
-        // let preview_subset: PreviewSetId = raw.subset.into();
-        // let preview_superset: PreviewSetId = raw.superset.into();
-        // PreviewRelation {
-            // id: PreviewRelationId::new(&preview_subset, &preview_superset),
-            // subset: preview_subset,
-            // superset: preview_superset,
-            // cpx: raw.cpx,
-        // }
-    // }
-// }
 
 fn str_to_preview_set(list: Vec<PreviewSetId>, preview_set_map: &HashMap<PreviewSetId, PreviewSet>) -> Vec<PreviewSet> {
     let mut res = vec![];
@@ -157,13 +115,3 @@ impl Drawing {
         }
     }
 }
-
-// impl PreviewSource {
-// pub fn from(raw: &RawSource, sourcekey: &SourceKey) -> PreviewSource {
-// PreviewSource {
-// id: raw.id.preview(),
-// sourcekey: sourcekey.clone(),
-// time: Date::empty(),
-// }
-// }
-// }

@@ -101,9 +101,7 @@ pub fn combine_parallel_max(
     match (a, b) {
         ((CpxTime::Exists, a), _) | (_, (CpxTime::Exists, a)) => (CpxTime::Exists, a),
         ((CpxTime::Tower, a), _) | (_, (CpxTime::Tower, a)) => (CpxTime::Tower, a),
-        ((CpxTime::Exponential, a), _) | (_, (CpxTime::Exponential, a)) => {
-            (CpxTime::Exponential, a)
-        }
+        ((CpxTime::Exponential, a), _) | (_, (CpxTime::Exponential, a)) => (CpxTime::Exponential, a),
         ((CpxTime::Polynomial, a), _) | (_, (CpxTime::Polynomial, a)) => (CpxTime::Polynomial, a),
         ((CpxTime::Linear, a), _) | (_, (CpxTime::Linear, a)) => (CpxTime::Linear, a),
         ((CpxTime::Constant, a), (CpxTime::Constant, _)) => (CpxTime::Constant, a),
@@ -117,12 +115,15 @@ pub fn combine_serial(
 ) -> (PartialResult, PartialResult, CpxTime) {
     let relation = a.relation.combine_serial(&b.relation);
     match (cpxa, cpxb) {
+        // constant is an exception here as it doesn't grow with growing parameter,
+        // hence, anything is composes with also results in a constant
+        (CpxTime::Constant, _) | (_, CpxTime::Constant) => (a, b, CpxTime::Constant),
+        // otherwise, we take the worst of the two options
         (CpxTime::Exists, _) | (_, CpxTime::Exists) => (a, b, CpxTime::Exists),
         (CpxTime::Tower, _) | (_, CpxTime::Tower) => (a, b, CpxTime::Tower),
         (CpxTime::Exponential, _) | (_, CpxTime::Exponential) => (a, b, CpxTime::Tower),
         (CpxTime::Polynomial, _) | (_, CpxTime::Polynomial) => (a, b, CpxTime::Polynomial),
         (CpxTime::Linear, _) | (_, CpxTime::Linear) => (a, b, CpxTime::Linear),
-        (CpxTime::Constant, _) | (_, CpxTime::Constant) => (a, b, CpxTime::Constant),
     }
 }
 
