@@ -1,7 +1,7 @@
 use log::warn;
 
 use super::{build::Builder, raw::{
-    BuiltRawSource, RawData, RawProvider, RawProviderLink, RawRelation, RawShowed, RawShowedFact, RawSource
+    BuiltRawSource, RawData, RawProvider, RawProviderLink, RawRelation, RawShowed, RawShowedFact, RawSource, RawShowedStatus, RawNotedSource
 }};
 use crate::{
     data::id::{BaseId, PreviewRelationId, PreviewSetId, PreviewSourceId, RelationId, ShowedId},
@@ -62,14 +62,26 @@ impl RawDataProvider {
 
 impl CollectiveSource {
 
-    pub fn showed(
+    pub fn proved(
         mut self,
         id: &str,
         subset: &PreviewSetId,
         superset: &PreviewSetId,
         cpx: Cpx,
     ) -> Self {
-        self.raw.ref_showed(id, self.page.clone(), subset, superset, cpx, self.text.as_str());
+        self.raw.ref_proved(id, self.page.clone(), subset, superset, cpx, self.text.as_str());
+        self
+    }
+
+    pub fn noted_relation(
+        mut self,
+        id: &str,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        source: RawNotedSource,
+    ) -> Self {
+        self.raw.ref_noted_relation(id, self.page.clone(), subset, superset, cpx, self.text.as_str(), source);
         self
     }
 
@@ -98,7 +110,23 @@ impl RawDataSource {
         let showed = RawShowed {
             id: ShowedId::new(id.into()),
             text: text.into(),
-            fact: RawShowedFact::Definition(set.clone()),
+            fact: RawShowedFact::Definition(RawShowedStatus::Original, set.clone()),
+            page,
+        };
+        self.factoids.push(showed);
+        self
+    }
+
+    pub fn redefined(mut self, id: &str, page: Page, set: &PreviewSetId, text: &str) -> Self {
+        self.ref_redefined(id, page, set, text);
+        self
+    }
+
+    fn ref_redefined(&mut self, id: &str, page: Page, set: &PreviewSetId, text: &str) -> &mut Self {
+        let showed = RawShowed {
+            id: ShowedId::new(id.into()),
+            text: text.into(),
+            fact: RawShowedFact::Definition(RawShowedStatus::Derivative, set.clone()),
             page,
         };
         self.factoids.push(showed);
@@ -112,7 +140,7 @@ impl RawDataSource {
         res
     }
 
-    pub fn proper_graph_inclusion(
+    pub fn assumed_proper_inclusion(
         &mut self,
         id: &str,
         subset: &PreviewSetId,
@@ -121,7 +149,7 @@ impl RawDataSource {
         let inclusion = RawShowed {
             id: ShowedId::new(id.into()),
             text: "".into(),
-            fact: RawShowedFact::Relation(self.relation(
+            fact: RawShowedFact::Relation(RawShowedStatus::Assumed, self.relation(
                     subset,
                     superset,
                     Inclusion {
@@ -134,7 +162,7 @@ impl RawDataSource {
         let exclusion = RawShowed {
             id: ShowedId::new(id.into()),
             text: "".into(),
-            fact: RawShowedFact::Relation(self.relation(
+            fact: RawShowedFact::Relation(RawShowedStatus::Assumed, self.relation(
                 superset,
                 subset,
                 Exclusion,
@@ -146,7 +174,35 @@ impl RawDataSource {
         self
     }
 
-    pub fn showed(
+    pub fn noted_relation(
+        mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+        source: RawNotedSource,
+    ) -> Self {
+        self.ref_noted_relation(id, page, subset, superset, cpx, text, source);
+        self
+    }
+
+    pub fn ref_noted_relation(
+        &mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+        source: RawNotedSource,
+    ) -> &mut Self {
+        self.ref_showed(id, page, RawShowedStatus::Noted(source), subset, superset, cpx, text);
+        self
+    }
+
+    pub fn conjectured(
         mut self,
         id: &str,
         page: Page,
@@ -155,7 +211,72 @@ impl RawDataSource {
         cpx: Cpx,
         text: &str,
     ) -> Self {
-        self.ref_showed(id, page, subset, superset, cpx, text);
+        self.ref_conjectured(id, page, subset, superset, cpx, text);
+        self
+    }
+
+    pub fn ref_conjectured(
+        &mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+    ) -> &mut Self {
+        self.ref_showed(id, page, RawShowedStatus::Conjectured, subset, superset, cpx, text);
+        self
+    }
+
+    pub fn proved(
+        mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+    ) -> Self {
+        self.ref_proved(id, page, subset, superset, cpx, text);
+        self
+    }
+
+    pub fn ref_proved(
+        &mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+    ) -> &mut Self {
+        self.ref_showed(id, page, RawShowedStatus::Original, subset, superset, cpx, text);
+        self
+    }
+
+    pub fn reproved(
+        mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+    ) -> Self {
+        self.ref_reproved(id, page, subset, superset, cpx, text);
+        self
+    }
+
+    pub fn ref_reproved(
+        &mut self,
+        id: &str,
+        page: Page,
+        subset: &PreviewSetId,
+        superset: &PreviewSetId,
+        cpx: Cpx,
+        text: &str,
+    ) -> &mut Self {
+        self.ref_showed(id, page, RawShowedStatus::Derivative, subset, superset, cpx, text);
         self
     }
 
@@ -163,6 +284,7 @@ impl RawDataSource {
         &mut self,
         id: &str,
         page: Page,
+        status: RawShowedStatus,
         subset: &PreviewSetId,
         superset: &PreviewSetId,
         cpx: Cpx,
@@ -261,7 +383,7 @@ impl RawDataSource {
             let showed = RawShowed {
                 id: ShowedId::new(id.into()),
                 text: text.into(),
-                fact: RawShowedFact::Relation(relation),
+                fact: RawShowedFact::Relation(status.clone(), relation),
                 page: page.clone(),
             };
             self.factoids.push(showed);

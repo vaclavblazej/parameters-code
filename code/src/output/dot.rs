@@ -89,7 +89,7 @@ impl Graph {
     }
 
     pub fn add_node(&mut self, set: &Set) {
-        let mut node: Node = set.into();
+        let mut node: Node = Node::from(set);
         if let Some(f) = &self.color_fn {
             node.color = f(set);
         }
@@ -110,6 +110,7 @@ impl Graph {
         dot.push_str(&format!("digraph {} {{\n", self.name));
         dot.push_str("\tnode [color=lightblue2 style=filled]\n");
         dot.push_str("\tmargin=0.04 size=\"6,6\"\n");
+        dot.push_str("\trankdir = BT\n");
         for node in &self.nodes {
             dot.push_str(&node.to_dot());
         }

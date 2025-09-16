@@ -17,7 +17,7 @@ use crate::{
     data::{
         core::{
             Data, PartialResult, PartialResultsBuilder, Provider, ProviderLink, Relation, Set,
-            PreviewShowed, ShowedFact, Source, SourceSubset, Tag,
+            PreviewShowed, ShowedFact, Source, SourceSubset, Tag, ShowedStatus,
         },
         id::{
             PreviewProviderId, PreviewRelationId, PreviewSetId, PreviewShowedId, PreviewSourceId,
@@ -133,6 +133,9 @@ fn process_set(
     tag_map: &HashMap<PreviewTagId, PreviewTag>,
     preview_collection: &PreviewCollection,
 ) -> Set {
+    if set.displayed_definition.is_empty() {
+        warn!("todo: set '{}' has no displayed definition", set.name)
+    }
     let preview = PreviewSet::from(&set);
     let RawSet{
         id,
@@ -142,16 +145,16 @@ fn process_set(
         relevance,
         aka,
         abbr,
-        main_definition,
+        displayed_definition,
     } = set;
     let mut timeline_map: HashMap<PreviewSourceId, Vec<PreviewShowed>> = HashMap::new();
     for (source_id, showed) in &preview_collection.factoids {
         let should_save = match &showed.fact {
-            ShowedFact::Relation(relation_id) => {
+            ShowedFact::Relation(status, relation_id) => {
                 let relation = preview_collection.preview_relation_map.get(relation_id).unwrap();
                 relation.superset.id == id.preview() || relation.subset.id == id.preview()
             }
-            ShowedFact::Definition(defined_set_id) if defined_set_id == &id.preview() => {
+            ShowedFact::Definition(status, defined_set_id) if defined_set_id == &id.preview() => {
                 true
             }
             // ShowedFact::Citation( .. ) => false, // todo
@@ -215,7 +218,7 @@ fn process_set(
         abbr,
         tags,
         // transfers,
-        main_definition,
+        displayed_definition,
         related_sets: RelatedSets {
             equivsets: help.get_eqsets(&preview),
             subsets: prepare_extremes(subsets, help),
@@ -434,7 +437,10 @@ fn process_relations(
     let mut partial_results_builder = PartialResultsBuilder::new();
     for (raw_source_id, showed) in &preview_collection.factoids {
         match &showed.fact {
-            ShowedFact::Relation(rel) => {
+            ShowedFact::Relation(status, rel) => {
+                if matches!(status, ShowedStatus::Conjectured) {
+                    continue;
+                }
                 if let Some(source) = sources.get(raw_source_id) {
                     let preview = preview_collection.preview_relation_map.get(rel).unwrap();
                     let work_relation =
@@ -449,12 +455,11 @@ fn process_relations(
                     panic!("source not found {:?}", raw_source_id);
                 }
             }
-            // ShowedFact::Citation(_) => (), // todo
-            ShowedFact::Definition(_) => (),
+            ShowedFact::Definition(_, _) => (),
         }
     }
     let mut res: HashMap<WorkRelation, PartialResult> = HashMap::new();
-    let mut progress = ProgressDisplay::new("processing", 12424);
+    let mut progress = ProgressDisplay::new("processing", 18290);
     for partial_result in partial_results {
         let pair = partial_result.relation.clone();
         debug!(
@@ -848,6 +853,7 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         tags: raw_tags,
         tag_set: raw_tag_set,
         transfer: raw_transfer,
+        sequences: raw_sequences,
     } = rawdata;
     // previews ////////////////////////////////////////////////////////////////
     let preview_collection = PreviewCollection::new(&raw_sets, raw_relations, raw_factoids);

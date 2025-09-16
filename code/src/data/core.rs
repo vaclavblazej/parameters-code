@@ -40,7 +40,7 @@ pub struct Set {
     pub providers: Vec<ProviderLink>,
     pub timeline: Vec<SourceSubset>,
     pub related_sets: RelatedSets,
-    pub main_definition: Vec<String>,
+    pub displayed_definition: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -259,7 +259,24 @@ pub struct PreviewShowed {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShowedFact {
-    Relation(PreviewRelationId),
-    Definition(PreviewSetId),
+    Relation(ShowedStatus, PreviewRelationId),
+    Definition(ShowedStatus, PreviewSetId),
     // Citation(PreviewSource),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ShowedStatus {
+    Assumed,
+    Conjectured,
+    Original,
+    Derivative,
+    Noted(NotedSource),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum NotedSource {
+    Text(String),
+    Source(PreviewSourceId),
+    Omitted,
+    Todo,
 }

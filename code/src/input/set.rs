@@ -43,8 +43,8 @@ impl SetBuilder {
         self
     }
 
-    pub fn main_definition(mut self, id: &str, text: &str) -> Self {
-        self.set.main_definition.push(text.into());
+    pub fn displayed_definition(mut self, id: &str, text: &str) -> Self {
+        self.set.displayed_definition.push(text.into());
         self
     }
 
@@ -63,9 +63,9 @@ impl SetBuilder {
             aka,
             abbr,
             tags,
-            main_definition,
+            displayed_definition,
         } = self.set;
-        let res = RawSet { id, name, typ, composed, relevance, aka, abbr, main_definition };
+        let res = RawSet { id, name, typ, composed, relevance, aka, abbr, displayed_definition };
         for operation in &self.later_operations {
             operation(builder, &res);
         }

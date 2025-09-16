@@ -149,7 +149,7 @@ fn include_dot_file(drawing: anyhow::Result<PathBuf>, final_dir: &Path) -> Strin
         Ok(result_pdf_file) => {
             copy_file_to_final_location(&result_pdf_file, &final_dir.join("html"));
             let filename = result_pdf_file.file_name().unwrap().to_string_lossy();
-            format!("[[dot ../{}]]", filename)
+            format!("[[zoomdot ../{}]]", filename)
         }
         Err(e) => {
             error!("{:?}", e);
@@ -181,19 +181,19 @@ impl GeneratedPage for Set {
             .map(|x| builder.linkto(x))
             .collect();
         if !equivalent_strings.is_empty() {
-            res += &format!("equivalent to: {}\n\n", equivalent_strings.join(", "));
+            res += &format!("functionally equivalent to: {}\n\n", equivalent_strings.join(", "));
         }
         if !self.providers.is_empty() {
             let provider_strings: Vec<String> =
                 self.providers.iter().map(|x| builder.linkto(x)).collect();
             res += &format!("providers: {}\n\n", provider_strings.join(", "));
         }
-        if !self.main_definition.is_empty() {
-            if self.main_definition.len() == 1 {
-                res += &format!("**Definition:** {}\n\n", self.main_definition.first().unwrap());
+        if !self.displayed_definition.is_empty() {
+            if self.displayed_definition.len() == 1 {
+                res += &format!("**Definition:** {}\n\n", self.displayed_definition.first().unwrap());
             } else {
                 res += "**Definitions:**\n\n";
-                for definition in &self.main_definition {
+                for definition in &self.displayed_definition {
                     res += &format!("1. {}\n", definition);
                 }
                 res += "\n";
@@ -209,26 +209,26 @@ impl GeneratedPage for Set {
                 &paths.working_dir,
             ),
             make_subset_drawing(
-                &format!("dif_inclusions_{}", self.id),
+                &format!("graph_property_inclusions_{}", self.id),
                 builder.data,
                 self,
                 builder
                     .data
                     .sets
                     .iter()
-                    .filter(|x| x.typ != self.typ && x.relevance > 0)
+                    .filter(|x| matches!(x.typ, PreviewType::GraphClass | PreviewType::Property(_)) && x.relevance > 0)
                     .collect(),
                 &paths.working_dir,
             ),
             make_subset_drawing(
-                &format!("same_inclusions_{}", self.id),
+                &format!("parameter_inclusions_{}", self.id),
                 builder.data,
                 self,
                 builder
                     .data
                     .sets
                     .iter()
-                    .filter(|x| x.typ == self.typ && x.relevance > 0)
+                    .filter(|x| x.typ == PreviewType::Parameter && x.relevance > 0)
                     .collect(),
                 &paths.working_dir,
             ),
@@ -590,14 +590,14 @@ impl<'a> Markdown<'a> {
                         .data
                         .sets
                         .iter()
-                        .filter(|&s| s.typ == PreviewType::Parameter)
+                        .filter(|&s| matches!(s.typ, PreviewType::Parameter))
                         .collect::<Vec<&Set>>();
                     pars.sort_by_key(|x| x.name.to_lowercase());
                     let mut table = Table::new(vec![
                         "Parameter",
                         &format!(
                             "<a href=\"{}\">*</a>Relevance",
-                            base(&(*"docs/legend/#relevance").into())
+                            base(&("docs/legend/#relevance").into())
                         ),
                     ]);
                     for set in &pars {
@@ -614,17 +614,38 @@ impl<'a> Markdown<'a> {
                         .data
                         .sets
                         .iter()
-                        .filter(|&s| s.typ == PreviewType::GraphClass)
+                        .filter(|&s| matches!(s.typ, PreviewType::GraphClass))
                         .collect::<Vec<&Set>>();
                     graphs.sort_by_key(|x| &x.name);
                     let mut table = Table::new(vec![
                         "Graph class",
                         &format!(
                             "<a href=\"{}\">*</a>Relevance",
-                            base(&(*"docs/legend/#relevance").into())
+                            base(&("docs/legend/#relevance").into())
                         ),
                     ]);
                     for set in &graphs {
+                        let relstring = progress::bar(set.relevance, 9);
+                        table.add(vec![self.linkto(&set.preview()), relstring]);
+                    }
+                    content += self.make_table(table).as_str();
+                }
+                "properties" => {
+                    let mut properties = self
+                        .data
+                        .sets
+                        .iter()
+                        .filter(|&s| matches!(s.typ, PreviewType::Property(_)))
+                        .collect::<Vec<&Set>>();
+                    properties.sort_by_key(|x| &x.name);
+                    let mut table = Table::new(vec![
+                        "Property",
+                        &format!(
+                            "<a href=\"{}\">*</a>Relevance",
+                            base(&("docs/legend/#relevance").into())
+                        ),
+                    ]);
+                    for set in &properties {
                         let relstring = progress::bar(set.relevance, 9);
                         table.add(vec![self.linkto(&set.preview()), relstring]);
                     }
@@ -636,7 +657,7 @@ impl<'a> Markdown<'a> {
                         "Year",
                         &format!(
                             "<a href=\"{}\">*</a>Relevance",
-                            base(&(*"docs/legend/#relevance").into())
+                            base(&("docs/legend/#relevance").into())
                         ),
                         "Source",
                     ]);
@@ -686,6 +707,7 @@ impl<'a> Markdown<'a> {
             match first_word.as_str() {
                 "list" => self.process_list_key(&mut words),
                 "dot" => self.embed_dot(&mut words),
+                "zoomdot" => self.embed_zoomable_dot(&mut words),
                 "pdf" => self.embed_pdf(&mut words),
                 "color" => self.color(&mut words),
                 unknown => {
@@ -742,16 +764,34 @@ impl<'a> Markdown<'a> {
                         svg.setAttribute(\"width\", \"100%\");\
                         svg.setAttribute(\"height\", \"300pt\");\
                         document.getElementById(\"{}\").appendChild(svg);\
-                        svgPanZoom(svg, {{\
-                            zoomEnabled: true,\
-                            zoomScaleSensitivity: 0.3,\
-                            minZoom: 0.9,\
-                            maxZoom: 6,\
-                        }});\
                     }})\
             }});\
             </script>\n\n",
             filename, filename, filename
+        ))
+    }
+
+    pub fn embed_zoomable_dot(&self, keys: &mut LinkedList<String>) -> Result<String> {
+        let filename: String = keys.pop_front().unwrap();
+        Ok(format!(
+            "<p><div id=\"{}\" class=\"svg-diagram zoomable\"></div></p>\
+            <script type=\"module\">\
+            import {{ initializeSvgToolbelt }} from '{}';\
+            Viz.instance().then(function(viz) {{\
+                fetch('{}')\
+                    .then(response => response.text())\
+                    .then((data) => {{\
+                        var svg = viz.renderSVGElement(data);\
+                        document.getElementById(\"{}\").appendChild(svg);\
+                        initializeSvgToolbelt('.zoomable', {{\
+                            zoomStep: 0.3,\
+                            minScale: 1,\
+                            maxScale: 5,\
+                        }});\
+                    }})\
+            }});\
+            </script>\n\n",
+            filename, "http://localhost:1313/parameters/svg-toolbelt.esm.js", filename, filename
         ))
     }
 

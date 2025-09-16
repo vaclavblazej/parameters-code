@@ -1,7 +1,8 @@
 use crate::data::core::{PreviewShowed, ShowedFact, SourceSubset};
 use crate::data::preview::{HasPreview, PreviewType};
-use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey};
+use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, Own};
 use crate::general::enums::{CpxInfo, CpxTime, Page, SourceKey};
+use std::fmt;
 
 use super::markdown::Markdown;
 
@@ -22,15 +23,15 @@ impl ToMarkdown for Page {
 
 impl ToMarkdown for CpxTime {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
-        Some(match self {
+        Some(String::from(match self {
             // formed to continue line "upper bounded by ..."
-            CpxTime::Constant => "a constant".into(),
-            CpxTime::Linear => "a linear function".into(),
-            CpxTime::Polynomial => "a polynomial function".into(),
-            CpxTime::Exponential => "an exponential function".into(),
-            CpxTime::Tower => "a tower function".into(),
-            CpxTime::Exists => "a computable function".into(),
-        })
+            CpxTime::Constant => "a constant",
+            CpxTime::Linear => "a linear function",
+            CpxTime::Polynomial => "a polynomial function",
+            CpxTime::Exponential => "an exponential function",
+            CpxTime::Tower => "a tower function",
+            CpxTime::Exists => "a computable function",
+        }))
     }
 }
 
@@ -55,13 +56,8 @@ enum RelDescription {
         upper_bound: CpxTime,
     },
     Equal,
-    GraphBoundedPar,
-    GraphUnboundedPar,
-    BoundedParGraph,
-    ParExcludesGraph,
-    GraphInclusion,
-    GraphExclusion,
-    ParExclusion,
+    IncludedIn(PreviewType, PreviewType),
+    Excludes(PreviewType, PreviewType),
     Unknown,
 }
 
@@ -88,17 +84,7 @@ fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescrip
                         }
                     }
                 }
-                (PreviewType::GraphClass, PreviewType::Parameter) => {
-                    // println!("{:?} {:?} {:?}\n{:?}\n", self.subset.name, self.superset.name, mx, self);
-                    // assert!(mx == &CpxTime::Constant); // todo investigate and fix this
-                    RelDescription::GraphBoundedPar
-                }
-                (PreviewType::Parameter, PreviewType::GraphClass) => {
-                    RelDescription::BoundedParGraph
-                }
-                (PreviewType::GraphClass, PreviewType::GraphClass) => {
-                    RelDescription::GraphInclusion
-                }
+                (a, b) => RelDescription::IncludedIn(a.clone(), b.clone()),
             }
         }
         CpxInfo::Inclusion {
@@ -110,11 +96,9 @@ fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescrip
             mx: None,
         } => RelDescription::LowerBound { bound: mn.clone() },
         CpxInfo::Equal => RelDescription::Equal,
-        CpxInfo::Exclusion => match (&rel.subset.typ, &rel.superset.typ) {
-            (PreviewType::Parameter, PreviewType::Parameter) => RelDescription::ParExclusion,
-            (PreviewType::GraphClass, PreviewType::Parameter) => RelDescription::GraphUnboundedPar,
-            (PreviewType::Parameter, PreviewType::GraphClass) => RelDescription::ParExcludesGraph,
-            (PreviewType::GraphClass, PreviewType::GraphClass) => RelDescription::GraphExclusion,
+        CpxInfo::Exclusion => {
+            let (a, b) = (&rel.subset.typ, &rel.superset.typ);
+            RelDescription::Excludes(a.clone(), b.clone())
         },
         CpxInfo::Unknown => RelDescription::Unknown,
     }
@@ -153,39 +137,32 @@ impl PreviewRelation {
                 upper_bound.to_markdown(builder).unwrap(),
                 lower_bound.to_markdown(builder).unwrap()
             )),
-            RelDescription::GraphBoundedPar => Some(format!(
-                "graph class {} has constant {}",
-                subset_string, superset_string
-            )),
-            RelDescription::BoundedParGraph => Some(format!(
-                "graphs with bounded {} are included in graph class {}",
-                subset_string, superset_string
-            )),
-            RelDescription::GraphInclusion => Some(format!(
-                "graph class {} is included in graph class {}",
-                subset_string, superset_string
-            )),
+            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Parameter) => panic!("this pair was designed to be processed in a function that calls this"),
+            RelDescription::IncludedIn(from, to) | RelDescription::Excludes(from, to) => {
+                let is_inclusion = matches!(relation_description(self, builder), RelDescription::IncludedIn(..));
+                let (from_str, plural) = match &from {
+                    PreviewType::GraphClass => (format!("graph class {}", subset_string), false),
+                    PreviewType::Parameter => (format!("graph classes with bounded {}", subset_string), true),
+                    PreviewType::Property(s) => (format!("graph classes that {} {}", s.clone().to_string(true, true), subset_string), true),
+                };
+                let bnd = if let PreviewType::Parameter = from {
+                    "bounded"
+                } else {
+                    "constant"
+                };
+                let (to_str, own) = match to {
+                    PreviewType::GraphClass => (format!("contained in {}", superset_string), Own::Has),
+                    PreviewType::Parameter => (format!("{} {}", bnd, superset_string), Own::Is),
+                    PreviewType::Property(s) => (superset_string, s),
+                };
+                let join = own.to_string(is_inclusion, plural);
+                Some(format!("{} {} {}", from_str, join, to_str))
+            },
             RelDescription::Equal => Some(format!(
                 "{} is equivalent to {}",
                 subset_string, superset_string
             )),
             RelDescription::Unknown => None,
-            RelDescription::ParExclusion => Some(format!(
-                "bounded {} does not imply bounded {}",
-                subset_string, superset_string
-            )),
-            RelDescription::GraphUnboundedPar => Some(format!(
-                "graph class {} has unbounded {}",
-                subset_string, superset_string
-            )),
-            RelDescription::ParExcludesGraph => Some(format!(
-                "graphs with bounded {} are not included in graph class {}",
-                subset_string, superset_string
-            )),
-            RelDescription::GraphExclusion => Some(format!(
-                "graph class {} is not included in graph class {}",
-                subset_string, superset_string
-            )),
         }
     }
 
@@ -200,14 +177,25 @@ impl PreviewRelation {
                 lower_bound,
                 upper_bound,
             } => "non-tight bounds",
-            RelDescription::GraphBoundedPar => "constant",
-            RelDescription::BoundedParGraph => "inclusion",
-            RelDescription::GraphInclusion => "inclusion",
+            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Parameter) => panic!(),
+            RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::Parameter) => "constant",
+            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::GraphClass) => "inclusion",
+            RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::GraphClass) => "inclusion",
+            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::Property(_)) => "implies",
+            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::GraphClass) => "inclusion",
+            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::Parameter) => "inclusion",
+            RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::Property(_)) => "has",
+            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Property(_)) => "has",
+            RelDescription::Excludes(PreviewType::Parameter, PreviewType::Parameter) => "exclusion",
+            RelDescription::Excludes(PreviewType::GraphClass, PreviewType::Parameter) => "unbounded",
+            RelDescription::Excludes(PreviewType::Parameter, PreviewType::GraphClass) => "exclusion",
+            RelDescription::Excludes(PreviewType::GraphClass, PreviewType::GraphClass) => "exclusion",
+            RelDescription::Excludes(PreviewType::Property(_), PreviewType::Property(_)) => "avoids",
+            RelDescription::Excludes(PreviewType::Property(_), PreviewType::GraphClass) => "exclusion",
+            RelDescription::Excludes(PreviewType::Property(_), PreviewType::Parameter) => "exclusion",
+            RelDescription::Excludes(PreviewType::GraphClass, PreviewType::Property(_)) => "avoids",
+            RelDescription::Excludes(PreviewType::Parameter, PreviewType::Property(_)) => "avoids",
             RelDescription::Equal => "equal",
-            RelDescription::ParExclusion => "exclusion",
-            RelDescription::GraphUnboundedPar => "unbounded",
-            RelDescription::ParExcludesGraph => "exclusion",
-            RelDescription::GraphExclusion => "exclusion",
             RelDescription::Unknown => "unknown to HOPS",
         }
         .into()
@@ -236,13 +224,13 @@ impl ToMarkdown for ShowedFact {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         let mut res = String::new();
         match self {
-            Self::Relation(relation_id) => {
+            Self::Relation(status, relation_id) => {
                 let relation = builder.data.get_relation_by_id(relation_id).unwrap();
                 if let Some(val) = relation.preview().long_description(builder) {
                     res += &val;
                 }
             }
-            Self::Definition(preview_set) => {
+            Self::Definition(status, preview_set) => {
                 let set = builder.data.get_set_by_id(preview_set);
                 if let Some(val) = set.preview().to_markdown(builder) {
                     res += &val;

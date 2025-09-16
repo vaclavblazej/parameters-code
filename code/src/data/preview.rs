@@ -18,9 +18,33 @@ pub trait HasPreview<T> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
+pub enum Own {
+    Has,
+    Is,
+}
+
+impl Own {
+
+    pub fn to_string(&self, truth: bool, plural: bool) -> String {
+        String::from(match (self, truth, plural) {
+            (Own::Is, true, false) => "is",
+            (Own::Is, true, true) => "are",
+            (Own::Has, true, false) => "has",
+            (Own::Has, true, true) => "have",
+            (Own::Is, false, false) => "is not",
+            (Own::Is, false, true) => "are not",
+            (Own::Has, false, false) => "does not have",
+            (Own::Has, false, true) => "do not have",
+        })
+    }
+
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub enum PreviewType {
     Parameter,
     GraphClass,
+    Property(Own),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

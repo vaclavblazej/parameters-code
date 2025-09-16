@@ -5,10 +5,10 @@ title: "Hierarchy"
 
 # HOPS web view
 
-This page lists:
+This page contains lists for:
 
 * [parameters](#parameters)
-* [graph classes](#graph-classes)
+* [graph classes and properties](#graph-classes-and-properties)
 * [sources](#sources)
 * [tags](#tags)
 
@@ -16,14 +16,17 @@ This page lists:
 
 ## Parameters
 
-* [Hasse hierarchy DOT](parameters.dot)
-* [Simplified Hasse hierarchy DOT](parameters_simplified.dot)
-* [Comparison table PDF](table.pdf)
-* [Simplified comparison table PDF](table_simplified.pdf)
+### Simplified Hasse hierarchy ([source](parameters_simplified.dot))
 
-[[dot parameters.dot]]
+[[zoomdot parameters_simplified.dot]]
 
-[[pdf table.pdf]]
+### Hasse hierarchy ([source](parameters.dot))
+
+[[zoomdot parameters.dot]]
+
+### Simplified comparison table ([pdf](table_simplified.pdf), [full-pdf](table.pdf))
+
+[[pdf table_simplified.pdf]]
 
 ---
 
@@ -33,7 +36,7 @@ This page lists:
 
 ---
 
-## Graph classes
+## Graph classes and Properties
 
 Some parameters are derived from associated graph classes.
 Graph classes can be also used as witnesses of proper inclusions.
@@ -43,11 +46,13 @@ We assume that all of the graph class inclusions are proper.
 We aim to have here only the graph classes that influence parameter inclusions.
 Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](https://www.graphclasses.org/) for an exhaustive list of graph classes and their inclusions.
 
-* [Graph hierarchy DOT](graphs.dot)
+### Hasse graphs and properties ([source](graphs.dot))
 
-[[dot graphs.dot]]
+[[zoomdot graphs.dot]]
 
 [[list graphs]]
+
+[[list properties]]
 
 ---
 

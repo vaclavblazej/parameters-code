@@ -96,9 +96,6 @@ pub fn make_drawing(
     let dot_str = graph.to_dot();
     let dot_target_file = target_dir.join(format!("{}.dot", name));
     file::write_file_content(&dot_target_file, &dot_str)?;
-    // let pdf_target_file = target_dir.join(format!("{}.pdf", name));
-    // Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).output().expect("dot command failed");
-    // assert!(pdf_target_file.exists());
     Ok(dot_target_file)
 }
 

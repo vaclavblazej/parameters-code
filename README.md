@@ -23,7 +23,7 @@ The web is meant to provide:
     * output TikZ code that can be directly used in a scientific paper
 
 It will take a while before the website has the majority of the parameter relations and their references.
-To give your suggestions and fixes (with references) please open a [github issue](https://github.com/vaclavblazej/parameters/issues) or [mail us](vaclav.blazej@warwick.ac.uk).
+To give your suggestions and fixes (with references) please open a [github issue](https://github.com/vaclavblazej/parameters/issues) or [mail us](mailto:vaclavblazej@gmail.com).
 
 ## Repository folders and files
 

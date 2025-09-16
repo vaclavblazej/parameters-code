@@ -37,7 +37,7 @@ mod tests {
             let id = format!("s_{}", i);
             let this = &arr[i];
             let next = &arr[i + 1];
-            assumed_source.ref_showed(&id, NotApplicable, this, next, Cpx::UpperBound(Linear), "");
+            assumed_source.ref_proved(&id, NotApplicable, this, next, Cpx::UpperBound(Linear), "");
         }
         let data = process_raw_data(create.build(), &None);
         // == test =============================================================
@@ -61,8 +61,8 @@ mod tests {
         let b = parameter("b", "b", 9).done(&mut create);
         let c = parameter("c", "c", 9).done(&mut create);
         create.assumed_source()
-            .ref_showed("s_ab", NotApplicable, &a, &c, Cpx::Exclusion, "")
-            .ref_showed("s_bc", NotApplicable, &b, &c, Cpx::UpperBound(Linear), "");
+            .ref_proved("s_ab", NotApplicable, &a, &c, Cpx::Exclusion, "")
+            .ref_proved("s_bc", NotApplicable, &b, &c, Cpx::UpperBound(Linear), "");
         let data = process_raw_data(create.build(), &None);
         // == test =============================================================
         let rel = data.get_relation_by_ids(&a, &b).unwrap();
@@ -76,7 +76,7 @@ mod tests {
         let a = parameter("a", "a", 9).done(&mut create);
         let b = parameter("b", "b", 9).done(&mut create);
         create.assumed_source()
-            .ref_showed("s_ab", NotApplicable, &a, &b, Cpx::Equal, "");
+            .ref_proved("s_ab", NotApplicable, &a, &b, Cpx::Equal, "");
         let data = process_raw_data(create.build(), &None);
         // == test =============================================================
         assert!(matches!(
@@ -99,9 +99,9 @@ mod tests {
         let d = parameter("d", "d", 9).done(&mut create);
         create
             .assumed_source()
-            .ref_showed("s_ab", NotApplicable, &a, &b, Cpx::Equal, "")
-            .ref_showed("s_ac", NotApplicable, &a, &c, Cpx::UpperBound(Linear), "")
-            .ref_showed("s_db", NotApplicable, &d, &b, Cpx::UpperBound(Linear), "");
+            .ref_proved("s_ab", NotApplicable, &a, &b, Cpx::Equal, "")
+            .ref_proved("s_ac", NotApplicable, &a, &c, Cpx::UpperBound(Linear), "")
+            .ref_proved("s_db", NotApplicable, &d, &b, Cpx::UpperBound(Linear), "");
         let data = process_raw_data(create.build(), &None);
         // == test =============================================================
         assert!(matches!(
@@ -126,8 +126,8 @@ mod tests {
         let bc = create.intersection("b+c", &b, &c, "b+c", 9).done(&mut create);
         create
             .assumed_source()
-            .ref_showed("s_ab", NotApplicable, &a, &b, Cpx::UpperBound(Linear), "")
-            .ref_showed("s_bc", NotApplicable, &a, &c, Cpx::UpperBound(Linear), "");
+            .ref_proved("s_ab", NotApplicable, &a, &b, Cpx::UpperBound(Linear), "")
+            .ref_proved("s_bc", NotApplicable, &a, &c, Cpx::UpperBound(Linear), "");
         let data = process_raw_data(create.build(), &None);
         // == test =============================================================
         let rel = data.get_relation_by_ids(&a, &bc).unwrap();

@@ -8,9 +8,10 @@ use super::source::{RawDataProvider, RawDataSource};
 use super::{
     raw::{
         BuiltRawSet, BuiltRawSource, Composition, RawData, RawProvider, RawRelation, RawSet,
-        RawShowed, RawShowedFact, RawSource, RawSourceKey, RawTag, RawType,
+        RawShowed, RawShowedFact, RawSource, RawSourceKey, RawTag, RawType, RawOwn,
     },
     set::SetBuilder,
+    sequence::SequenceBuilder,
 };
 use crate::{
     data::id::{BaseId, Id, PreviewId, PreviewSetId, PreviewTagId, ProviderId, ShowedId, SourceId},
@@ -59,6 +60,22 @@ pub fn parameter(id: &str, name: &str, relevance: u32) -> SetBuilder {
         id.into(),
         name.into(),
         RawType::Parameter,
+        Composition::None,
+        relevance,
+        );
+    SetBuilder::new(res)
+}
+
+pub fn parameter_sequence(id: &str) -> SequenceBuilder {
+    SequenceBuilder::new(id)
+}
+
+/// Defines a new property that is closed under taking graph subclasses.
+pub fn property(id: &str, name: &str, own: RawOwn, relevance: u32) -> SetBuilder {
+    let res = BuiltRawSet::new(
+        id.into(),
+        name.into(),
+        RawType::Property(own),
         Composition::None,
         relevance,
         );
@@ -142,7 +159,7 @@ impl Builder {
             set_map: _,
         } = self;
         for set in &data.sets {
-            assumed_source = assumed_source.showed(
+            assumed_source = assumed_source.proved(
                 &ShowedId::get_tmp().to_string(),
                 Page::NotApplicable,
                 &set.id.preview(),
@@ -201,12 +218,14 @@ impl Builder {
         );
         let set_type = set.typ.clone();
         let set_id = set.id.preview();
-        SetBuilder::new(res).add_callback(Box::new(
+        SetBuilder::new(res)
+            .displayed_definition("", &format!("Minimum number of vertices removed to make the graph into [[{}]]", set_id)) // todo move to later processing
+            .add_callback(Box::new(
             move |builder: &mut Builder, newset: &RawSet| {
                 let mut tmp_source = builder.assumed_source();
                 match set_type {
                     RawType::Parameter => {
-                        builder.assumed_source.ref_showed(
+                        builder.assumed_source.ref_proved(
                             &SourceId::get_tmp().to_string(),
                             Page::NotApplicable,
                             &set_id,
@@ -215,8 +234,8 @@ impl Builder {
                             "by definition",
                         )
                     },
-                    RawType::GraphClass => {
-                        builder.assumed_source.ref_showed(
+                    RawType::GraphClass | RawType::Property(_) => {
+                        builder.assumed_source.ref_proved(
                             &SourceId::get_tmp().to_string(),
                             Page::NotApplicable,
                             &set_id,
@@ -247,13 +266,13 @@ impl Builder {
         relevance: u32,
     ) -> SetBuilder {
         let sets = vec![set_a.clone(), set_b.clone()];
-        let (typ, upper_bound) = if sets.iter().all(|x|{
+        let (typ, upper_bound) = if sets.iter().any(|x|{
             let set = self.get(x);
-            set.typ == RawType::GraphClass
+            set.typ == RawType::Parameter
         }) {
-            (RawType::GraphClass, UpperBound(Constant))
-        } else {
             (RawType::Parameter, UpperBound(Linear))
+        } else {
+            (RawType::GraphClass, UpperBound(Constant))
         };
         let res = BuiltRawSet::new(
             id.into(),
@@ -262,11 +281,27 @@ impl Builder {
             Composition::Intersection(sets.clone()),
             relevance,
         );
-        SetBuilder::new(res).add_callback(Box::new(
+        let mut definition = String::new();
+        definition += "an intersetcion of";
+        for (i, set_id) in sets.iter().enumerate() {
+            let join = if i+1 == sets.len() {
+                ", and"
+            } else if i == 0 {
+                " "
+            } else if sets.len() == 2 {
+                " "
+            } else {
+                ", "
+            };
+            definition += &format!("{} [[{}]]", join, set_id);
+        }
+        SetBuilder::new(res)
+            .displayed_definition("", &definition)
+            .add_callback(Box::new(
             move |builder: &mut Builder, newset: &RawSet| {
                 for set_id in &sets {
                     let id = &format!("{}_{}", newset.id, set_id);
-                    builder.assumed_source().ref_showed("", Page::NotApplicable, &newset.id.preview(), set_id, upper_bound.clone(), "by definition");
+                    builder.assumed_source().ref_proved("", Page::NotApplicable, &newset.id.preview(), set_id, upper_bound.clone(), "by definition");
                 }
             },
         ))

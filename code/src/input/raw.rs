@@ -10,9 +10,16 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum RawOwn {
+    Has,
+    Is,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum RawType {
     Parameter,
     GraphClass,
+    Property(RawOwn),
 }
 
 #[derive(Debug)]
@@ -67,7 +74,7 @@ pub struct BuiltRawSet {
     pub aka: Vec<String>,
     pub abbr: Option<String>,
     pub tags: Vec<PreviewTagId>,
-    pub main_definition: Vec<String>,
+    pub displayed_definition: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -79,7 +86,7 @@ pub struct RawSet {
     pub relevance: u32, // from 0 to 9
     pub aka: Vec<String>,
     pub abbr: Option<String>,
-    pub main_definition: Vec<String>,
+    pub displayed_definition: Vec<String>,
 }
 
 impl BuiltRawSet {
@@ -99,7 +106,7 @@ impl BuiltRawSet {
             tags: Vec::new(),
             aka: Vec::new(),
             abbr: None,
-            main_definition: Vec::new(),
+            displayed_definition: Vec::new(),
         }
     }
 }
@@ -147,6 +154,10 @@ pub struct RawProviderLink {
     pub url: String,
 }
 
+#[derive(Debug)]
+pub struct RawSequence {
+}
+
 pub struct RawData {
     pub sets: Vec<RawSet>,
     pub relations: Vec<RawRelation>,
@@ -157,6 +168,7 @@ pub struct RawData {
     pub tags: Vec<RawTag>,
     pub tag_set: Vec<(PreviewTagId, PreviewSetId)>,
     pub transfer: HashMap<TransferGroup, Vec<(PreviewSetId, PreviewSetId)>>,
+    pub sequences: Vec<RawSequence>,
 }
 
 impl RawData {
@@ -171,6 +183,7 @@ impl RawData {
             tags: Vec::new(),
             tag_set: Vec::new(),
             transfer: HashMap::new(),
+            sequences: Vec::new(),
         }
     }
 }
@@ -185,7 +198,23 @@ pub struct RawShowed {
 
 #[derive(Debug)]
 pub enum RawShowedFact {
-    Relation(PreviewRelationId),
-    Definition(PreviewSetId),
-    // Citation(RawSource),
+    Relation(RawShowedStatus, PreviewRelationId),
+    Definition(RawShowedStatus, PreviewSetId),
+}
+
+#[derive(Debug, Clone)]
+pub enum RawShowedStatus {
+    Assumed, // taken as given by HOPS, mainly due to being out of project's scope
+    Conjectured, // posed as an open problem
+    Original, // first or independent
+    Derivative, // improvements or later proofs
+    Noted(RawNotedSource), // results claimed to be somewhere else
+}
+
+#[derive(Debug, Clone)]
+pub enum RawNotedSource {
+    Text(String), // outside of HOPS
+    Source(PreviewSourceId), // in HOPS
+    Omitted, // source is not noted at all
+    SrcTodo, // waiting to be added to HOPS
 }

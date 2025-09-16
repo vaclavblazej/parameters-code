@@ -9,7 +9,7 @@ pub fn build_collection() -> RawData {
     let c = parameter("c", "c", 7).done(&mut create);
     let bc = create.intersection("bc", &b, &c, "bc", 9).done(&mut create);
     create.assumed_source()
-        .ref_showed("s_ab", NotApplicable, &a, &b, UpperBound(Linear), "")
-        .ref_showed("s_bc", NotApplicable, &a, &c, UpperBound(Linear), "");
+        .ref_proved("s_ab", NotApplicable, &a, &b, UpperBound(Linear), "")
+        .ref_proved("s_bc", NotApplicable, &a, &c, UpperBound(Linear), "");
     create.build()
 }

@@ -4,7 +4,7 @@ use biblatex::Entry;
 use log::error;
 
 use crate::data::core::{
-    PartialResultsBuilder, PreviewShowed, Provider, ProviderLink, Relation, ShowedFact, Source, Tag
+    PartialResultsBuilder, PreviewShowed, Provider, ProviderLink, Relation, ShowedFact, Tag, ShowedStatus, NotedSource
 };
 use crate::data::id::{Id, PreviewId, PreviewRelationId, PreviewSetId, RelationId};
 use crate::data::preview::*;
@@ -12,11 +12,21 @@ use crate::general::enums::{CreatedBy, Drawing, RawDrawing, SourceKey, SourcedCp
 use crate::input::raw::*;
 use crate::work::date::Date;
 
+impl From<&RawOwn> for Own {
+    fn from(raw: &RawOwn) -> Own {
+        match raw {
+            RawOwn::Has => Own::Has,
+            RawOwn::Is => Own::Is,
+        }
+    }
+}
+
 impl From<&RawType> for PreviewType {
     fn from(raw: &RawType) -> PreviewType {
         match raw {
             RawType::Parameter => PreviewType::Parameter,
             RawType::GraphClass => PreviewType::GraphClass,
+            RawType::Property(o) => PreviewType::Property(Own::from(o)),
         }
     }
 }
@@ -38,6 +48,29 @@ impl ProviderLink {
             provider_name: name,
             set: item.set,
             url: item.url,
+        }
+    }
+}
+
+impl From<&RawNotedSource> for NotedSource {
+    fn from(raw: &RawNotedSource) -> NotedSource {
+        match raw {
+            RawNotedSource::Text(s) => NotedSource::Text(s.clone()),
+            RawNotedSource::Source(s) => NotedSource::Source(s.clone()),
+            RawNotedSource::Omitted => NotedSource::Omitted,
+            RawNotedSource::SrcTodo => NotedSource::Todo,
+        }
+    }
+}
+
+impl From<&RawShowedStatus> for ShowedStatus {
+    fn from(raw: &RawShowedStatus) -> ShowedStatus {
+        match raw {
+            RawShowedStatus::Assumed => ShowedStatus::Assumed,
+            RawShowedStatus::Conjectured => ShowedStatus::Conjectured,
+            RawShowedStatus::Original => ShowedStatus::Original,
+            RawShowedStatus::Derivative => ShowedStatus::Derivative,
+            RawShowedStatus::Noted(s) => ShowedStatus::Noted(NotedSource::from(s)),
         }
     }
 }
@@ -67,9 +100,8 @@ impl From<&RawShowed> for PreviewShowed {
 impl From<&RawShowedFact> for ShowedFact {
     fn from(raw: &RawShowedFact) -> ShowedFact {
         match raw {
-            RawShowedFact::Relation(x) => ShowedFact::Relation(x.clone()),
-            // Self::Citation(x) => ShowedFact::Citation(x.preprocess(&sourcekey)),
-            RawShowedFact::Definition(x) => ShowedFact::Definition(x.clone()),
+            RawShowedFact::Relation(s, x) => ShowedFact::Relation(ShowedStatus::from(s), x.clone()),
+            RawShowedFact::Definition(s, x) => ShowedFact::Definition(ShowedStatus::from(s), x.clone()),
         }
     }
 }

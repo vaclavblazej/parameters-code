@@ -4,9 +4,10 @@
 // #![deny(clippy::panic)]
 // #![deny(unused_must_use)]
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, LinkedList, VecDeque};
 use std::{env, sync::mpsc};
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
@@ -19,7 +20,7 @@ use log::{debug, error, info, trace, warn};
 use data::core::Data;
 use data::core::Relation;
 use data::core::Set;
-use data::id::{Id, PreviewId};
+use data::id::{Id, PreviewSetId, PreviewId};
 use data::preview::{HasPreview, PreviewSet};
 use data::preview::PreviewType;
 use data::simple_index::SimpleIndex;
@@ -66,6 +67,7 @@ mod work {
 mod input {
     pub mod build;
     pub mod raw;
+    pub mod sequence;
     pub mod set;
     pub mod source;
 }
@@ -183,6 +185,7 @@ enum Args {
     Table,
     Api,
     Clear,
+    Interactive,
     Mock,
     Debug,
     Trace,
@@ -260,6 +263,9 @@ impl Computation {
                     args.insert(Args::Api);
                     args.insert(Args::Table);
                 }
+                "interactive" | "i" => {
+                    args.insert(Args::Interactive);
+                }
                 other => panic!("unknown parameter: '{}'", other),
             }
         }
@@ -277,10 +283,11 @@ impl Computation {
         let bibliography_file = handcrafted_dir.join("main.bib");
         let final_dir = parent.join("web").join("content");
         let hugo_public_dir = parent.join("web").join("public");
-        let working_dir = current.join("target");
+        let tmp_dir = env::temp_dir();
+        let working_dir = tmp_dir.join("target");
         let html_dir = final_dir.join("html");
         let api_dir = final_dir.join("api");
-        let tmp_dir = current.join("tmp");
+        let tmp_dir = tmp_dir.join("tmp");
         Self {
             args,
             time: Timer::new(),
@@ -381,7 +388,7 @@ impl Computation {
         let graphs: Vec<&Set> = data
             .sets
             .iter()
-            .filter(|x| x.typ == PreviewType::GraphClass)
+            .filter(|x| matches!(x.typ, PreviewType::GraphClass | PreviewType::Property(_)))
             .collect();
         for (name, set) in [
             ("parameters", &parameters),
@@ -484,7 +491,76 @@ impl Computation {
         // map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
         let markdown = Markdown::new(data, linkable, &self.bibliography);
         generate_pages(&pages, &markdown, &self.paths, &map); // takes long
+        self.time.print("pages done");
         markdown.worker.join();
+    }
+
+    fn process_command(&self, data: &Data, mut command: LinkedList<String>) -> bool {
+        if let Some(cmd) = command.pop_front() {
+            match cmd.as_str() {
+                "help" => {
+                    println!("help:");
+                    println!("    hasse <par_id> [<par_id> ...] - draws hasse diagram of the listed parameters");
+                    println!("    exit - end the interactive prompt");
+                },
+                "hasse" => {
+                    let mut sets = Vec::new();
+                    for i in command.iter() {
+                        let set_id: PreviewSetId = PreviewSetId::from(i.clone());
+                        sets.push(data.get_set_by_id(&set_id));
+                    }
+                    let target_dir = &self.paths.tmp_dir;
+                    let name = "drawing";
+                    let res_dot_target_file = make_drawing(
+                        data,
+                        target_dir,
+                        name,
+                        &sets,
+                        None,
+                    );
+                    if let Ok(dot_target_file) = res_dot_target_file {
+                        println!("dot drawing created at '{:?}'", dot_target_file);
+                        let pdf_target_file = target_dir.join(format!("{}.pdf", name));
+                        Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).output().expect("dot command failed");
+                        assert!(pdf_target_file.exists());
+                        println!("pdf generated at '{:?}'", pdf_target_file);
+                    }
+                },
+                "exit" => return false,
+                x => println!("unknown command '{}'", x),
+            }
+        }
+        true
+    }
+
+    fn interactive(&self) {
+        if !self.args.contains(&Args::Interactive) {
+            return;
+        }
+        let data = self.get_data();
+        let mut buffer = String::new();
+        let stdin = io::stdin();
+        loop {
+            // print!("> "); // todo prompt, flush
+            match stdin.read_line(&mut buffer) {
+                Ok(_okcode) => {
+                    let mut chars = buffer.as_str().chars();
+                    chars.next_back(); // remove the last \n character
+                    buffer = String::from(chars.as_str());
+                    let mut commands: LinkedList<String> = LinkedList::new();
+                    for word in buffer.as_str().split(' ') {
+                        commands.push_back(String::from(word));
+                    }
+                    if !self.process_command(data, commands) {
+                        break;
+                    }
+                    buffer = String::new();
+                },
+                Err(err) => {
+                    error!("{:?}", err);
+                }
+            }
+        }
     }
 
     fn make_relation_table(&self) {
@@ -525,5 +601,6 @@ fn main() {
     computation.make_relation_table();
     computation.make_api();
     computation.make_pages();
+    computation.interactive();
     computation.worker.join();
 }
