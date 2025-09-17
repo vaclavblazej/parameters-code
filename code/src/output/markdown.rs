@@ -791,7 +791,7 @@ impl<'a> Markdown<'a> {
                     }})\
             }});\
             </script>\n\n",
-            filename, "http://localhost:1313/parameters/svg-toolbelt.esm.js", filename, filename
+            filename, "/parameters/svg-toolbelt.esm.js", filename, filename
         ))
     }
 
