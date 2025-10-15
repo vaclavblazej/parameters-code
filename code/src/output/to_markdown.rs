@@ -224,9 +224,8 @@ impl ToMarkdown for ShowedFact {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         let mut res = String::new();
         match self {
-            Self::Relation(status, relation_id) => {
-                let relation = builder.data.get_relation_by_id(relation_id).unwrap();
-                if let Some(val) = relation.preview().long_description(builder) {
+            Self::Relation(status, relation) => {
+                if let Some(val) = relation.long_description(builder) {
                     res += &val;
                 }
             }

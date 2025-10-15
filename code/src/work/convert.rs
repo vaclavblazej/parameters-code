@@ -86,26 +86,6 @@ impl From<&RawSet> for PreviewSet {
     }
 }
 
-impl From<&RawShowed> for PreviewShowed {
-    fn from(raw: &RawShowed) -> PreviewShowed {
-        PreviewShowed {
-            id: raw.id.preview(),
-            text: raw.text.clone(),
-            fact: ShowedFact::from(&raw.fact),
-            page: raw.page.clone(),
-        }
-    }
-}
-
-impl From<&RawShowedFact> for ShowedFact {
-    fn from(raw: &RawShowedFact) -> ShowedFact {
-        match raw {
-            RawShowedFact::Relation(s, x) => ShowedFact::Relation(ShowedStatus::from(s), x.clone()),
-            RawShowedFact::Definition(s, x) => ShowedFact::Definition(ShowedStatus::from(s), x.clone()),
-        }
-    }
-}
-
 impl Tag {
     pub fn from(raw: RawTag, sets: Vec<PreviewSet>) -> Self {
         Self {

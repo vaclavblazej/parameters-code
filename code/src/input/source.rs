@@ -1,7 +1,7 @@
 use log::warn;
 
 use super::{build::Builder, raw::{
-    BuiltRawSource, RawData, RawProvider, RawProviderLink, RawRelation, RawShowed, RawShowedFact, RawSource, RawShowedStatus, RawNotedSource
+    BuiltRawSource, RawData, RawProvider, RawProviderLink, RawRelation, RawShowed, RawShowedFact, RawSource, RawShowedStatus, RawNotedSource, RawShownRelation
 }};
 use crate::{
     data::id::{BaseId, PreviewRelationId, PreviewSetId, PreviewSourceId, RelationId, ShowedId},
@@ -133,11 +133,16 @@ impl RawDataSource {
         self
     }
 
-    fn relation(&mut self, subset: &PreviewSetId, superset: &PreviewSetId, cpx: CpxInfo) -> PreviewRelationId {
-        let relation = RawRelation::new(subset, superset, cpx);
+    fn relation(&mut self, subset: &PreviewSetId, superset: &PreviewSetId, cpx: CpxInfo) -> RawShownRelation {
+        let relation = RawRelation::new(subset, superset, cpx.clone());
         let res = relation.id.preview();
         self.relations.push(relation);
-        res
+        RawShownRelation {
+            id: res,
+            subset: subset.clone(),
+            superset: superset.clone(),
+            cpx: cpx,
+        }
     }
 
     pub fn assumed_proper_inclusion(

@@ -259,7 +259,7 @@ pub struct PreviewShowed {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShowedFact {
-    Relation(ShowedStatus, PreviewRelationId),
+    Relation(ShowedStatus, PreviewRelation),
     Definition(ShowedStatus, PreviewSetId),
     // Citation(PreviewSource),
 }

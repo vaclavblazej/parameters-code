@@ -5,19 +5,28 @@ title: "Collaboration"
 
 # Collaboration
 
-All forms of collaboration are appreciated, see the [list of contributors](#contributors) at the bottom of this page.
-One may contribute in many ways; the next sections lists these in an increasing level of involvement.
+All forms of collaboration are appreciated.
+
+* [Related projects](#related-projects)
+* [How to contribute to HOPS](#contribute-to-hops)
+* [List of contributors](#contributors)
+
+## Related projects
+
+* [Information System on Graph Classes and their Inclusions (ISGCI) - H. N. de Ridder and others](https://www.graphclasses.org/)
+* [The House of Graphs - K. Coolsaet, S. D'hondt and J. Goedgebeur](https://houseofgraphs.org/)
+* [Graph Parameter Hierarchy Visualizer - Yuto Okada (岡田優斗)](https://yutookada.com/tools/graph-parameters/)
+* [Graph Parameter Hierarchy - Yeonsu Chang (장연수)](https://www.graphparameterhierarchy.com/)
+
+## Contribute to HOPS
+
+One may contribute in many ways; the next sections lists some options in an increasing level of involvement.
 
 ### Feedback
 
-The simplest way to contribute is to [write an e-mail](mailto:vaclavblazej@gmail.com) or [raise an issue](https://github.com/vaclavblazej/parameters-code/issues) (requires login to GitHub) regarding anything related to the website.
-This concerns but is not limited to:
+If you find missing information, mistakes, or have suggestions [get in touch](./contact).
 
-* missing parameters or definitions
-* missing relations or exclusions
-* missing citations
-* incorrect information
-* improvement suggestions
+Perhaps the most straight-forward help is to submit sources of relations that are listed under the [unknown source](../html/myit4D/).
 
 ### Survey works
 
@@ -35,7 +44,7 @@ Another possibility is to run the backend code yourself and retrieve all the inf
 
 ### Frontend programming
 
-The website is made as a static website where any interactivity comes from javascript.
+This website is made as a static website where any interactivity comes from javascript.
 Part of the content is generated and part is hand-made.
 The final markdown is made by joining these two parts and then replacing commands (marked with double square brackets) by respective content.
 Improvements to the presentation can be made almost independently on the backend.
@@ -46,6 +55,7 @@ There are several features one could work on:
 
 ### Backend programming
 
+Code of the backend is [open source, hosted on GitHub](https://github.com/vaclavblazej/parameters-code), and open for pull requests.
 The backend is written in Rust which may be an obstacle for getting involved.
 Be sure to get in touch if you plan to do some backend improvements or fixes.
 This is mainly to prevent doing duplicate work.
@@ -53,7 +63,7 @@ This is mainly to prevent doing duplicate work.
 ## Contributors
 
 This project is made and maintained by [Václav Blažej](https://vaclavblazej.github.io/about/).
-Thanks to the memebrs of the community who provided feedback for the website -- in person, by e-mail, or on [github issues](https://github.com/vaclavblazej/parameters-code/issues?q=is%3Aissue).
+Thanks to the memebrs of the community who provided [feedback](./contact) for the website.
 
 People that contribute to this project will be listed below; let me know if you believe to be missing here.
 

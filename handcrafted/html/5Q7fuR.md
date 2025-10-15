@@ -17,6 +17,29 @@ The tree decomposition $(T,\chi)$ has to follow two rules:
 
 A graph has treewidth $k$ if there exists a tree decomposition such that each bag has size at most $k+1$.
 
+### Other definitions and examples
+
+Alternative equivalent definitions of a graph with treewidth $\le k$ are e.g.
+
+* subgraph of an intersection graph of subtrees of a tree with ply at most $k+1$,
+* there exists a completion to a chordal graph with maximal cliques of size at most $k+1$,
+* partial $k$-tree.
+
+Notably, $k=1$ are forests and $k=2$ are series-parallel graphs.
+On the other hand, cliques $K_n$ have treewidth $k=n-1$ and complete bipartite graphs $K_{a,b}$ have $k=\min\{a,b\}$.
+
+## Properties
+
+* property of having treewidth $\le k$ is minor closed
+* *grid minor theorem* shows that if a graph has treewidth $\ge k$ then it contains a grid minor of size $f(k)$ for some unbounded function $f$, this is closely related to solving graph problems through *bidimensionality*
+* a graph has bounded treewidth if and only if it has *balanced separators*
+* *Courcelle's theorem* shows that any problem expressible in monadic second-order logic on graphs can be solved in FPT time when parameterized by size of the formula and treewidth
+
+## Computing treewidth
+
+Deciding whether a graph has treewidth $k$ is NP-complete, [even on cubic graphs](https://www.combinatorics.org/ojs/index.php/eljc/article/view/v32i3p36?utm_source=chatgpt.com).
+Computing treewidth is FPT with respect to $k$; approximating is FPT but linear in $n$.
+
 ## Dynamic programming
 
 Structure of the decomposition implies several important properties.
@@ -36,14 +59,4 @@ Though it is possible to design DP over tree decomposition directly we usually s
 
 If introduce edge nodes are not present, then an edge is introduced when its second incident vertex is introduced.
 
-### Basic DP example
-
-... work in progress
-
-### A few brief examples
-
-* vertex cover -- state: part of the solution in the bag; value: size of the solution in the subgraph; introduce vertex node tries both options and verifies all present edges are present; forget vertex node does nothing interesting; join node sums the solution minus size of the solution in the bag which was counted twice
-* ... work in progress
-
 ---
-

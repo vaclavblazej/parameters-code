@@ -187,7 +187,11 @@ pub fn build_collection() -> RawData {
         .tag(&tag_modules)
         .done(&mut create);
     let modular_width = parameter("4bj71L", "modular-width", 7)
-        .displayed_definition("RYhQuU", "Modular-width is the minimum number $k$ such that there is a partition into at most $k$ modules where each module either contains a single vertex or the graph induced by the module has modular-width $k$.")
+        .displayed_definition("RYhQuU", "Modular-width is the minimum integer $k$ such that there is a partition into at most $k$ modules where each module either contains a single vertex or the graph induced by the module has modular-width $k$.")
+        .tag(&tag_modules)
+        .done(&mut create);
+    let modular_treewidth = parameter("VJrEcv", "modular-treewidth", 5)
+        .displayed_definition("Eh2fg0", "Modular-treewidth is the minimum integer $k$ such that every quotient graph of graph's modular decomposition has treewidth at most $k$.")
         .tag(&tag_modules)
         .done(&mut create);
     let iterated_type_partitions = parameter("G1Cwmc", "iterated type partitions", 3)
@@ -314,6 +318,8 @@ pub fn build_collection() -> RawData {
         .displayed_definition("LTw98i", "A contraction sequence for a graph $G$ is a sequence of $n-1$ contractions -- identification of two not necessarily adjacent vertices. Note that at any point each vertex of a partially contracted graph represents a subset of vertices in the original graph. Vertices of a partially contracted graph are joined with an edge if there is a complete bipartite graph between the represented subsets of vertices in the original graph. Similarly, there is a non-edge if the two sets have no edges between them. Last, there is a red-edge is there are some edges and some non-edges. Red degree of a partially contracted graph is the maximum number of red edges adjacent to a single vertex. Twin-width is the minimum over contraction sequences of maximum over the sequence's red degree.")
         .abbr("tww")
         .done(&mut create);
+    let sparse_twin_width = parameter("ORm833", "sparse twin-width", 4)
+        .done(&mut create);
     let mut flip_width_builder = parameter_sequence("4DIiH0");
     let inf_flip_width = flip_width_builder.parameter("nYXiuT", "radius-inf flip-width", ParameterType::Infinity, 3)
         .done(&mut create);
@@ -411,6 +417,8 @@ pub fn build_collection() -> RawData {
     // let star_arboricity = parameter("Mvz8MX", "star-arboricity", 1)
     // .done(&mut create);
     let mim_width = parameter("WmIFB1", "mim-width", 6)
+        .done(&mut create);
+    let sm_width = parameter("A9hzWC", "sm-width", 5)
         .done(&mut create);
     let sim_width = parameter("aEGv5N", "sim-width", 5)
         .done(&mut create);
@@ -640,8 +648,9 @@ pub fn build_collection() -> RawData {
         // .done(&mut create);
     // let bip_sub_free = property("LoQADQ", "$K_{t,t}$-subgraph-free", 5)
     // .done(&mut create);
-    // let vc_dimension = parameter("hhkOKk", "VC-dimension", 3)
-        // .done(&mut create);
+    let vc_dimension = parameter("hhkOKk", "VC-dimension", 3)
+        .displayed_definition("LaZaUD", "*VC-dimension* of a set system $\\mathcal F$ is the maximum size $d$ of a set $Y$ such that $\\mathcal F \\cap Y = 2^Y$, i.e., $Y$ is *shattered* by $\\mathcal F$. By VC-dimension of a graph we mean VC-dimension of the set sytem $(V(G),\\{N(v) \\mid v \\in V(G)\\}.")
+        .done(&mut create);
 
     create.unknown_source()
         // $adm_d \le col_d \le wcol_d$
@@ -663,8 +672,8 @@ pub fn build_collection() -> RawData {
         .ref_noted_relation("VLbSmM", NotApplicable, &excluded_top_minor, &bounded_expansion, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("3e5jLj", NotApplicable, &degeneracy, &weakly_sparse, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("ssMLQE", NotApplicable, &nowhere_dense, &weakly_sparse, UpperBound(Constant), "", SrcTodo)
-        // .ref_noted_relation("45mNcy", NotApplicable, &nowhere_dense, &vc_dimension, UpperBound(Constant), "", SrcTodo)
-        // .ref_noted_relation("Ie3w0s", NotApplicable, &clique_width, &vc_dimension, UpperBound(Constant), "", SrcTodo)
+        .ref_noted_relation("45mNcy", NotApplicable, &nowhere_dense, &vc_dimension, UpperBound(Constant), "", SrcTodo)
+        .ref_noted_relation("Ie3w0s", NotApplicable, &clique_width, &vc_dimension, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("cF8esN", NotApplicable, &outerplanar, &excluded_planar_minor, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("opjGKG", NotApplicable, &excluded_minor, &excluded_top_minor, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("I8lPXq", NotApplicable, &excluded_planar_minor, &excluded_minor, UpperBound(Constant), "", SrcTodo)
@@ -829,7 +838,7 @@ pub fn build_collection() -> RawData {
         .ref_noted_relation("Go6gbV", NotApplicable, &nowhere_dense, &monadically_stable, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("MNJN0n", NotApplicable, &monadically_stable, &monadically_dependent, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("uK0Bkd", NotApplicable, &twin_width, &monadically_dependent, UpperBound(Constant), "", SrcTodo)
-        .ref_noted_relation("Lx2PDS", NotApplicable, &genus, &excluded_minor, UpperBound(Exists), "", SrcTodo)
+        .ref_noted_relation("Lx2PDS", NotApplicable, &genus, &excluded_minor, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("BpYOJt", NotApplicable, &sparse_twinwidth, &twin_width, UpperBound(Exists), "", SrcTodo)
         .ref_noted_relation("D7mRIW", NotApplicable, &perfect, &chi_bounded, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("jTiJAO", NotApplicable, &clique_width, &chi_bounded, UpperBound(Constant), "", SrcTodo)
@@ -1369,10 +1378,56 @@ pub fn build_collection() -> RawData {
         .done()
         .proved("zZ1ZCa", Pp(37), &degree_treewidth, &domino_treewidth, UpperBound(Linear), "Theorem 53. ... $\\max({\\rm tw}(G),(\\Delta(G)-1)/2) \\le {\\rm dtw}(G)$ ... [this result is claimed to be in [[gcMYuX]], didn't see it there]") // noted
         .proved("9C3Gwi", Pp(37), &treespan, &degree_treewidth, UpperBound(Linear), "Claim 55. $\\max({\\rm tw}(G),\\Delta(G)/2) \\le {\\rm ts}(G)$")
-        .proved("JIAD2R", Pp(38), &domino_treewidth, &treespan, UpperBound(Linear), "Claim 56. ${\\rm ts}(G)$ \\le 2 \\cdot {\\rm dtw}(G)")
+        .proved("JIAD2R", Pp(38), &domino_treewidth, &treespan, UpperBound(Linear), "Claim 56. ${\\rm ts}(G) \\le 2 \\cdot {\\rm dtw}(G)$")
         // Pp(39), "Edge-treewidth is polynomially tied to the largest of the treewidth and the biconnected maximum degree."
         .proved("vgpxF1", Pp(38), &treebandwidth, &treewidth, UpperBound(Exists), "[implied through obstructions]")
         .done(&mut create);
+    let str_treedepth = parameter("HbBTjI", "structurally treedepth", 3).done(&mut create);
+    let str_pathwidth = parameter("ei5NQ3", "structurally pathwidth", 3).done(&mut create);
+    let str_treewidth = parameter("WQQqcJ", "structurally treewidth", 3).done(&mut create);
+    let str_excluded_minor= property("1lCekH", "structurally excluded minor", Has, 3).done(&mut create);
+    let str_sparse_twin_width = parameter("qXI6la", "structurally sparse twin-width", 3).done(&mut create);
+    let str_bounded_expansion = property("cjLkrr", "structurally bounded expansion", Has, 3).done(&mut create);
+    let str_nowhere_dense = property("Qj1Dfw", "structurally nowhere dense", Is, 3).done(&mut create);
+    let mon_shrubdepth = create.intersection("UuaLsM", &monadically_stable, &shrub_depth, "mon stable and shrubdepth", 3).done(&mut create);
+    let mon_linear_clique_width = create.intersection("xn4gFR", &monadically_stable, &linear_clique_width, "mon stable and linear clique-width", 3).done(&mut create);
+    let mon_clique_width = create.intersection("KF02zL", &monadically_stable, &clique_width, "mon stable and clique-width", 3).done(&mut create);
+    let mon_twin_width = create.intersection("YRCrDm", &monadically_stable, &twin_width, "mon stable and twin-width", 3).done(&mut create);
+    let mon_flip_width = create.intersection("UA5Ya8", &monadically_stable, &flip_width, "mon stable and flip-width", 3).done(&mut create);
+    let pilipczuklens2025 = source("ROetOx", "pilipczuk2025graphclasseslenslogic", 8)
+        .noted_relation("Ao4G7v", Pp(3), &treedepth, &pathwidth, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("Tp3U1z", Pp(3), &pathwidth, &treewidth, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("fU9cEU", Pp(3), &treewidth, &excluded_minor, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("7wE0yR", Pp(3), &excluded_minor, &sparse_twin_width, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("7Q501R", Pp(3), &sparse_twin_width, &bounded_expansion, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("fyRYB7", Pp(3), &bounded_expansion, &nowhere_dense, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("PXRSVO", Pp(3), &shrub_depth, &linear_clique_width, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("gif7x1", Pp(3), &linear_clique_width, &clique_width, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("Mlvc3P", Pp(3), &clique_width, &twin_width, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("24EfrR", Pp(3), &twin_width, &flip_width, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("smZ1kW", Pp(3), &flip_width, &monadically_dependent, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("uGjLvP", Pp(3), &treedepth, &str_treedepth, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("9OwM3c", Pp(3), &pathwidth, &str_pathwidth, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("HYbckV", Pp(3), &treewidth, &str_treewidth, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("BakYIM", Pp(3), &excluded_minor, &str_excluded_minor, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("PxLo45", Pp(3), &sparse_twin_width, &str_sparse_twin_width, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("3pGIso", Pp(3), &bounded_expansion, &str_bounded_expansion, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("i6wmYD", Pp(3), &nowhere_dense, &str_nowhere_dense, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("PF8rH0", Pp(3), &str_treedepth, &str_pathwidth, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("o7wIYn", Pp(3), &str_pathwidth, &str_treewidth, UpperBound(Exists), "", SrcTodo)
+        .noted_relation("wAPB3U", Pp(3), &str_treewidth, &str_excluded_minor, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("2CQtlT", Pp(3), &str_excluded_minor, &str_sparse_twin_width, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("dPFWZa", Pp(3), &str_sparse_twin_width, &str_bounded_expansion, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("H0I69L", Pp(3), &str_bounded_expansion, &str_nowhere_dense, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("QjLdGf", Pp(3), &str_treedepth, &mon_shrubdepth, Equivalent(Exists, Exists), "", SrcTodo)
+        .noted_relation("yrocwH", Pp(3), &mon_shrubdepth, &shrub_depth, Equivalent(Exists, Exists), "", SrcTodo)
+        .noted_relation("Ch3QtW", Pp(3), &str_pathwidth, &mon_linear_clique_width, Equivalent(Exists, Exists), "", SrcTodo)
+        .noted_relation("5DcZ5i", Pp(3), &str_treewidth, &mon_clique_width, Equivalent(Exists, Exists), "", SrcTodo)
+        .noted_relation("ASrJsu", Pp(3), &str_sparse_twin_width, &mon_twin_width, Equivalent(Exists, Exists), "", SrcTodo)
+        .noted_relation("Qt21ld", Pp(3), &str_bounded_expansion, &mon_flip_width, UpperBound(Constant), "", SrcTodo)
+        .noted_relation("RCekfo", Pp(3), &str_nowhere_dense, &monadically_stable, UpperBound(Constant), "", SrcTodo)
+        // remainder should be inferred
+        .todo_rest(&mut create);
 
     create.build()
 }
@@ -1390,21 +1445,72 @@ pub fn build_collection() -> RawData {
 // mSEa3b
 // YMfs4G
 // USErps
-// UA5Ya8
-// KF02zL
-// YRCrDm
-// xn4gFR
-// Qj1Dfw
-// cjLkrr
-// qXI6la
-// 1lCekH
-// WQQqcJ
-// ei5NQ3
-// ORm833
-// HbBTjI
-// UuaLsM
-// ROetOx
-// LaZaUD
-// A9hzWC
-// Eh2fg0
-// VJrEcv
+// 2iwQv0
+// iu40QI
+// vw9BjN
+// EpQl9l
+// tVmfaa
+// zefzkx
+// M5s3qX
+// 9vGZD0
+// 6ILlpF
+// oXV04c
+// iKSIcK
+// k6mnu5
+// wegmLA
+// AMOwg2
+// PEmv7E
+// 5OW5Rh
+// vyW251
+// bUuzDK
+// DbI81X
+// NsdqoF
+// OceQyn
+// BOhiyO
+// etmyMV
+// I5PQO9
+// QeIhyS
+// yIdjIZ
+// h2zYp6
+// lCDpdr
+// z57T9T
+// M5VUAG
+// lFyAXB
+// EGiqY7
+// Zz18EK
+// 2ddMsw
+// SAJBe6
+// Oilaeg
+// QCYh7l
+// XF5B1J
+// cGKOIy
+// aqllwB
+// jPBt4b
+// slsHW1
+// RcAY8E
+// 4Oqat3
+// CMOWPQ
+// yVyItw
+// 4HYR6F
+// 8i8TPb
+// Mnayro
+// mRz7Lq
+// 1rJUW9
+// fYvpzp
+// O0O2lu
+// lomLxF
+// fIoQjs
+// eyumwo
+// nwa2id
+// ShPKzs
+// 2yzjqV
+// 1a2qcc
+// 9nZyhu
+// Z7LoDd
+// a8glpM
+// P0XOsk
+// DTLpQH
+// 8r1GEU
+// dBI3GJ
+// hreVoq
+// E9szyw

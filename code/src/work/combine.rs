@@ -180,7 +180,7 @@ impl PartialResult {
                 (Equal { .. }, Exclusion { .. }) | (Exclusion { .. }, Equal { .. }) => {
                     panic!("impossible")
                 }
-                // If both are inclusions, upper bounds or lower bounds we can nicely combine them.
+                // If both are inclusions, upper bounds or lower bounds, we can nicely combine them.
                 (Inclusion { mn: mna, mx: mxa }, Inclusion { mn: mnb, mx: mxb }) => Ok(Inclusion {
                     mn: match (mna, mnb) {
                         (Some((a, sa)), Some((b, sb))) => {

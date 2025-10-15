@@ -122,6 +122,14 @@ pub struct RawRelation {
     pub cpx: CpxInfo,
 }
 
+#[derive(Debug, Clone)]
+pub struct RawShownRelation {
+    pub id: PreviewRelationId,
+    pub subset: PreviewSetId,
+    pub superset: PreviewSetId,
+    pub cpx: CpxInfo,
+}
+
 impl RawRelation {
     pub fn new(subset: &PreviewSetId, superset: &PreviewSetId, cpx: CpxInfo) -> RawRelation {
         RawRelation {
@@ -198,7 +206,7 @@ pub struct RawShowed {
 
 #[derive(Debug)]
 pub enum RawShowedFact {
-    Relation(RawShowedStatus, PreviewRelationId),
+    Relation(RawShowedStatus, RawShownRelation),
     Definition(RawShowedStatus, PreviewSetId),
 }
 

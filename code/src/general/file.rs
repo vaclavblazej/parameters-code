@@ -4,10 +4,12 @@ use std::{
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
+    fmt,
 };
 
 use anyhow::Result;
 use log::{error, warn};
+
 
 pub fn iterate_folder_recursively(path: &PathBuf) -> Vec<PathBuf> {
     let mut res = vec![];
@@ -70,7 +72,10 @@ pub fn reparent(target: &Path, old_ancestor: &Path, new_ancestor: &Path) -> Resu
 }
 
 pub fn copy_folder(source_path: &PathBuf, target_path: &Path) -> Result<()> {
-    assert!(source_path.exists());
+    if !source_path.exists() {
+        error!("tried to copy a non-existent folder {:?}", source_path);
+        return Ok(()); // todo
+    }
     assert!(source_path.is_dir());
     // todo check that target is not a descendant of source
     try_create_parent_folder(target_path)?;
@@ -84,7 +89,10 @@ pub fn copy_folder(source_path: &PathBuf, target_path: &Path) -> Result<()> {
 }
 
 pub fn copy_file(source_path: &PathBuf, target_path: &PathBuf) -> Result<()> {
-    assert!(source_path.exists());
+    if !source_path.exists() {
+        error!("tried to copy a non-existent file {:?}", source_path);
+        return Ok(()); // todo
+    }
     assert!(source_path.is_file());
     try_create_parent_folder(target_path)?;
     fs::copy(source_path, target_path)?;

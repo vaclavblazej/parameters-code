@@ -150,8 +150,8 @@ fn process_set(
     let mut timeline_map: HashMap<PreviewSourceId, Vec<PreviewShowed>> = HashMap::new();
     for (source_id, showed) in &preview_collection.factoids {
         let should_save = match &showed.fact {
-            ShowedFact::Relation(status, relation_id) => {
-                let relation = preview_collection.preview_relation_map.get(relation_id).unwrap();
+            ShowedFact::Relation(status, relation) => {
+                let relation = preview_collection.preview_relation_map.get(&relation.id).unwrap();
                 relation.superset.id == id.preview() || relation.subset.id == id.preview()
             }
             ShowedFact::Definition(status, defined_set_id) if defined_set_id == &id.preview() => {
@@ -437,17 +437,16 @@ fn process_relations(
     let mut partial_results_builder = PartialResultsBuilder::new();
     for (raw_source_id, showed) in &preview_collection.factoids {
         match &showed.fact {
-            ShowedFact::Relation(status, rel) => {
+            ShowedFact::Relation(status, relation) => {
                 if matches!(status, ShowedStatus::Conjectured) {
                     continue;
                 }
                 if let Some(source) = sources.get(raw_source_id) {
-                    let preview = preview_collection.preview_relation_map.get(rel).unwrap();
                     let work_relation =
-                        WorkRelation::new(&preview.subset.id, &preview.superset.id);
+                        WorkRelation::new(&relation.subset.id, &relation.superset.id);
                     let partial_result = partial_results_builder.partial_result(
                         CreatedBy::Directly(source.preview()),
-                        preview.cpx.clone(),
+                        relation.cpx.clone(),
                         work_relation.clone(),
                     );
                     partial_results.push(partial_result);
@@ -459,7 +458,7 @@ fn process_relations(
         }
     }
     let mut res: HashMap<WorkRelation, PartialResult> = HashMap::new();
-    let mut progress = ProgressDisplay::new("processing", 18290);
+    let mut progress = ProgressDisplay::new("processing", 22113);
     for partial_result in partial_results {
         let pair = partial_result.relation.clone();
         debug!(
@@ -810,11 +809,6 @@ impl PreviewCollection {
            raw_relations: Vec<RawRelation>,
            raw_factoids: Vec<(PreviewSourceId, RawShowed)>,
            ) -> Self {
-        // factoids //s//////////////////////////////////////////////////////////////
-        let mut factoids: Vec<(PreviewSourceId, PreviewShowed)> = Vec::new();
-        for (preview_source_id, raw_showed) in raw_factoids {
-            factoids.push((preview_source_id, PreviewShowed::from(&raw_showed)));
-        }
         // previews ////////////////////////////////////////////////////////////////
         let preview_sets: Vec<PreviewSet> = raw_sets.iter().map(PreviewSet::from).collect();
         let preview_set_map: HashMap<PreviewSetId, PreviewSet> = preview_sets
@@ -832,6 +826,29 @@ impl PreviewCollection {
                 cpx: raw_relation.cpx.clone(),
             };
             preview_relation_map.insert(res.id.clone(), res);
+        }
+        // factoids /////////////////////////////////////////////////////////////////
+        let mut factoids: Vec<(PreviewSourceId, PreviewShowed)> = Vec::new();
+        for (preview_source_id, raw_showed) in raw_factoids {
+            let showed_fact = match &raw_showed.fact {
+                RawShowedFact::Relation(s, raw_relation) => {
+                    let preview_relation = PreviewRelation {
+                        id: raw_relation.id.clone(),
+                        subset: preview_set_map.get(&raw_relation.subset).unwrap().clone(),
+                        superset: preview_set_map.get(&raw_relation.superset).unwrap().clone(),
+                        cpx: raw_relation.cpx.clone(),
+                    };
+                    ShowedFact::Relation(ShowedStatus::from(s), preview_relation)
+                },
+                RawShowedFact::Definition(s, x) => ShowedFact::Definition(ShowedStatus::from(s), x.clone()),
+            };
+            let prev_showed = PreviewShowed {
+                id: raw_showed.id.preview(),
+                text: raw_showed.text.clone(),
+                fact: showed_fact,
+                page: raw_showed.page.clone(),
+            };
+            factoids.push((preview_source_id, prev_showed));
         }
         Self {
             preview_sets,

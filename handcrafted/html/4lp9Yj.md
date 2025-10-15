@@ -8,3 +8,8 @@ The edges here can be only between the vertices of the moduator or from the modu
 FPT algorithms often exploit the fact that vertices of the independent set can be partitioned into $2^k$ groups based on their neighborhood in the modulator.
 Now, one can either enumerate all the solutions or notice that whenever a part contains too many vertices we can ignore the vast majority of them as they do not influence the solution.
 
+## Properties
+
+* maximal independent set + minimal vertex cover = number of vertices (Gallai's identity)
+* vertex cover number is equal to the maximum matching size on bipartite graphs (König's theorem)
+
