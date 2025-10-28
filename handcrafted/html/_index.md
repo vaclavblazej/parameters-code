@@ -24,7 +24,7 @@ This page contains lists for:
 
 [[zoomdot parameters.dot]]
 
-### Simplified comparison table ([pdf](table_simplified.pdf), [full-pdf](table.pdf))
+### Simplified comparison table ([pdf](table_simplified.pdf))
 
 [[pdf table_simplified.pdf]]
 
