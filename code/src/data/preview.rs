@@ -44,6 +44,7 @@ impl Own {
 pub enum PreviewType {
     Parameter,
     GraphClass,
+    ParametricGraphClass,
     Property(Own),
 }
 

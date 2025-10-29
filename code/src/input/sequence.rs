@@ -38,10 +38,11 @@ impl SequenceBuilder {
             Composition::None,
             relevance,
         );
-        SetBuilder::new(res).add_callback(Box::new(
-                move |builder: &mut Builder, newset: &RawSet| {
-                    println!("test");
-                }))
+        SetBuilder::new(res)
+            // .add_callback(Box::new(
+                // move |builder: &mut Builder, newset: &RawSet| {
+                    // todo!()
+                // }))
     }
 
     pub fn done(self, builder: &mut Builder) {

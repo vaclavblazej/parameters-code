@@ -429,19 +429,15 @@ impl RawDataSource {
 
     /// Notes that a source contains a hasse diagram of the listed sets.
     /// This method recreates that diagram with results from HOPS.
-    pub fn hasse(mut self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
-        self.source.drawings.push(RawDrawing::Hasse(
-            sets.iter().map(|x| PreviewSetId::from(x.to_string())).collect(),
-        ));
+    pub fn hasse(mut self, id: &str, page: Page, sets: Vec<PreviewSetId>) -> Self {
+        self.source.drawings.push(RawDrawing::Hasse(sets.clone()));
         self
     }
 
     /// Notes that a source has a complete comparison table of the listed sets.
     /// This recreates the same table from the results in HOPS.
-    pub fn table(mut self, id: &str, page: Page, sets: &Vec<&str>) -> Self {
-        self.source.drawings.push(RawDrawing::Table(
-            sets.iter().map(|x| PreviewSetId::from(x.to_string())).collect(),
-        ));
+    pub fn table(mut self, id: &str, page: Page, sets: Vec<PreviewSetId>) -> Self {
+        self.source.drawings.push(RawDrawing::Table(sets.clone()));
         self
     }
 

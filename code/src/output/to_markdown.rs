@@ -144,6 +144,7 @@ impl PreviewRelation {
                     PreviewType::GraphClass => (format!("graph class {}", subset_string), false),
                     PreviewType::Parameter => (format!("graph classes with bounded {}", subset_string), true),
                     PreviewType::Property(s) => (format!("graph classes that {} {}", s.clone().to_string(true, true), subset_string), true),
+                    PreviewType::ParametricGraphClass => todo!(),
                 };
                 let bnd = if let PreviewType::Parameter = from {
                     "bounded"
@@ -154,6 +155,7 @@ impl PreviewRelation {
                     PreviewType::GraphClass => (format!("contained in {}", superset_string), Own::Has),
                     PreviewType::Parameter => (format!("{} {}", bnd, superset_string), Own::Is),
                     PreviewType::Property(s) => (superset_string, s),
+                    PreviewType::ParametricGraphClass => todo!(),
                 };
                 let join = own.to_string(is_inclusion, plural);
                 Some(format!("{} {} {}", from_str, join, to_str))
@@ -186,6 +188,8 @@ impl PreviewRelation {
             RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::Parameter) => "inclusion",
             RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::Property(_)) => "has",
             RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Property(_)) => "has",
+            RelDescription::IncludedIn(PreviewType::ParametricGraphClass, _)
+                | RelDescription::IncludedIn(_, PreviewType::ParametricGraphClass) => todo!(),
             RelDescription::Excludes(PreviewType::Parameter, PreviewType::Parameter) => "exclusion",
             RelDescription::Excludes(PreviewType::GraphClass, PreviewType::Parameter) => "unbounded",
             RelDescription::Excludes(PreviewType::Parameter, PreviewType::GraphClass) => "exclusion",
@@ -195,6 +199,8 @@ impl PreviewRelation {
             RelDescription::Excludes(PreviewType::Property(_), PreviewType::Parameter) => "exclusion",
             RelDescription::Excludes(PreviewType::GraphClass, PreviewType::Property(_)) => "avoids",
             RelDescription::Excludes(PreviewType::Parameter, PreviewType::Property(_)) => "avoids",
+            RelDescription::Excludes(PreviewType::ParametricGraphClass, _)
+                | RelDescription::Excludes(_, PreviewType::ParametricGraphClass) => todo!(),
             RelDescription::Equal => "equal",
             RelDescription::Unknown => "unknown to HOPS",
         }

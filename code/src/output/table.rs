@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::Command;
 
 use log::error;
 
+use crate::file;
 use crate::data::core::{Data, Set};
 use crate::data::id::PreviewSetId;
 use crate::data::preview::{PreviewSet, PreviewType};
@@ -39,11 +39,12 @@ pub fn render_table(
             content.push(table_format_link(ai, bi, &color.name(), "todo"));
         }
     }
-    let template = File::open(table_folder.join("template.tex"))?;
-    let template_reader = BufReader::new(template);
+    let template_string = file::read_file_content(&table_folder.join("template.tex"))?;
+    // let template = File::open(table_folder.join("template.tex"))?;
+    // let template_reader = BufReader::new(template);
     let mut res = Vec::new();
-    for line in template_reader.lines() {
-        let line = line?;
+    for line in template_string.lines() {
+        let line = String::from(line);
         if line == "%COLORS" {
             for color in Color::list() {
                 res.push(format!(
@@ -61,10 +62,7 @@ pub fn render_table(
         }
     }
 
-    let mut file = File::create(table_folder.join("main.tex"))?;
-    for line in res {
-        writeln!(file, "{}", line)?;
-    }
+    file::write_file_content(&table_folder.join("main.tex"), &res.join("\n"));
 
     std::env::set_current_dir(table_folder);
     let output = Command::new("pdflatex").arg("main.tex").output()?;

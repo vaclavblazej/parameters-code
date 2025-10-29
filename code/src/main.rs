@@ -4,11 +4,10 @@
 // #![deny(clippy::panic)]
 // #![deny(unused_must_use)]
 
-use std::collections::{HashMap, HashSet, LinkedList, VecDeque};
-use std::{env, sync::mpsc};
-use std::fs;
+use std::collections::{HashMap, HashSet, LinkedList};
+use std::env;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::Instant;
 
@@ -30,6 +29,7 @@ use general::enums::CpxTime;
 use general::file;
 use general::logger;
 use general::progress::ProgressDisplay;
+use output::api;
 use output::diagram::make_drawing;
 use output::markdown::Mappable;
 use output::markdown::Markdown;
@@ -72,6 +72,7 @@ mod input {
     pub mod source;
 }
 mod output {
+    pub mod api;
     pub mod color;
     pub mod diagram;
     pub mod dot;
@@ -255,6 +256,9 @@ impl Computation {
                     args.insert(Args::Dots);
                     args.insert(Args::Pages);
                 }
+                "api" => {
+                    args.insert(Args::Api);
+                }
                 "all" => {
                     args.insert(Args::Clear);
                     args.insert(Args::Preprocess);
@@ -283,11 +287,11 @@ impl Computation {
         let bibliography_file = handcrafted_dir.join("main.bib");
         let final_dir = parent.join("web").join("content");
         let hugo_public_dir = parent.join("web").join("public");
-        let tmp_dir = env::temp_dir();
-        let working_dir = tmp_dir.join("target");
+        let temp_dir = env::temp_dir();
+        let working_dir = temp_dir.join("target");
         let html_dir = final_dir.join("html");
         let api_dir = final_dir.join("api");
-        let tmp_dir = tmp_dir.join("tmp");
+        let tmp_dir = temp_dir.join("tmp");
         Self {
             args,
             time: Timer::new(),
@@ -327,13 +331,12 @@ impl Computation {
             "removing folder of {}",
             self.paths.final_dir.to_str().unwrap()
         );
-        fs::remove_dir_all(&self.paths.final_dir);
-        fs::create_dir(&self.paths.final_dir);
+        file::clear_folder(&self.paths.final_dir);
         info!(
             "removing folder of {}",
             self.paths.hugo_public_dir.to_str().unwrap()
         );
-        fs::remove_dir_all(&self.paths.hugo_public_dir);
+        file::clear_folder(&self.paths.hugo_public_dir);
     }
 
     fn retrieve_and_process_data(&mut self) {
@@ -412,12 +415,8 @@ impl Computation {
         let data = self.get_data();
         self.time.print("generating api");
         // data.sets.iter().map(|x|api_data.push(Box::new(x)));
-        for set in &data.sets {
-            let serialized = serde_json::to_string_pretty(set)?;
-            let filename = format!("{}.json", set.id);
-            let final_file = self.paths.api_dir.join(filename);
-            file::write_file_content(&final_file, serialized.as_str())?;
-        }
+        api::create_set_api(&data, &self.paths.api_dir)?;
+        api::create_simple_api(&data, &self.paths.api_dir)?;
         Ok(())
     }
 
@@ -584,7 +583,7 @@ impl Computation {
             .filter(|x| x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
         for (name, set) in [
-            ("table", &table_sets),
+            // ("table", &table_sets),
             ("table_simplified", &simplified_table_sets),
         ] {
             generate_relation_table(data, set, &self.paths, name, &self.worker);

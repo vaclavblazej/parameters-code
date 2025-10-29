@@ -20,7 +20,7 @@ pub trait AbstractId<T> {
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
 pub struct PreviewId<T> {
-    code: String,
+    pub code: String,
     _marker: PhantomData<T>,
 }
 

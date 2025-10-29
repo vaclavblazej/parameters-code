@@ -22,6 +22,10 @@ use crate::{
     },
 };
 
+pub fn copyvec(vec: Vec<&PreviewSetId>) -> Vec<PreviewSetId> {
+    vec.iter().map(|&x|x.to_owned()).collect()
+}
+
 pub struct Builder {
     pub data: RawData,
     id_sanity_map: HashSet<String>, // todo move unique checking to id.rs?
@@ -38,6 +42,18 @@ pub static ASSUMED_SOURCE_ID: &str = "9kg0oo";
 /// classes in the database but only those that are very relevant
 /// to the field of parameterized complexity.
 pub fn graph_class(id: &str, name: &str, relevance: u32) -> SetBuilder {
+    let res = BuiltRawSet::new(
+        id.into(),
+        name.into(),
+        RawType::GraphClass,
+        Composition::None,
+        relevance,
+        );
+    SetBuilder::new(res)
+}
+
+/// Defines a graph class where each graph in it is associated with an integer.
+pub fn parametric_graph_class(id: &str, name: &str, relevance: u32) -> SetBuilder {
     let res = BuiltRawSet::new(
         id.into(),
         name.into(),

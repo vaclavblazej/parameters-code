@@ -803,7 +803,7 @@ impl<'a> Markdown<'a> {
             .and_then(|x| x.parse::<u32>().ok())
             .unwrap_or(default);
         Ok(format!(
-            "\n<object data=\"{}\" type=\"application/pdf\" width=\"100%\" height=\"{}px\">\
+            "\n<object data=\"{}\" type=\"application/pdf\" class=\"pdf-table-wrapper\" height=\"{}px\">\
             <embed src=\"{}\">\
             <p>This browser does not support PDFs. Please download the PDF to view it: <a href=\"{}\">Download PDF</a>.</p>\
             </embed>\
@@ -818,21 +818,4 @@ impl<'a> Markdown<'a> {
         Ok(format!("<span style=\"color:{}\">■</span>", color.hex()))
     }
 
-    pub fn make_page(&self, pagename: &str, content: String) {
-        let mut final_markdown = String::new();
-        final_markdown += "---\n";
-        final_markdown += "layout: \"single\"\n";
-        final_markdown += "title: \"Hierarchy of Parameters\"\n";
-        final_markdown += "---\n";
-        final_markdown += "<!--this is a generated file-->\n\n";
-        final_markdown += &content;
-        let filename = format!("./build/{}", pagename);
-        let mut file = fs::File::create(&filename).expect("Unable to create file");
-        file.write_all(final_markdown.as_bytes()).expect("Unable to write data to file");
-        // println!("Saved website into {}", filename);
-        // builder.make_page("_index.md", builder.landing_page_keys(&data));
-        // for entry in &data.parameters {
-        // builder.make_page(&format!("{}.md", entry.id), builder.format_set(entry));
-        // }
-    }
 }

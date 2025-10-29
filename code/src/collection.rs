@@ -2,7 +2,7 @@
 //! and related graph classes, tags, bibliographic sources, theorems, proofs, and so on.
 
 use crate::general::enums::{Cpx::*, CpxTime::*, Page::*};
-use crate::input::build::{graph_class, parameter, parameter_sequence, property, provider, source};
+use crate::input::build::{graph_class, parametric_graph_class, parameter, parameter_sequence, property, provider, source, copyvec};
 use crate::input::{build::Builder, raw::RawData, raw::RawOwn::{Is, Has}, raw::RawNotedSource::*, sequence::ParameterType};
 
 pub fn build_collection() -> RawData {
@@ -20,6 +20,7 @@ pub fn build_collection() -> RawData {
     let tag_tree_decomposition = create.tag("bzffn0", "tree decomposition", "The classical tree decomposition is tied to the treewidth which measures maximum size of a bag. There are parameters use different bag measures and there are graphs that are closely tied to tree decompositions.");
     let tag_branch_decomposition = create.tag("KaLXjx", "branch decomposition", "Branch decomposition is an unrooted tree with inner vertices of degree 3. Leaves represent (typically) edges of the graph. Every edge of this tree then implies a partition of the leaves into two sets -- which reflects in partition of the graph. We have some measure of how this partition os good and the decomposition which minimizes the measure over all its edges.");
     let tag_intersection = create.tag("QqAXvX", "intersection", "Graphs can be defined to have a vertex for some object and edges whenever two objects intersect.");
+    let tag_structural = create.tag("P0XOsk", "structural", "Structural class (e.g. structurally bounded treewidth) contains all graphs that can be obtained from graphs of the class via transduction.");
 
     let connected = property("KlMP0i", "connected", Is, 2)
         .displayed_definition("mIBYMD", "There is a path between any pair of vertices.")
@@ -103,8 +104,8 @@ pub fn build_collection() -> RawData {
         .displayed_definition("EqavC7", "Has a cyclic vertex order such that the graph contains edges for each pair of vertices that are next to each other in the order.")
         .displayed_definition("oTRopc", "A connected graph with all vertices having degree two.")
         .done(&mut create);
-    let grid = graph_class("lfYXuK", "grid", 6)
-        .displayed_definition("sp6LGE", "Cartesian product of two paths.")
+    let grid = parametric_graph_class("lfYXuK", "grid", 6)
+        .displayed_definition("sp6LGE", "Cartesian product of two paths, each of length $k$.")
         .done(&mut create);
     let series_parallel = graph_class("eW1Gic", "series-parallel", 6)
         .displayed_definition("b0JuKf", "A (multi-)graph created from a forest by repeated edge subdivisions and edge duplication.")
@@ -143,6 +144,12 @@ pub fn build_collection() -> RawData {
 
     let size = parameter("F1NpDy", "size", 3)
         .displayed_definition("lKvvzN", "Total size of the graph $|V(G)+E(G)|$.")
+        .done(&mut create);
+    let vsize = parameter("Z7LoDd", "vsize", 2)
+        .displayed_definition("lKvvzN", "Number of vertices in the graph $|V(G)|$.")
+        .done(&mut create);
+    let esize = parameter("a8glpM", "esize", 2)
+        .displayed_definition("lKvvzN", "Number of edges in the graph $|E(G)|$.")
         .done(&mut create);
     let vertex_cover = parameter("4lp9Yj", "vertex cover", 9)
         .displayed_definition("qOc9n0", "The minimum number of vertices that have to be removed to get an independent set.")
@@ -308,6 +315,7 @@ pub fn build_collection() -> RawData {
     let clique_tree_width = parameter("7P9WUz", "clique-tree-width", 2)
         .done(&mut create);
     let rank_width = parameter("fojquT", "rank-width", 7)
+        .displayed_definition("9nZyhu", "Let $T$ be a ternary tree and $\\tau$ be a bijection between graph's vertices and the set of leaves in $T$. Every edge of $T$ cuts $V(G)$ into two parts. Rank of such a cut is rank of a biadjacency matrix describing the cut edges. Rank-width of $G$ is minimum over all ternary trees $T$, maximum over ranks of cuts implied by edges in $T$.")
         .done(&mut create);
     let linear_rank_width = parameter("cHugsk", "linear rank-width", 2)
         .tag(&tag_linear)
@@ -317,8 +325,6 @@ pub fn build_collection() -> RawData {
     let twin_width = parameter("OrH7et", "twin-width", 8)
         .displayed_definition("LTw98i", "A contraction sequence for a graph $G$ is a sequence of $n-1$ contractions -- identification of two not necessarily adjacent vertices. Note that at any point each vertex of a partially contracted graph represents a subset of vertices in the original graph. Vertices of a partially contracted graph are joined with an edge if there is a complete bipartite graph between the represented subsets of vertices in the original graph. Similarly, there is a non-edge if the two sets have no edges between them. Last, there is a red-edge is there are some edges and some non-edges. Red degree of a partially contracted graph is the maximum number of red edges adjacent to a single vertex. Twin-width is the minimum over contraction sequences of maximum over the sequence's red degree.")
         .abbr("tww")
-        .done(&mut create);
-    let sparse_twin_width = parameter("ORm833", "sparse twin-width", 4)
         .done(&mut create);
     let mut flip_width_builder = parameter_sequence("4DIiH0");
     let inf_flip_width = flip_width_builder.parameter("nYXiuT", "radius-inf flip-width", ParameterType::Infinity, 3)
@@ -372,10 +378,11 @@ pub fn build_collection() -> RawData {
         .done(&mut create);
     let odd_cycle_transversal = parameter("Ve5ruW", "odd cycle transversal", 6)
         .abbr("oct")
+        .displayed_definition("ShPKzs", "Minimum $k$ such that there is a set of $k$ vertices that hit every cycle of odd length.")
         .tag(&tag_edge_removal)
         .done(&mut create);
     let degeneracy = parameter("VowkuW", "degeneracy", 6)
-        .displayed_definition("9ei8a0", "Minimum $k$ so that there is a vertex order such that each vertex at most $k$ of its neighbors are in the order before it.")
+        .displayed_definition("9ei8a0", "Minimum $k$ so that there is a vertex order such that for each vertex at most $k$ of its neighbors are in the order before it.")
         .tag(&tag_vertex_order)
         .done(&mut create);
     let chromatic_number = parameter("w7MmyW", "chromatic number", 5)
@@ -396,6 +403,7 @@ pub fn build_collection() -> RawData {
         .hide()
         .done(&mut create);
     let boxicity = parameter("a7MpiT", "boxicity", 6)
+        .displayed_definition("1a2qcc", "*Boxicity* is the minimum dimension $k$ such that $G$ is an intersection graph of $k$ dimensional axis-parallel boxes.")
         .tag(&tag_topology)
         .done(&mut create);
     let chordality = parameter("fTqo40", "chordality", 4)
@@ -417,6 +425,7 @@ pub fn build_collection() -> RawData {
     // let star_arboricity = parameter("Mvz8MX", "star-arboricity", 1)
     // .done(&mut create);
     let mim_width = parameter("WmIFB1", "mim-width", 6)
+        .displayed_definition("2yzjqV", "Let $T$ be a ternary tree and $\\tau$ be a bijection between graph's vertices and the set of leaves in $T$. Every edge of $T$ cuts $V(G)$ into two parts. $mim$ of such a cut is the maximum induced matching of the bipartite graph induced by the cut edges. MIM-width of $G$ is minimum over all ternary trees $T$, maximum over $mim$ of cuts implied by edges in $T$.")
         .done(&mut create);
     let sm_width = parameter("A9hzWC", "sm-width", 5)
         .done(&mut create);
@@ -623,7 +632,7 @@ pub fn build_collection() -> RawData {
     let bounded_expansion = property("lFz6Ci", "bounded expansion", Has, 6)
         .displayed_definition("nvfldO", "A graph class $C$ has bounded expansion if for every $r \\in \\mathbb N$, the family of $r$-shallow minors does not include the family of graphs with unbounded density ($|E(G)|/|V(G)|$).")
         .done(&mut create);
-    let sparse_twinwidth = create.intersection("2FM8hj", &twin_width, &bounded_expansion, "sparse twin-width", 2)
+    let sparse_twin_width = create.intersection("ORm833", &twin_width, &bounded_expansion, "sparse twin-width", 4)
         .done(&mut create);
     let monadically_stable = property("jHXy6Y", "monadically stable", Is, 5)
         .done(&mut create);
@@ -833,18 +842,21 @@ pub fn build_collection() -> RawData {
         // .ref_noted_relation("", NotApplicable, &biconnected_maximum_degree, &fan_number, UpperBound(Exists), "")
         // .ref_noted_relation("", NotApplicable, &treebandwidth, &fan_number, UpperBound(Exists), "")
         // .ref_noted_relation("", NotApplicable, &overlap_treewidth, &dipole_number, UpperBound(Exists), "")
-        .ref_noted_relation("F9TWg2", NotApplicable, &treewidth, &sparse_twinwidth, UpperBound(Exists), "", SrcTodo)
-        .ref_noted_relation("JCI2An", NotApplicable, &sparse_twinwidth, &bounded_expansion, UpperBound(Exists), "", SrcTodo)
+        .ref_noted_relation("F9TWg2", NotApplicable, &treewidth, &sparse_twin_width, UpperBound(Exists), "", SrcTodo)
+        .ref_noted_relation("JCI2An", NotApplicable, &sparse_twin_width, &bounded_expansion, UpperBound(Exists), "", SrcTodo)
         .ref_noted_relation("Go6gbV", NotApplicable, &nowhere_dense, &monadically_stable, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("MNJN0n", NotApplicable, &monadically_stable, &monadically_dependent, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("uK0Bkd", NotApplicable, &twin_width, &monadically_dependent, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("Lx2PDS", NotApplicable, &genus, &excluded_minor, UpperBound(Constant), "", SrcTodo)
-        .ref_noted_relation("BpYOJt", NotApplicable, &sparse_twinwidth, &twin_width, UpperBound(Exists), "", SrcTodo)
+        .ref_noted_relation("BpYOJt", NotApplicable, &sparse_twin_width, &twin_width, UpperBound(Exists), "", SrcTodo)
         .ref_noted_relation("D7mRIW", NotApplicable, &perfect, &chi_bounded, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("jTiJAO", NotApplicable, &clique_width, &chi_bounded, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("RliMGK", NotApplicable, &series_parallel, &chi_bounded, UpperBound(Constant), "", SrcTodo)
         .ref_noted_relation("KjnuD1", NotApplicable, &dist_to_chordal, &tree_independence, UpperBound(Linear), "Put the modulator to every bag of the natural chodal graph tree decomposition which contains a clique in every bag. The biggest independent set can contain the modulator and no more than a single vertex of the clique.", SrcTodo)
-        // .ref_noted_relation("", NotApplicable, &, &, UpperBound(Exists), "", SrcTodo)
+        .ref_noted_relation("E9szyw", NotApplicable, &treewidth, &modular_treewidth, UpperBound(Linear), "", SrcTodo)
+        .ref_noted_relation("hreVoq", NotApplicable, &modular_treewidth, &clique_width, UpperBound(Exponential), "", SrcTodo)
+        .ref_noted_relation("8r1GEU", NotApplicable, &branch_width, &sm_width, UpperBound(Exists), "", SrcTodo)
+        .ref_noted_relation("DTLpQH", NotApplicable, &sm_width, &clique_width, UpperBound(Exists), "", SrcTodo)
         // .ref_noted_relation("", NotApplicable, &, &, UpperBound(Exists), "", SrcTodo)
         // .ref_noted_relation("", NotApplicable, &, &, UpperBound(Exists), "", SrcTodo)
         // .ref_noted_relation("", NotApplicable, &, &, UpperBound(Exists), "", SrcTodo)
@@ -1125,7 +1137,7 @@ pub fn build_collection() -> RawData {
         .proved("ZHXKjC", Unknown, &carving_width, &maximum_degree, UpperBound(Linear), "Observation 1. Let $G$ be a graph. Then $cw(G) \\ge \\Delta(G)$.")
         .todo_rest(&mut create);
     let jansen2013 = source("FLOjic", "Jansen2013", 1)
-        .hasse("u6oAPX", Pp(46), &vec!["4lp9Yj", "BN92vX", "2LDMQ6", "yk7XP0", "TLx1pz", "aP5a38", "SnA7Eq", "GNOiyB", "OdZQna", "lPHVWU", "VHClqR", "Ve5ruW", "5Q7fuR", "gbaHdw", "kJZKgd", "w7MmyW"])
+        .hasse("u6oAPX", Pp(46), copyvec(vec![&vertex_cover, &maximum_leaf_num, &dist_to_complete, &dist_to_linear_forest, &cutwidth, &bandwidth, &topological_bandwidth, &feedback_vertex_set, &dist_to_chordal, &dist_to_outerplanar, &pathwidth, &odd_cycle_transversal, &treewidth, &genus, &dist_to_perfect, &chromatic_number]))
         .defined("PV6tGG", Unknown, &topological_bandwidth, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all subdivisions of $G$")
         .todo_rest(&mut create);
     let treecutwidth2015 = source("zbWWC6", "treecutwidth2015", 3)
@@ -1163,7 +1175,7 @@ pub fn build_collection() -> RawData {
         .proved("sq0brL", Unknown, &treedepth, &shrub_depth, UpperBound(Linear), "Proposition 3.2. If $G$ is of tree-depth $d$, then $G \\in \\mathcal{TM}_{2^d}(d)$. ...")
         .todo_rest(&mut create);
     let sorge2019 = source("VnTIL0", "Sorge2019", 7)
-        .hasse("Im1xnN", Pp(2), &vec!["2LDMQ6", "4lp9Yj", "BN92vX", "aP5a38", "UyQ5yM", "wUdmUb", "gbaHdw", "HTk9PZ", "KEP2qM", "VHClqR", "5Q7fuR", "lPHVWU", "GNOiyB", "yk7XP0", "aXw3Co", "AVc2K6", "OdZQna", "hbfWwE", "uDXX2i", "VomShB", "mHtXUU", "Gq0onN", "p4bTjp", "zH8PpT", /*"BCwUeT",*/ "kJZKgd", "1yW82F", "wg5HuV", "fTqo40", "a7MpiT", "QGZuUW", "VowkuW", "w7MmyW", "q7zHeT", "z0y4TW", "GPmOeT", "KRV6tI", /*"ZL7BOP",*/ "GNTwUS"])
+        .hasse("Im1xnN", Pp(2), copyvec(vec![&dist_to_complete, &vertex_cover, &maximum_leaf_num, &bandwidth, &maximum_degree, &bisection_bandwidth, &genus, &feedback_edge_set, &treedepth, &pathwidth, &treewidth, &dist_to_outerplanar, &feedback_vertex_set, &dist_to_linear_forest, &dist_to_cluster, &dist_to_interval, &dist_to_chordal, &dist_to_co_cluster, &dist_to_cograph, &clique_cover_num, &maximum_independent_set, &domination_num, &diameter, &average_distance, &/*"BCwUeT",*/ &dist_to_perfect, &dist_to_bipartite, &clique_width, &chordality, &boxicity, &acyclic_chromatic_number, &degeneracy, &perfect, &chromatic_number, &average_degree, &minimum_degree, &domatic_num, /*"&ZL7BOP",*/ &hindex]))
         .defined("ddviDI", Pp(3), &acyclic_chromatic_number, "The \\emph{acyclic chromatic number} of a graph $G = (V,E)$ is the smallest size of a vertex partition $P=\\{V_1,\\dots,V_\\ell\\}$ such that each $V_i$ is an independent set and for all $V_i,V_j$ the graph $G[V_i \\cup V_j]$ does not contain a cycle.")
         // .cited("KrMa3o", Pp(3), &grunbaum1973, "Introduced by Grünbaum [18]")
         // .defined("aUvKTa", Pp(3), &path_number, "The \\emph{path number} of a graph $G$ is the minimum number of paths the edges of $G$ can be partitioned into [2].")
@@ -1190,18 +1202,12 @@ pub fn build_collection() -> RawData {
         .todo_rest(&mut create); // page 10
     let mimwidth2020 = source("BIQh3r", "mimwidth2020", 1)
         .todo_rest(&mut create);
-    let schroder_parameter_list = vec![
-        "2LDMQ6", "4lp9Yj", "BN92vX", "VomShB", "hbfWwE", "aXw3Co", "yk7XP0", "HTk9PZ", "aP5a38",
-        "mHtXUU", "uDXX2i", "AVc2K6", "GNOiyB", "KEP2qM", "UyQ5yM", "Gq0onN", "lPHVWU", "VHClqR",
-        "gbaHdw", "GNTwUS", "p4bTjp", "MLJMRH", "5Q7fuR", "zH8PpT", "OdZQna", "QGZuUW", /*"BCwUeT",*/
-        "wg5HuV", "VowkuW", "1yW82F", "a7MpiT", "z0y4TW", "kJZKgd", "w7MmyW", "GPmOeT", "q7zHeT",
-        "fTqo40", "KRV6tI", /*"ZL7BOP",*/ "wUdmUb",
-    ];
+    let schroder_parameter_list = copyvec(vec![&dist_to_complete, &vertex_cover, &maximum_leaf_num, &clique_cover_num, &dist_to_co_cluster, &dist_to_cluster, &dist_to_linear_forest, &feedback_edge_set, &bandwidth, &maximum_independent_set, &dist_to_cograph, &dist_to_interval, &feedback_vertex_set, &treedepth, &maximum_degree, &domination_num, &dist_to_outerplanar, &pathwidth, &genus, &hindex, &diameter, &dist_to_planar, &treewidth, &average_distance, &dist_to_chordal, &acyclic_chromatic_number, &/*"BCwUeT",*/ &clique_width, &degeneracy, &dist_to_bipartite, &boxicity, &average_degree, &dist_to_perfect, &perfect, &minimum_degree, &chromatic_number, &chordality, &domatic_num, &/*"ZL7BOP",*/ &bisection_bandwidth]);
     let schroder_thesis = source("DYGiYb", "SchroderThesis", 7)
         // .cited("pJxHVS", Unknown, sorge2019, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
         // .cited("bybFgo", Unknown, froemmrich2018, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
-        .hasse("DfHlFn", Pp(7), &schroder_parameter_list)
-        .table("ONqedT", Pp(8), &schroder_parameter_list)
+        .hasse("DfHlFn", Pp(7), schroder_parameter_list.clone())
+        .table("ONqedT", Pp(8), schroder_parameter_list.clone())
         .proved("R9eI61", Pp(11), &treedepth, &diameter, UpperBound(Exponential), "Proposition 3.1")
         .proved("dohKmq", Pp(12), &dist_to_linear_forest, &hindex, UpperBound(Linear), "Proposition 3.2")
         .proved("WY0T4I", Pp(13), &dist_to_cluster, &dist_to_co_cluster, Exclusion, "Proposition 3.3")
@@ -1331,7 +1337,7 @@ pub fn build_collection() -> RawData {
         .proved("gvSCeQ", Unknown, &inf_flip_width, &r_flip_width, UpperBound(Linear), by_definition)
         .todo_rest(&mut create);
     let slim_tcw2024 = source("7g1aTu", "SlimTCW2024", 5)
-        .hasse("hROdkf", Pp(2716), &vec!["8CgU0P", "oFvl4c", "nCWUh3", "HTk9PZ"]) // also tcw0, tcw1, tcw2, edge-cut width
+        .hasse("hROdkf", Pp(2716), copyvec(vec![&tree_cut_width, &slim_tree_cut_width, &degree_treewidth, &feedback_edge_set])) // also tcw0, tcw1, tcw2, edge-cut width
         .collective(Pp(2716), "Figure 1")
             .noted_relation("GreUNa", &slim_tree_cut_width, &tree_cut_width, UpperBound(Exists), SrcTodo)
             .noted_relation("9TXlI9", &edge_cut_width, &slim_tree_cut_width, UpperBound(Exists), SrcTodo)
@@ -1365,7 +1371,7 @@ pub fn build_collection() -> RawData {
         .proved("Lh05uc", Pp(3), &iterated_type_partitions, &modular_width, UpperBound(Linear), by_definition)
         .todo_rest(&mut create);
     let treebandwidth2025 = source("EImlRb", "treebandwidth2025", 4)
-        .hasse("l1oyAq", Pp(36), &vec!["F1NpDy", "4lp9Yj", "t7c4mp", "KEP2qM", "VHClqR", "GNOiyB", "5Q7fuR", "UyQ5yM", "TLx1pz", "aEs5ap", "w3LxG1", "QP01gs", "oFvl4c", "pKi2tL", "8CgU0P", "P8yP3M"]) // also: fan number, dipole number, biconnected maximum degree
+        .hasse("l1oyAq", Pp(36), copyvec(vec![&size, &vertex_cover, &bounded_components, &treedepth, &pathwidth, &feedback_vertex_set, &treewidth, &maximum_degree, &cutwidth, &domino_treewidth, &treebandwidth, &tree_partition_width, &slim_tree_cut_width, &edge_treewidth, &tree_cut_width, &overlap_treewidth])) // also: fan number, dipole number, biconnected maximum degree
         .defined("u2JciR", Pp(1), &treebandwidth, "A \\emph{tree-layout} of $G=(V,E)$ is a rooted tree $T$ whose nodes are the vertices of $V$, and such that, for every edge $xy \\in E$, $x$ is an ancestor of $y$ or vice-versa. The bandwidth of $T$ is then the maximum distance in $T$ between pairs of neighbors in $G$. We call \\emph{treebandwidth} of $G$, the minimum bandwidth over tree-layouts of $G$, and denote it by ${\\rm tbw}(G)$.")
         // Pp(5), relation to graphclasses
         .proved("tInJY1", Pp(7), &tree_partition_width, &treebandwidth, StrictUpperBound(Linear), "By rooting the tree-partition arbitrarily and replacing each bag by an arbitrary linear ordering of its vertices one derives ${\\rm tbw}(G) \\le 2 \\cdot {\\rm tpw}(G)$. However, some graphs of treebandwidth 2 have unbounded tree-partition-width: ...")
@@ -1382,51 +1388,54 @@ pub fn build_collection() -> RawData {
         // Pp(39), "Edge-treewidth is polynomially tied to the largest of the treewidth and the biconnected maximum degree."
         .proved("vgpxF1", Pp(38), &treebandwidth, &treewidth, UpperBound(Exists), "[implied through obstructions]")
         .done(&mut create);
-    let str_treedepth = parameter("HbBTjI", "structurally treedepth", 3).done(&mut create);
-    let str_pathwidth = parameter("ei5NQ3", "structurally pathwidth", 3).done(&mut create);
-    let str_treewidth = parameter("WQQqcJ", "structurally treewidth", 3).done(&mut create);
-    let str_excluded_minor= property("1lCekH", "structurally excluded minor", Has, 3).done(&mut create);
-    let str_sparse_twin_width = parameter("qXI6la", "structurally sparse twin-width", 3).done(&mut create);
-    let str_bounded_expansion = property("cjLkrr", "structurally bounded expansion", Has, 3).done(&mut create);
-    let str_nowhere_dense = property("Qj1Dfw", "structurally nowhere dense", Is, 3).done(&mut create);
+    let str_treedepth = parameter("HbBTjI", "structurally treedepth", 3).tag(&tag_structural).done(&mut create);
+    let str_pathwidth = parameter("ei5NQ3", "structurally pathwidth", 3).tag(&tag_structural).done(&mut create);
+    let str_treewidth = parameter("WQQqcJ", "structurally treewidth", 3).tag(&tag_structural).done(&mut create);
+    let str_excluded_minor= property("1lCekH", "structurally excluded minor", Has, 3).tag(&tag_structural).done(&mut create);
+    let str_sparse_twin_width = parameter("qXI6la", "structurally sparse twin-width", 3).tag(&tag_structural).done(&mut create);
+    let str_bounded_expansion = property("cjLkrr", "structurally bounded expansion", Has, 3).tag(&tag_structural).done(&mut create);
+    let str_nowhere_dense = property("Qj1Dfw", "structurally nowhere dense", Is, 3).tag(&tag_structural).done(&mut create);
     let mon_shrubdepth = create.intersection("UuaLsM", &monadically_stable, &shrub_depth, "mon stable and shrubdepth", 3).done(&mut create);
     let mon_linear_clique_width = create.intersection("xn4gFR", &monadically_stable, &linear_clique_width, "mon stable and linear clique-width", 3).done(&mut create);
     let mon_clique_width = create.intersection("KF02zL", &monadically_stable, &clique_width, "mon stable and clique-width", 3).done(&mut create);
     let mon_twin_width = create.intersection("YRCrDm", &monadically_stable, &twin_width, "mon stable and twin-width", 3).done(&mut create);
     let mon_flip_width = create.intersection("UA5Ya8", &monadically_stable, &flip_width, "mon stable and flip-width", 3).done(&mut create);
-    let pilipczuklens2025 = source("ROetOx", "pilipczuk2025graphclasseslenslogic", 8)
-        .noted_relation("Ao4G7v", Pp(3), &treedepth, &pathwidth, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("Tp3U1z", Pp(3), &pathwidth, &treewidth, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("fU9cEU", Pp(3), &treewidth, &excluded_minor, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("7wE0yR", Pp(3), &excluded_minor, &sparse_twin_width, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("7Q501R", Pp(3), &sparse_twin_width, &bounded_expansion, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("fyRYB7", Pp(3), &bounded_expansion, &nowhere_dense, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("PXRSVO", Pp(3), &shrub_depth, &linear_clique_width, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("gif7x1", Pp(3), &linear_clique_width, &clique_width, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("Mlvc3P", Pp(3), &clique_width, &twin_width, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("24EfrR", Pp(3), &twin_width, &flip_width, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("smZ1kW", Pp(3), &flip_width, &monadically_dependent, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("uGjLvP", Pp(3), &treedepth, &str_treedepth, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("9OwM3c", Pp(3), &pathwidth, &str_pathwidth, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("HYbckV", Pp(3), &treewidth, &str_treewidth, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("BakYIM", Pp(3), &excluded_minor, &str_excluded_minor, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("PxLo45", Pp(3), &sparse_twin_width, &str_sparse_twin_width, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("3pGIso", Pp(3), &bounded_expansion, &str_bounded_expansion, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("i6wmYD", Pp(3), &nowhere_dense, &str_nowhere_dense, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("PF8rH0", Pp(3), &str_treedepth, &str_pathwidth, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("o7wIYn", Pp(3), &str_pathwidth, &str_treewidth, UpperBound(Exists), "", SrcTodo)
-        .noted_relation("wAPB3U", Pp(3), &str_treewidth, &str_excluded_minor, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("2CQtlT", Pp(3), &str_excluded_minor, &str_sparse_twin_width, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("dPFWZa", Pp(3), &str_sparse_twin_width, &str_bounded_expansion, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("H0I69L", Pp(3), &str_bounded_expansion, &str_nowhere_dense, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("QjLdGf", Pp(3), &str_treedepth, &mon_shrubdepth, Equivalent(Exists, Exists), "", SrcTodo)
-        .noted_relation("yrocwH", Pp(3), &mon_shrubdepth, &shrub_depth, Equivalent(Exists, Exists), "", SrcTodo)
-        .noted_relation("Ch3QtW", Pp(3), &str_pathwidth, &mon_linear_clique_width, Equivalent(Exists, Exists), "", SrcTodo)
-        .noted_relation("5DcZ5i", Pp(3), &str_treewidth, &mon_clique_width, Equivalent(Exists, Exists), "", SrcTodo)
-        .noted_relation("ASrJsu", Pp(3), &str_sparse_twin_width, &mon_twin_width, Equivalent(Exists, Exists), "", SrcTodo)
-        .noted_relation("Qt21ld", Pp(3), &str_bounded_expansion, &mon_flip_width, UpperBound(Constant), "", SrcTodo)
-        .noted_relation("RCekfo", Pp(3), &str_nowhere_dense, &monadically_stable, UpperBound(Constant), "", SrcTodo)
-        // remainder should be inferred
+    let pilipczuklens2025 = source("ROetOx", "pilipczuk2025graphclasseslenslogic", 7)
+        .hasse("dBI3GJ", Pp(3), copyvec(vec![&treedepth, &pathwidth, &treewidth, &excluded_minor, &sparse_twin_width, &bounded_expansion, &nowhere_dense, &str_treedepth, &str_pathwidth, &str_treewidth, &str_sparse_twin_width, &str_bounded_expansion, &str_nowhere_dense, &mon_shrubdepth, &mon_linear_clique_width, &mon_clique_width, &mon_twin_width, &mon_flip_width, &monadically_stable, &shrub_depth, &linear_clique_width, &clique_width, &twin_width, &flip_width, &monadically_dependent]))
+        .collective(Pp(3), "Figure 1")
+            .noted_relation("Ao4G7v", &treedepth, &pathwidth, UpperBound(Exists), SrcTodo)
+            .noted_relation("Tp3U1z", &pathwidth, &treewidth, UpperBound(Exists), SrcTodo)
+            .noted_relation("fU9cEU", &treewidth, &excluded_minor, UpperBound(Exists), SrcTodo)
+            .noted_relation("7wE0yR", &excluded_minor, &sparse_twin_width, UpperBound(Exists), SrcTodo)
+            .noted_relation("7Q501R", &sparse_twin_width, &bounded_expansion, UpperBound(Exists), SrcTodo)
+            .noted_relation("fyRYB7", &bounded_expansion, &nowhere_dense, UpperBound(Exists), SrcTodo)
+            .noted_relation("PXRSVO", &shrub_depth, &linear_clique_width, UpperBound(Exists), SrcTodo)
+            .noted_relation("gif7x1", &linear_clique_width, &clique_width, UpperBound(Exists), SrcTodo)
+            .noted_relation("Mlvc3P", &clique_width, &twin_width, UpperBound(Exists), SrcTodo)
+            .noted_relation("24EfrR", &twin_width, &flip_width, UpperBound(Exists), SrcTodo)
+            .noted_relation("smZ1kW", &flip_width, &monadically_dependent, UpperBound(Exists), SrcTodo)
+            .noted_relation("uGjLvP", &treedepth, &str_treedepth, UpperBound(Exists), SrcTodo)
+            .noted_relation("9OwM3c", &pathwidth, &str_pathwidth, UpperBound(Exists), SrcTodo)
+            .noted_relation("HYbckV", &treewidth, &str_treewidth, UpperBound(Exists), SrcTodo)
+            .noted_relation("BakYIM", &excluded_minor, &str_excluded_minor, UpperBound(Exists), SrcTodo)
+            .noted_relation("PxLo45", &sparse_twin_width, &str_sparse_twin_width, UpperBound(Linear), SrcTodo)
+            .noted_relation("3pGIso", &bounded_expansion, &str_bounded_expansion, UpperBound(Exists), SrcTodo)
+            .noted_relation("i6wmYD", &nowhere_dense, &str_nowhere_dense, UpperBound(Exists), SrcTodo)
+            .noted_relation("PF8rH0", &str_treedepth, &str_pathwidth, UpperBound(Exists), SrcTodo)
+            .noted_relation("o7wIYn", &str_pathwidth, &str_treewidth, UpperBound(Exists), SrcTodo)
+            .noted_relation("wAPB3U", &str_treewidth, &str_excluded_minor, UpperBound(Exists), SrcTodo)
+            .noted_relation("2CQtlT", &str_excluded_minor, &str_sparse_twin_width, UpperBound(Exists), SrcTodo)
+            .noted_relation("dPFWZa", &str_sparse_twin_width, &str_bounded_expansion, UpperBound(Exists), SrcTodo)
+            .noted_relation("H0I69L", &str_bounded_expansion, &str_nowhere_dense, UpperBound(Exists), SrcTodo)
+            .noted_relation("QjLdGf", &str_treedepth, &mon_shrubdepth, Equivalent(Exists, Exists), SrcTodo)
+            .noted_relation("yrocwH", &mon_shrubdepth, &shrub_depth, Equivalent(Exists, Exists), SrcTodo)
+            .noted_relation("Ch3QtW", &str_pathwidth, &mon_linear_clique_width, Equivalent(Exists, Exists), SrcTodo)
+            .noted_relation("5DcZ5i", &str_treewidth, &mon_clique_width, Equivalent(Exists, Exists), SrcTodo)
+            .noted_relation("ASrJsu", &str_sparse_twin_width, &mon_twin_width, Equivalent(Exists, Exists), SrcTodo)
+            .noted_relation("Qt21ld", &str_bounded_expansion, &mon_flip_width, UpperBound(Exists), SrcTodo)
+            .noted_relation("RCekfo", &str_nowhere_dense, &monadically_stable, UpperBound(Exists), SrcTodo)
+            // remainder should be inferred
+        .done()
         .todo_rest(&mut create);
 
     create.build()
@@ -1502,15 +1511,3 @@ pub fn build_collection() -> RawData {
 // fIoQjs
 // eyumwo
 // nwa2id
-// ShPKzs
-// 2yzjqV
-// 1a2qcc
-// 9nZyhu
-// Z7LoDd
-// a8glpM
-// P0XOsk
-// DTLpQH
-// 8r1GEU
-// dBI3GJ
-// hreVoq
-// E9szyw

@@ -23,6 +23,13 @@ pub enum RawType {
 }
 
 #[derive(Debug)]
+pub enum GraphRelation {
+    Subset,
+    Minor, // minor implies susbet
+    TopologicalMinor, // top-minor implies minor
+}
+
+#[derive(Debug)]
 pub enum Composition {
     None,
     Intersection(Vec<PreviewSetId>),

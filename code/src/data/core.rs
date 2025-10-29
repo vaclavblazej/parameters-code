@@ -203,7 +203,6 @@ impl Data {
         &self.sets[idx]
     }
 
-
     pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> Option<&Relation> {
         trace!(
             "get relation from {} {} to {} {}",
@@ -267,10 +266,10 @@ pub enum ShowedFact {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShowedStatus {
     Assumed,
-    Conjectured,
     Original,
     Derivative,
     Noted(NotedSource),
+    Conjectured,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
