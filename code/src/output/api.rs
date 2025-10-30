@@ -96,7 +96,7 @@ impl From<&Data> for SimpleApiData {
 pub fn create_simple_api(data: &Data, api_dir: &PathBuf) -> Result<()> {
     let simple_data = SimpleApiData::from(data);
     let serialized = serde_json::to_string_pretty(&simple_data)?;
-    let final_file = api_dir.join("simple_api.json");
+    let final_file = api_dir.join("simple.json");
     file::write_file_content(&final_file, serialized.as_str())?;
     Ok(())
 }

@@ -30,7 +30,7 @@ Even then, there are some common controls:
 ## Website
 
 The project right now is made to be a simple static website with pre-generated content -- there is no backend server.
-It is also designed to work well without javascript, but contains a few javascript-based quality of life features (like interactable diagrams, table sorting).
+It is also designed to work without javascript, but contains a few javascript-based quality of life features (like interactable diagrams, table sorting).
 
 * Use Ctrl+f on the landing page to invoke browser's search bar. There is some effort put into having all relevant terms on the landing page to make such a search useful.
 * Top bar contains breadcrumbs which go back to the ancestor pages.

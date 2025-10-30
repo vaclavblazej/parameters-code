@@ -7,16 +7,16 @@ title: "Legend"
 
 ## Hasse diagrams
 
-The Hasse diagrams show parameter inclusions.
+The Hasse diagrams show partially ordered set of parameter inclusions.
 Arrows that can be implied by other arrows are hidden for clarity.
-Parameters are represented by boxes with relations between them are depicted by directed edges.
+Parameters are represented by boxes and relations between them are depicted by arrows.
 
 **Parameter box** identifies a parameter by its most prominent name.
 Alternative names are listed on its page.
 
-**Directed edges** depict inclusions.
-An edge from A to B implies that if A is upper bounded by $k$ then B is upper bounded by $f(k)$ where $f$ is a computable function.
-Style of an arc represents the known upper bound on $f$:
+**Arrows** depict inclusions.
+An arrow from A to B implies that if A is upper bounded by $k$ then B is upper bounded by $f(k)$ where $f$ is a computable function.
+Style of an arrow represents the known upper bound on function $f$:
 
 * very thick black - $f$ is a constant, i.e., $A$ can have unbounded values while $B$ is always constant $O(1)$
 * thick black - $f$ is a linear or sublinear function $O(k)$
@@ -24,13 +24,30 @@ Style of an arc represents the known upper bound on $f$:
 * dotted - $f$ is an exponential $2^{O(k)}$ or tower function
 * gray - the value of $f$ inclusion is not yet filled in HOPS
 
-Graphs are depicted in Hasse diagrams as well, for that purpose $k$ is assumed to be arbitrary.
+Hasse diagrams of graphs or properties that are not tied to a value show thick arrow by default.
 
 ## Local Hasse diagrams
 
-Are the same as the Hasse diagrams above but display a subset of parameters.
+Local diagrams aim to show the relevant neighborhood of a parameter.
+Graphical elements work the same as the Hasse diagrams which are explained above.
+Whether to show a parameter is decided by a function that compares whether relevance (or rather, a value inferred from relevance) is more than the distance of the parameter.
 
-## Diagram for a fixed parameter or a fixed graph
+## Relevance
+
+Assigning relevance to each parameter feels a bit weird, however, having these values is proving quite useful.
+
+* It allows more refined views of parameters via local Hasse diagrams as to filter what is important to be shown in parameter's neighborhood can use relevancy.
+* Without relevance if we included all the parameters the website would easily become less clear. Alternately, we would have to omit some parameters, which seems worse than assigning relevance.
+* Relevance may give a rough pointer to students that are not familiar with some parameters.
+
+The value of relevance is meant to be a very rough estimate.
+If you feel some value is significantly incorrect, then [let us know](../../collab/contact/).
+
+This value is entered manually which inadvertently introduces personal bias.
+The hope is that eventually each parameter is somewhat correctly categorized as viewed by the community.
+Ideally, the value of relevance would be computed automatically -- HOPS has too little data to do this yet.
+
+## Color code
 
 For the sake of brevity we simplify the notation $A(G) \le f(B(G))$ for $G \in \mathcal G$ to simply $A \le B$, read [Parameter relations](../) to understand that notation.
 With such notation, we remark that $A < B$ is not the same as $B \not\le A$ because $\le$ stands for upper bounds and not direct inequalities.
@@ -62,12 +79,5 @@ The blue[[color blue]], magenta[[color magenta]], and cyan[[color cyan]] represe
 A 2D table allows a simple depiction of all pairwise relations at once.
 Each cell at row $A$ and column $B$ represents relation from parameter $A$ to $B$.
 Assuming $A$ is fixed, the color coding is identical to the above legend for diagrams.
-Hence, a diagram visible within a specific parameter $A$ is shown as a single row in the table.
-
-## Relevance
-
-Relevance is meant to give a very rough direction for people who are not familiar with some of the parameters.
-This value is entered manually which inadvertently introduces personal bias.
-The hope is that eventually each parameter is somewhat correctly categorized as viewed by the community.
-If you feel some values are significantly incorrect, then let us know.
+Hence, a diagram visible within a specific parameter $A$ is depicted as a single row in the table.
 
