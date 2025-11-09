@@ -141,7 +141,7 @@ impl RawDataSource {
             id: res,
             subset: subset.clone(),
             superset: superset.clone(),
-            cpx: cpx,
+            cpx,
         }
     }
 
@@ -444,7 +444,7 @@ impl RawDataSource {
     pub fn todo_rest(mut self, builder: &mut Builder) -> PreviewSourceId {
         warn!(
             "todo: rest of the source {} should be processed",
-            self.source.id.to_string()
+            self.source.id
         );
         self.done(builder)
     }

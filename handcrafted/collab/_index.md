@@ -17,6 +17,9 @@ All forms of collaboration are appreciated.
 * [The House of Graphs - K. Coolsaet, S. D'hondt and J. Goedgebeur](https://houseofgraphs.org/)
 * [Graph Parameter Hierarchy Visualizer - Yuto Okada (岡田優斗)](https://yutookada.com/tools/graph-parameters/)
 * [Graph Parameter Hierarchy - Yeonsu Chang (장연수)](https://www.graphparameterhierarchy.com/)
+* [Reductions Network (A Compendium of Reductions) - Christoph Grüne](https://reductions.network/)
+
+[Let us know](./contact) if you know of other related projects.
 
 ## Contribute to HOPS
 

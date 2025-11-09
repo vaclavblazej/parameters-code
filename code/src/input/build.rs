@@ -302,9 +302,7 @@ impl Builder {
         for (i, set_id) in sets.iter().enumerate() {
             let join = if i+1 == sets.len() {
                 ", and"
-            } else if i == 0 {
-                " "
-            } else if sets.len() == 2 {
+            } else if i == 0 || sets.len() == 2 {
                 " "
             } else {
                 ", "

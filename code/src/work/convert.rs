@@ -112,7 +112,7 @@ fn str_to_preview_set(list: Vec<PreviewSetId>, preview_set_map: &HashMap<Preview
         match preview_set_map.get(&el) {
             Some(x) => res.push(x.clone()),
             None => {
-                error!("didn't find set with id {}", el.to_string());
+                error!("didn't find set with id {}", el);
             },
         }
     }

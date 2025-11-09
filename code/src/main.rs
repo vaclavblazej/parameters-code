@@ -7,6 +7,7 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 use std::env;
 use std::io;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Instant;
@@ -43,6 +44,7 @@ use work::processing::{order_sets_from_sources, process_raw_data, RelatedSets};
 
 mod data {
     pub mod core;
+    // pub mod generic;
     pub mod id;
     pub mod preview;
     pub mod simple_index;
@@ -346,13 +348,12 @@ impl Computation {
             Err(err) => { error!("{}", err); None },
         };
         let cch: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
-        if !mock && !self.args.contains(&Args::Preprocess) {
-            if let Some(mut res) = cch.load() {
-                info!("deserialized data");
-                res.recompute();
-                self.some_data = Some(res);
-                return;
-            }
+        if !mock && !self.args.contains(&Args::Preprocess)
+            && let Some(mut res) = cch.load() {
+            info!("deserialized data");
+            res.recompute();
+            self.some_data = Some(res);
+            return;
         }
         self.time.print("retrieving data collection");
         let mut rawdata = match mock {
@@ -376,21 +377,15 @@ impl Computation {
         }
         let data = self.get_data();
         self.time.print("creating main page dots");
-        let parameters: Vec<&Set> = data
-            .sets
-            .iter()
+        let parameters: Vec<&Set> = data.sets.iter()
             .filter(|x| x.typ == PreviewType::Parameter)
             .filter(|x| x.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
-        let simplified_parameters: Vec<&Set> = data
-            .sets
-            .iter()
+        let simplified_parameters: Vec<&Set> = data.sets.iter()
             .filter(|x| x.typ == PreviewType::Parameter)
             .filter(|x| x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
-        let graphs: Vec<&Set> = data
-            .sets
-            .iter()
+        let graphs: Vec<&Set> = data.sets.iter()
             .filter(|x| matches!(x.typ, PreviewType::GraphClass | PreviewType::Property(_)))
             .collect();
         for (name, set) in [
@@ -415,8 +410,8 @@ impl Computation {
         let data = self.get_data();
         self.time.print("generating api");
         // data.sets.iter().map(|x|api_data.push(Box::new(x)));
-        api::create_set_api(&data, &self.paths.api_dir)?;
-        api::create_simple_api(&data, &self.paths.api_dir)?;
+        api::create_set_api(data, &self.paths.api_dir)?;
+        api::create_simple_api(data, &self.paths.api_dir)?;
         Ok(())
     }
 
@@ -426,7 +421,7 @@ impl Computation {
         }
         let data = self.get_data();
         self.time.print("fetching generated pages");
-        let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new(); // todo unified type for previews
+        let mut linkable: HashMap<String, Box<dyn Linkable>> = HashMap::new();
         let mut generated_pages = HashMap::new();
         let Data {
             sets,
@@ -540,7 +535,8 @@ impl Computation {
         let mut buffer = String::new();
         let stdin = io::stdin();
         loop {
-            // print!("> "); // todo prompt, flush
+            print!("> ");
+            std::io::stdout().flush().unwrap();
             match stdin.read_line(&mut buffer) {
                 Ok(_okcode) => {
                     let mut chars = buffer.as_str().chars();
@@ -582,12 +578,8 @@ impl Computation {
             .filter(|x| x.typ == PreviewType::Parameter)
             .filter(|x| x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
-        for (name, set) in [
-            // ("table", &table_sets),
-            ("table_simplified", &simplified_table_sets),
-        ] {
-            generate_relation_table(data, set, &self.paths, name, &self.worker);
-        }
+        let (name, set) = ("table_simplified", &simplified_table_sets);
+        generate_relation_table(data, set, &self.paths, name, &self.worker);
     }
 
 }

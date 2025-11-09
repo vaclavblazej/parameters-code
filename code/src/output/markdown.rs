@@ -554,7 +554,7 @@ impl<'a> Markdown<'a> {
                     match self.process_key(key, map) {
                         Ok(res) => res,
                         Err(error) => {
-                            error!("  {}", error.to_string());
+                            error!("  {}", error);
                             "<< substitution error >>".into()
                         }
                     }

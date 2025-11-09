@@ -1,5 +1,5 @@
 
-use std::path::PathBuf;
+use std::path::Path;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -75,7 +75,7 @@ impl From<&Data> for SimpleApiData {
                     }
                 }
             }).collect();
-        let preview_sets = raw.set_idx.iter().map(|(k,_)|k.clone()).collect();
+        let preview_sets = raw.set_idx.keys().cloned().collect();
         let shown_relations = filter_hidden(initial_relations, &preview_sets);
         let relations = shown_relations.iter().map(|x|{
             SimpleApiRelation{
@@ -83,7 +83,7 @@ impl From<&Data> for SimpleApiData {
                 superset_id: x.superset.id.to_string(),
             }
         }).collect();
-        let sets = raw.set_idx.iter().map(|(k,_)|SimpleApiSet::from(k)).collect();
+        let sets = raw.set_idx.keys().map(SimpleApiSet::from).collect();
         SimpleApiData {
             date: format!("{}", chrono::Local::now().format("%Y-%m-%d")),
             sets,
@@ -93,7 +93,7 @@ impl From<&Data> for SimpleApiData {
 }
 
 
-pub fn create_simple_api(data: &Data, api_dir: &PathBuf) -> Result<()> {
+pub fn create_simple_api(data: &Data, api_dir: &Path) -> Result<()> {
     let simple_data = SimpleApiData::from(data);
     let serialized = serde_json::to_string_pretty(&simple_data)?;
     let final_file = api_dir.join("simple.json");
@@ -101,7 +101,7 @@ pub fn create_simple_api(data: &Data, api_dir: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn create_set_api(data: &Data, api_dir: &PathBuf) -> Result<()> {
+pub fn create_set_api(data: &Data, api_dir: &Path) -> Result<()> {
     for set in &data.sets {
         let serialized = serde_json::to_string_pretty(set)?;
         let filename = format!("{}.json", set.id);

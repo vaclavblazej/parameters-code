@@ -110,8 +110,8 @@ pub fn remove_file(target_path: &PathBuf) -> Result<()> {
 
 pub fn clear_folder(target_path: &PathBuf) -> Result<()> {
     if target_path.exists() {
-        fs::remove_dir_all(&target_path);
-        fs::create_dir(&target_path);
+        fs::remove_dir_all(target_path);
+        fs::create_dir(target_path);
     } else {
         warn!("tried to remove non-existent folder {:?}", target_path);
     }

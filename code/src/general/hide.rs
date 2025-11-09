@@ -72,18 +72,16 @@ fn could_be_hidden(
             // even if connection through mid implies the relation we still need
             // to prevent mutual hiding for sets that bound each other
             // case 1 -- subset and midset are mutually bounded
-            if let Some(same) = map.get(&WorkRelation::new(&midset.id, &relation.superset.id)) {
-                if rel_can_be_implied_through(map, same, &relation.subset)
-                    && relation.subset.is_more_relevant_than(midset) {
-                        continue;
-                }
+            if let Some(same) = map.get(&WorkRelation::new(&midset.id, &relation.superset.id))
+                && rel_can_be_implied_through(map, same, &relation.subset)
+                && relation.subset.is_more_relevant_than(midset) {
+                    continue;
             }
             // case 2 -- superset and midset are mutually bounded
-            if let Some(same) = map.get(&WorkRelation::new(&relation.subset.id, &midset.id)) {
-                if rel_can_be_implied_through(map, same, &relation.superset)
-                    && relation.superset.is_more_relevant_than(midset) {
-                        continue;
-                }
+            if let Some(same) = map.get(&WorkRelation::new(&relation.subset.id, &midset.id))
+                && rel_can_be_implied_through(map, same, &relation.superset)
+                && relation.superset.is_more_relevant_than(midset) {
+                    continue;
             }
             return true;
         }

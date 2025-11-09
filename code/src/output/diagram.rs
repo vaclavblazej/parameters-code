@@ -48,15 +48,12 @@ pub fn make_drawing(
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset)
             && displayed_sets_preview.contains(&relation.superset)
+            && let SourcedCpxInfo::Equal { source: _ } = &relation.cpx
+            && (relation.subset.relevance < relation.superset.relevance
+                || (relation.subset.relevance == relation.superset.relevance
+                    && relation.subset.id < relation.superset.id))
         {
-            if let SourcedCpxInfo::Equal { source: _ } = &relation.cpx {
-                if relation.subset.relevance < relation.superset.relevance
-                    || (relation.subset.relevance == relation.superset.relevance
-                        && relation.subset.id < relation.superset.id)
-                    {
-                        remove_sets_preview.insert(relation.subset.clone());
-                    }
-            }
+            remove_sets_preview.insert(relation.subset.clone());
         }
     }
     for r in remove_sets_preview {
