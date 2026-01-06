@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-
-#description: Run local development server
+# Starts the hugo server
 
 cd "$(dirname "$0")/../../web" || exit
 

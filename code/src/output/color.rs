@@ -1,7 +1,5 @@
-use crate::{
-    data::{core::Set, preview::PreviewSet},
-    work::processing::RelatedSets,
-};
+use crate::work::processing::RelatedSets;
+
 
 pub fn interpolate_nums(from: u8, to: u8, ratio: f32) -> u8 {
     let diff = ((to as i16) - (from as i16)) as f32;
@@ -125,7 +123,7 @@ impl Color {
     }
 }
 
-pub fn relation_color(related_sets: &RelatedSets, aid: String, other: &PreviewSet) -> Color {
+pub fn relation_color<T>(related_sets: &RelatedSets<T>, aid: String, other: &T) -> Color {
     let a_eq_b = related_sets.equivsets.contains(other);
     let a_gte_b = related_sets.supersets.all.contains(other);
     let a_lte_b = related_sets.subsets.all.contains(other);

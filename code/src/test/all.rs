@@ -2,16 +2,12 @@
 mod tests {
     use std::env;
 
-    use crate::data::core::Relation;
+    use crate::data::data::Relation;
+    use crate::data::enums::*;
+    use crate::data::enums::{CpxTime::*, Page::*, SourcedCpxInfo::*};
     use crate::data::id::{BaseId, RelationId};
-    use crate::general::enums::{Cpx, CpxInfo};
-    use crate::general::enums::{
-        CpxTime::*,
-        Page::*,
-        SourcedCpxInfo::{self, *},
-    };
     use crate::input::build::parameter;
-    use crate::input::{build::Builder, raw::RawData};
+    use crate::input::{build::CollectionBuilder, raw::RawData};
     use crate::work::processing::process_raw_data;
 
     fn bibfile() -> std::path::PathBuf {
@@ -24,7 +20,7 @@ mod tests {
     #[test]
     fn upper_bound_trnasitivity() {
         // == setup ============================================================
-        let mut create = Builder::new();
+        let mut create = CollectionBuilder::new();
         let mut arr = vec![];
         let count = 10;
         let sequence = [0, 1, 2, 3, 4, 6, 7, 8, 9, 5];
@@ -49,18 +45,22 @@ mod tests {
         assert!(matches!(rel.cpx, Inclusion { .. }));
         assert_eq!(
             CpxInfo::from(rel.cpx.clone()),
-            CpxInfo::Inclusion { mn: None, mx: Some(Linear) }
+            CpxInfo::Inclusion {
+                mn: None,
+                mx: Some(Linear)
+            }
         );
     }
 
     #[test]
     fn exclusion_inclusion_transfer() {
         // == setup ============================================================
-        let mut create = Builder::new();
+        let mut create = CollectionBuilder::new();
         let a = parameter("a", "a", 9).done(&mut create);
         let b = parameter("b", "b", 9).done(&mut create);
         let c = parameter("c", "c", 9).done(&mut create);
-        create.assumed_source()
+        create
+            .assumed_source()
             .ref_proved("s_ab", NotApplicable, &a, &c, Cpx::Exclusion, "")
             .ref_proved("s_bc", NotApplicable, &b, &c, Cpx::UpperBound(Linear), "");
         let data = process_raw_data(create.build(), &None);
@@ -72,10 +72,11 @@ mod tests {
     #[test]
     fn equiv_correctly_created() {
         // == setup ============================================================
-        let mut create = Builder::new();
+        let mut create = CollectionBuilder::new();
         let a = parameter("a", "a", 9).done(&mut create);
         let b = parameter("b", "b", 9).done(&mut create);
-        create.assumed_source()
+        create
+            .assumed_source()
             .ref_proved("s_ab", NotApplicable, &a, &b, Cpx::Equal, "");
         let data = process_raw_data(create.build(), &None);
         // == test =============================================================
@@ -92,7 +93,7 @@ mod tests {
     #[test]
     fn equiv_inclusion_propagates() {
         // == setup ============================================================
-        let mut create = Builder::new();
+        let mut create = CollectionBuilder::new();
         let a = parameter("a", "a", 9).done(&mut create);
         let b = parameter("b", "b", 9).done(&mut create);
         let c = parameter("c", "c", 9).done(&mut create);
@@ -105,9 +106,7 @@ mod tests {
         let data = process_raw_data(create.build(), &None);
         // == test =============================================================
         assert!(matches!(
-            data.get_relation_by_ids(&b, &c)
-                .unwrap()
-                .cpx,
+            data.get_relation_by_ids(&b, &c).unwrap().cpx,
             Inclusion { .. }
         ));
         assert!(matches!(
@@ -119,11 +118,13 @@ mod tests {
     #[test]
     fn combined_parameter_bound() {
         // == setup ============================================================
-        let mut create = Builder::new();
+        let mut create = CollectionBuilder::new();
         let a = parameter("a", "a", 9).done(&mut create);
         let b = parameter("b", "b", 9).done(&mut create);
         let c = parameter("c", "c", 9).done(&mut create);
-        let bc = create.intersection("b+c", &b, &c, "b+c", 9).done(&mut create);
+        let bc = create
+            .intersection("b+c", &b, &c, "b+c", 9)
+            .done(&mut create);
         create
             .assumed_source()
             .ref_proved("s_ab", NotApplicable, &a, &b, Cpx::UpperBound(Linear), "")

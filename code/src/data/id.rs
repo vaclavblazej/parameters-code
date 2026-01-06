@@ -4,13 +4,6 @@ use std::{fmt::Display, marker::PhantomData};
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{Deserialize, Serialize};
 
-use super::{
-    core::{Relation, Set, Source, Tag},
-    preview::PreviewSet,
-};
-
-// todo eq between Id and PreviewId
-
 pub trait AbstractId<T> {
     fn id(&self) -> T;
     fn create(_: T) -> Self;
@@ -108,67 +101,100 @@ impl<T> BaseId<PreviewId<T>> for Id<T> {
     }
 }
 
+impl<T> PartialEq<PreviewId<T>> for Id<T> {
+    fn eq(&self, other: &PreviewId<T>) -> bool {
+        self.code == other.code
+    }
+}
+
+impl<T> PartialEq<Id<T>> for PreviewId<T> {
+    fn eq(&self, other: &Id<T>) -> bool {
+        self.code == other.code
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+macro_rules! define_type {
+    ($typename:ident, $idname:ident, $prevewidname:ident) => {
+        #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
+        pub struct $typename;
+        pub type $prevewidname = PreviewId<$typename>;
+        pub type $idname = Id<$typename>;
+    };
+}
+
+define_type!(TypeGraph, GraphId, PreviewGraphId);
+define_type!(TypeGraphClass, GraphClassId, PreviewGraphClassId);
+define_type!(TypeOperation, OperationId, PreviewOperationId);
+define_type!(
+    TypeGraphClassProperty,
+    GraphClassPropertyId,
+    PreviewGraphClassPropertyId
+);
+define_type!(
+    TypeGraphClassRelation,
+    GraphClassRelationId,
+    PreviewGraphClassRelationId
+);
+define_type!(TypeGraphRelation, GraphRelationId, PreviewGraphRelationId);
+define_type!(TypeLogicFragment, LogicFragmentId, PreviewLogicFragmentId);
+define_type!(TypeParameter, ParameterId, PreviewParameterId);
+define_type!(
+    TypeParametricGraphClass,
+    ParametricGraphClassId,
+    PreviewParametricGraphClassId
+);
+define_type!(
+    TypeParametricParameter,
+    ParametricParameterId,
+    PreviewParametricParameterId
+);
+define_type!(TypeProblem, ProblemId, PreviewProblemId);
+define_type!(TypeProvider, ProviderId, PreviewProviderId);
+define_type!(TypeShowed, ShowedId, PreviewShowedId);
+define_type!(TypeSource, SourceId, PreviewSourceId);
+define_type!(TypeSubset, SubsetId, PreviewSubsetId);
+define_type!(TypeTag, TagId, PreviewTagId);
+
 ////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
 pub struct TypeRelation;
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
-pub struct TypeSource;
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
-pub struct TypeSet;
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
-pub struct TypeTag;
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
-pub struct TypeProvider;
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
-pub struct TypeShowed;
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
-pub struct TypeSubset;
 
 pub type PreviewRelationId = PreviewId<TypeRelation>;
-pub type PreviewSourceId = PreviewId<TypeSource>;
-pub type PreviewSetId = PreviewId<TypeSet>;
-pub type PreviewTagId = PreviewId<TypeTag>;
-pub type PreviewProviderId = PreviewId<TypeProvider>;
-pub type PreviewSubsetId = PreviewId<TypeSubset>;
-pub type PreviewShowedId = PreviewId<TypeShowed>;
-
-// pub type RelationId = Id<TypeRelation>;
-pub type SourceId = Id<TypeSource>;
-pub type SetId = Id<TypeSet>;
-pub type TagId = Id<TypeTag>;
-pub type ProviderId = Id<TypeProvider>;
-pub type ShowedId = Id<TypeShowed>;
-
-////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd)]
-pub struct RelationId {
+pub struct RelationId<T> {
     code: String,
+    _marker: PhantomData<T>,
 }
 
-impl RelationId {
-    pub fn new(subset: &PreviewSetId, superset: &PreviewSetId) -> Self {
+impl<T> RelationId<T> {
+    pub fn new(subset: &Id<T>, superset: &Id<T>) -> Self {
         RelationId::create(format!("{}_{}", subset.code, superset.code))
     }
 }
 
-impl Display for RelationId {
+impl<T> Display for RelationId<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.id())
     }
 }
 
-impl AbstractId<String> for RelationId {
+impl<T> AbstractId<String> for RelationId<T> {
     fn id(&self) -> String {
         self.code.clone()
     }
     fn create(code: String) -> Self {
-        RelationId { code }
+        RelationId {
+            code,
+            _marker: PhantomData,
+        }
     }
 }
 
-impl BaseId<PreviewRelationId> for RelationId {
+impl<T> BaseId<PreviewRelationId> for RelationId<T> {
     fn get_tmp() -> Self {
         Self {
             code: format!(
@@ -176,6 +202,7 @@ impl BaseId<PreviewRelationId> for RelationId {
                 Alphanumeric.sample_string(&mut rand::rng(), 5),
                 Alphanumeric.sample_string(&mut rand::rng(), 6)
             ),
+            _marker: PhantomData,
         }
     }
     fn preview(&self) -> PreviewId<TypeRelation> {
@@ -186,25 +213,14 @@ impl BaseId<PreviewRelationId> for RelationId {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub trait HasId {
-    fn id(&self) -> String;
-}
-impl HasId for Set {
     fn id(&self) -> String {
         self.id.to_string()
     }
 }
-impl HasId for Relation {
-    fn id(&self) -> String {
-        self.id.to_string()
-    }
-}
-impl HasId for Source {
-    fn id(&self) -> String {
-        self.id.to_string()
-    }
-}
-impl HasId for Tag {
-    fn id(&self) -> String {
-        self.id.to_string()
+impl<T> HasId for dyn HasPreviewId<T> {}
+
+pub trait HasPreviewId<T> {
+    fn preview(&self) -> T {
+        self.id.preview()
     }
 }

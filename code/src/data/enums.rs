@@ -5,9 +5,15 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::data::{
-    core::PartialResult, id::PreviewSetId, preview::{PreviewSet, PreviewSource}
-};
+use crate::data::data::Named;
+use crate::data::id::*;
+use crate::data::preview::PreviewSource;
+use crate::work::processing::PartialResult;
+
+pub enum Value {
+    Value(u32),
+    Infinity,
+}
 
 /// Refers to a page in a book or paper. If pdf is available it should refer its
 /// page in pdf instead of the label.
@@ -43,21 +49,6 @@ pub enum SourceKey {
         name: String,
         description: String,
     },
-}
-
-/// Enum that makes inputting complexities more convenient.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Cpx {
-    Bounds(CpxTime, CpxTime),
-    UpperBound(CpxTime),
-    LowerBound(CpxTime),
-    StrictUpperBound(CpxTime),
-    Exactly(CpxTime),
-    Equivalent(CpxTime, CpxTime),
-    Equal,
-    Exclusion,
-    Incomparable,
-    Todo,
 }
 
 /// High-level representation of values for computational complexity.
@@ -138,24 +129,21 @@ pub enum SourcedCpxInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum RawDrawing {
-    Table(Vec<PreviewSetId>),
-    Hasse(Vec<PreviewSetId>),
+    Table(Vec<Box<dyn Named>>),
+    Hasse(Vec<Box<dyn Named>>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Drawing {
-    Table(Vec<PreviewSet>),
-    Hasse(Vec<PreviewSet>),
+    Table(Vec<Box<dyn Named>>),
+    Hasse(Vec<Box<dyn Named>>),
 }
 
 impl CpxInfo {
     pub fn get_mx(&self) -> Option<CpxTime> {
         match self {
             CpxInfo::Equal => Some(CpxTime::Linear),
-            CpxInfo::Inclusion {
-                mn: _,
-                mx: Some(x),
-            } => Some(x.clone()),
+            CpxInfo::Inclusion { mn: _, mx: Some(x) } => Some(x.clone()),
             CpxInfo::Inclusion { .. } => None,
             CpxInfo::Exclusion => None,
             CpxInfo::Unknown => None,

@@ -1,26 +1,18 @@
-use std::{
-    collections::{HashMap, HashSet},
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time;
 
-use crate::{data::preview::HasPreview, file};
-use crate::general::enums::{CpxInfo, CpxTime};
-use crate::output::dot::{Edge, Graph};
-use crate::{
-    data::{
-        core::{Data, Relation, Set},
-        preview::PreviewSet,
-    },
-    general::{enums::SourcedCpxInfo, hide::filter_hidden},
-    output::color::interpolate_colors,
-    work::processing::bfs_limit_distance,
-};
-use std::{fs, time};
-
-use super::{
-    color::{relation_color, Color}, dot::SetColorCallback, markdown::Markdown
-};
+use crate::data::data::Data;
+use crate::data::enums::*;
+use crate::data::preview::HasPreview;
+use crate::file;
+use crate::output::color::{Color, interpolate_colors, relation_color};
+use crate::output::dot::{Edge, Graph, SetColorCallback};
+use crate::output::markdown::Markdown;
+use crate::work::hide::filter_hidden;
+use crate::work::processing::bfs_limit_distance;
 
 fn inclusion_edge_style(mx: &CpxTime) -> String {
     let mut res: String = "decorate=true lblstyle=\"above, sloped\"".into();
@@ -68,9 +60,10 @@ pub fn make_drawing(
     for relation in &data.relations {
         if displayed_sets_preview.contains(&relation.subset)
             && displayed_sets_preview.contains(&relation.superset)
-                && relation.preview().cpx.get_mx().is_some() {
-                    potential_relations.push(relation.preview())
-                }
+            && relation.preview().cpx.get_mx().is_some()
+        {
+            potential_relations.push(relation.preview())
+        }
     }
     // hiding cannot be global as it is implied by the set of items shown in the drawing
     let drawn_relations = filter_hidden(

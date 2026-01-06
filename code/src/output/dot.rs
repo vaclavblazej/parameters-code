@@ -1,7 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::data::{core::Set, preview::PreviewRelation};
-
 trait IntoDot {
     fn to_dot(&self) -> String;
 }
@@ -125,15 +123,13 @@ impl Graph {
 }
 
 fn main() {
-    let nodes = vec![
-        Node {
-            id: "dS6OgO".to_string(),
-            label: "carving-width".to_string(),
-            color: "#dddddd".into(),
-            attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box"
-                .to_string(),
-        }
-    ];
+    let nodes = vec![Node {
+        id: "dS6OgO".to_string(),
+        label: "carving-width".to_string(),
+        color: "#dddddd".into(),
+        attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box"
+            .to_string(),
+    }];
     fn color_fn(set: &Set) -> String {
         "gray".into()
     };

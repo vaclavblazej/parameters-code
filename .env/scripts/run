@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# Compile the source, build website, and run a server for it
 
 cd "$(dirname "$0")"/../../code/ || exit \
     && mkdir -p /tmp/hops \

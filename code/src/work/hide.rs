@@ -3,16 +3,8 @@
 
 use std::collections::HashMap;
 
-use crate::{
-    data::{
-        core::{Data, PartialResult, Set},
-        preview::{PreviewRelation, PreviewSet, WorkRelation},
-    },
-    general::enums::SourcedCpxInfo,
-    work::combine::combine_serial,
-};
-
-use super::enums::CpxInfo;
+use crate::data::data::Data;
+use crate::work::combine::combine_serial;
 
 fn rel_can_be_implied_through(
     map: &HashMap<WorkRelation, PreviewRelation>,
@@ -30,13 +22,13 @@ fn rel_can_be_implied_through(
         {
             let mock_a = PartialResult {
                 handle: 0,
-                created_by: crate::general::enums::CreatedBy::Todo,
+                created_by: crate::data::enums::CreatedBy::Todo,
                 cpx: CpxInfo::Unknown,
                 relation: upper_work.clone(),
             };
             let mock_b = PartialResult {
                 handle: 0,
-                created_by: crate::general::enums::CreatedBy::Todo,
+                created_by: crate::data::enums::CreatedBy::Todo,
                 cpx: CpxInfo::Unknown,
                 relation: lower_work.clone(),
             };
@@ -74,14 +66,16 @@ fn could_be_hidden(
             // case 1 -- subset and midset are mutually bounded
             if let Some(same) = map.get(&WorkRelation::new(&midset.id, &relation.superset.id))
                 && rel_can_be_implied_through(map, same, &relation.subset)
-                && relation.subset.is_more_relevant_than(midset) {
-                    continue;
+                && relation.subset.is_more_relevant_than(midset)
+            {
+                continue;
             }
             // case 2 -- superset and midset are mutually bounded
             if let Some(same) = map.get(&WorkRelation::new(&relation.subset.id, &midset.id))
                 && rel_can_be_implied_through(map, same, &relation.superset)
-                && relation.superset.is_more_relevant_than(midset) {
-                    continue;
+                && relation.superset.is_more_relevant_than(midset)
+            {
+                continue;
             }
             return true;
         }
@@ -95,14 +89,16 @@ pub fn filter_hidden(
 ) -> Vec<PreviewRelation> {
     let mut map: HashMap<WorkRelation, PreviewRelation> = HashMap::new();
     for pr in &potential_relations {
-        map.insert(WorkRelation::new(&pr.subset.id, &pr.superset.id), pr.clone());
+        map.insert(
+            WorkRelation::new(&pr.subset.id, &pr.superset.id),
+            pr.clone(),
+        );
     }
     let mut drawn_relations = Vec::new();
     for relation in &potential_relations {
-        if relation.cpx.get_mx().is_some()
-            && !could_be_hidden(&map, relation, displayed_sets) {
-                drawn_relations.push(relation.clone());
-            }
+        if relation.cpx.get_mx().is_some() && !could_be_hidden(&map, relation, displayed_sets) {
+            drawn_relations.push(relation.clone());
+        }
     }
     drawn_relations
 }

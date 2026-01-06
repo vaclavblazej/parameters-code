@@ -1,11 +1,9 @@
-//! Utilities for processing files and folders.
+//! Functions for processing files and folders.
 
-use std::{
-    fs::{self, File},
-    io::{Read, Write},
-    path::{Path, PathBuf},
-    fmt,
-};
+use std::fmt;
+use std::fs::{self, File};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use log::{error, warn};

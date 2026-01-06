@@ -1,151 +1,20 @@
-//! Raw immutable datapoints
+//! All the raw structures; these are used solely for keeping the input data
+//! of the collection.
 
 use std::collections::HashMap;
 
-use crate::{
-    data::id::{
-        Id, PreviewId, PreviewProviderId, PreviewRelationId, PreviewSetId, PreviewSourceId, PreviewTagId, ProviderId, RelationId, SetId, ShowedId, SourceId, TagId, BaseId
-    },
-    general::enums::{CpxInfo, Drawing, Page, RawDrawing, TransferGroup},
-};
+use crate::data::data::{NameCore, Tagged};
+use crate::data::enums::*;
+use crate::data::id::*;
+use crate::input::build::CollectionBuilder;
+use crate::input::raw_enums::*;
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum RawOwn {
-    Has,
-    Is,
+pub trait Defines<S> {
+    fn defines(&self) -> S;
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum RawType {
-    Parameter,
-    GraphClass,
-    Property(RawOwn),
-}
-
-#[derive(Debug)]
-pub enum GraphRelation {
-    Subset,
-    Minor, // minor implies susbet
-    TopologicalMinor, // top-minor implies minor
-}
-
-#[derive(Debug)]
-pub enum Composition {
-    None,
-    Intersection(Vec<PreviewSetId>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum RawSourceKey {
-    Bibtex { key: String },
-    Online { url: String },
-    Other { name: String, description: String },
-}
-
-impl RawSourceKey {
-    pub fn to_str(&self) -> String {
-        match self {
-            RawSourceKey::Bibtex { key } => key.clone(),
-            RawSourceKey::Online { url } => url.clone(),
-            RawSourceKey::Other {
-                name,
-                description: _,
-            } => name.clone(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RawSource {
-    pub id: SourceId,
-    pub rawsourcekey: RawSourceKey,
-    pub relevance: u32, // from 0 to 9
-    pub drawings: Vec<RawDrawing>,
-}
-
-#[derive(Debug)]
-pub struct BuiltRawSource {
-    pub id: SourceId,
-    pub rawsourcekey: RawSourceKey,
-    pub relevance: u32, // from 0 to 9
-    pub drawings: Vec<RawDrawing>,
-}
-
-#[derive(Debug)]
-pub struct BuiltRawSet {
-    pub id: SetId,
-    pub name: String,
-    pub typ: RawType,
-    pub composed: Composition,
-    pub relevance: u32, // from 0 to 9
-    pub aka: Vec<String>,
-    pub abbr: Option<String>,
-    pub tags: Vec<PreviewTagId>,
-    pub displayed_definition: Vec<String>,
-}
-
-#[derive(Debug)]
-pub struct RawSet {
-    pub id: SetId,
-    pub name: String,
-    pub typ: RawType,
-    pub composed: Composition,
-    pub relevance: u32, // from 0 to 9
-    pub aka: Vec<String>,
-    pub abbr: Option<String>,
-    pub displayed_definition: Vec<String>,
-}
-
-impl BuiltRawSet {
-    pub fn new(
-        id: String,
-        name: String,
-        typ: RawType,
-        composed: Composition,
-        relevance: u32,
-    ) -> Self {
-        Self {
-            id: Id::new(id),
-            name,
-            typ,
-            composed,
-            relevance,
-            tags: Vec::new(),
-            aka: Vec::new(),
-            abbr: None,
-            displayed_definition: Vec::new(),
-        }
-    }
-}
-
-/// Holds into on whether bounded `subset` implies bounded `superset`.
-#[derive(Debug)]
-pub struct RawRelation {
-    pub id: RelationId,
-    /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
-    pub subset: PreviewSetId,
-    /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
-    pub superset: PreviewSetId,
-    pub cpx: CpxInfo,
-}
-
-#[derive(Debug, Clone)]
-pub struct RawShownRelation {
-    pub id: PreviewRelationId,
-    pub subset: PreviewSetId,
-    pub superset: PreviewSetId,
-    pub cpx: CpxInfo,
-}
-
-impl RawRelation {
-    pub fn new(subset: &PreviewSetId, superset: &PreviewSetId, cpx: CpxInfo) -> RawRelation {
-        RawRelation {
-            id: RelationId::new(subset, superset),
-            subset: subset.clone(),
-            superset: superset.clone(),
-            cpx,
-        }
-    }
+pub trait Concrete<N, S> {
+    fn concretize(&self, value: N) -> S;
 }
 
 #[derive(Debug)]
@@ -154,6 +23,115 @@ pub struct RawTag {
     pub name: String,
     pub description: String,
 }
+impl HasPreviewId<PreviewTagId> for RawTag {}
+
+pub struct RawLogicFragment {
+    pub id: LogicFragmentId,
+    pub name: String,
+    pub description: Option<String>,
+}
+impl HasPreviewId<PreviewLogicFragmentId> for RawLogicFragment {}
+
+#[derive(Debug)]
+pub struct RawOperation {
+    pub id: OperationId,
+    pub name: NameCore,
+    pub definition: RawOperationDefinition,
+}
+
+/// An undirected graph $G = (V,E)$.
+#[derive(Debug)]
+pub struct RawGraph {
+    pub id: GraphId,
+    pub names: NameCore,
+    pub definition: Vec<String>,
+}
+
+/// A class of undirected graphs $\mathcal C = \{G_1,G_2,\dots\}$.
+/// Each graph class is equivalent to a graph property via containment.
+#[derive(Debug)]
+pub struct RawGraphClass {
+    pub id: GraphClassId,
+    pub relevance: u32,
+    pub names: NameCore,
+    pub definition: RawGraphClassDefinition,
+}
+impl HasPreviewId<PreviewGraphClassId> for RawGraphClass {}
+
+/// A graph property implies a graph class property
+/// by defining over all its elements.
+impl Defines<PreviewGraphClassPropertyId> for RawGraphClass {
+    fn defines(&self) -> PreviewGraphClassPropertyId {
+        todo!()
+    }
+}
+
+/// A map from natural numbers to parameters.
+#[derive(Debug)]
+pub struct RawParametricParameter {
+    pub id: ParametricParameterId,
+    pub relevance: u32,
+    pub names: NameCore,
+    pub definition: RawParametricParameterDefinition,
+    pub tags: Vec<PreviewTagId>,
+}
+impl HasPreviewId<PreviewParametricParameterId> for RawParametricParameter {}
+impl Tagged for RawParametricParameter {}
+
+impl Concrete<Value, PreviewGraphClassPropertyId> for RawParametricParameter {
+    fn concretize(&self, value: Value) -> PreviewGraphClassPropertyId {
+        todo!()
+    }
+}
+
+/// A map from natural numbers to graphs.
+#[derive(Debug)]
+pub struct RawParametricGraphClass {
+    pub id: ParametricGraphClassId,
+    pub relevance: u32,
+    pub names: NameCore,
+    pub closed_under: PreviewGraphRelationId,
+    pub tags: Vec<PreviewTagId>,
+    pub definition: String,
+}
+impl HasPreviewId<PreviewParametricGraphClassId> for RawParametricGraphClass {}
+impl Tagged for RawParametricGraphClass {}
+
+impl Defines<PreviewGraphClassId> for RawParametricGraphClass {
+    fn defines(&self) -> PreviewGraphClassId {
+        todo!()
+    }
+}
+
+impl Concrete<Value, PreviewGraphClassPropertyId> for RawParametricGraphClass {
+    fn concretize(&self, value: Value) -> PreviewGraphClassPropertyId {
+        todo!()
+    }
+}
+
+/// Parameter over a graph class. Definable also as a parameter of a graph.
+#[derive(Debug)]
+pub struct RawParameter {
+    pub id: ParameterId,
+    pub relevance: u32,
+    pub names: NameCore,
+    pub definition: RawParameterDefinition,
+    pub tags: Vec<PreviewTagId>,
+}
+impl HasPreviewId<PreviewParameterId> for RawParameter {}
+impl Tagged for RawParameter {}
+
+/// Property of a graph class, i.e. a map from graph classes to boolean.
+/// Note that RawGraphProperty is equivalent to GraphClass and so was omitted.
+#[derive(Debug)]
+pub struct RawGraphClassProperty {
+    pub id: GraphClassPropertyId,
+    pub relevance: u32,
+    pub names: NameCore,
+    pub definition: RawGraphClassPropertyDefinition,
+    pub own: RawOwn,
+}
+impl HasPreviewId<PreviewGraphClassPropertyId> for RawGraphClassProperty {}
 
 #[derive(Debug)]
 pub struct RawProvider {
@@ -161,75 +139,58 @@ pub struct RawProvider {
     pub name: String,
     pub url: String,
 }
+impl HasPreviewId<PreviewProviderId> for RawProvider {}
 
 #[derive(Debug)]
 pub struct RawProviderLink {
     pub provider: PreviewProviderId,
-    pub set: PreviewSetId,
+    // pub set: Linkable,
     pub url: String,
 }
 
 #[derive(Debug)]
-pub struct RawSequence {
+pub struct RawGraphRelation {
+    pub id: GraphRelationId,
+    pub name: String,
+    pub displayed_definition: RawGraphRelationDefinition,
 }
 
+#[derive(Debug)]
+pub struct RawGraphClassRelation {
+    pub id: GraphClassRelationId,
+    pub name: String,
+    pub definition: RawGraphClassRelationDefinition,
+}
+
+/// Raw immutable datapoints
 pub struct RawData {
-    pub sets: Vec<RawSet>,
-    pub relations: Vec<RawRelation>,
-    pub factoids: Vec<(PreviewSourceId, RawShowed)>,
-    pub sources: Vec<RawSource>,
+    pub graph_class_relations: Vec<RawGraphClassRelation>,
+    pub graph_classes: Vec<RawGraphClass>,
+    pub graph_relations: Vec<RawGraphRelation>,
+    pub graphs: Vec<RawGraph>,
+    pub logic_fragments: Vec<RawLogicFragment>,
+    pub operations: Vec<RawOperation>,
+    pub parameters: Vec<RawParameter>,
+    pub parametric_graph_class: Vec<RawParametricGraphClass>,
+    pub parametric_parameters: Vec<RawParametricParameter>,
     pub providers: Vec<RawProvider>,
-    pub provider_links: Vec<RawProviderLink>,
     pub tags: Vec<RawTag>,
-    pub tag_set: Vec<(PreviewTagId, PreviewSetId)>,
-    pub transfer: HashMap<TransferGroup, Vec<(PreviewSetId, PreviewSetId)>>,
-    pub sequences: Vec<RawSequence>,
 }
 
 impl RawData {
     pub fn new() -> Self {
         Self {
-            sets: Vec::new(),
-            relations: Vec::new(),
-            factoids: Vec::new(),
-            sources: Vec::new(),
+            graph_class_relations: Vec::new(),
+            graph_classes: Vec::new(),
+            graph_relations: Vec::new(),
+            graphs: Vec::new(),
+            logic_fragments: Vec::new(),
+            operations: Vec::new(),
+            parameters: Vec::new(),
+            parametric_graph_class: Vec::new(),
+            parametric_parameters: Vec::new(),
             providers: Vec::new(),
-            provider_links: Vec::new(),
             tags: Vec::new(),
-            tag_set: Vec::new(),
-            transfer: HashMap::new(),
-            sequences: Vec::new(),
         }
     }
-}
-
-#[derive(Debug)]
-pub struct RawShowed {
-    pub id: ShowedId,
-    pub text: String,
-    pub fact: RawShowedFact,
-    pub page: Page,
-}
-
-#[derive(Debug)]
-pub enum RawShowedFact {
-    Relation(RawShowedStatus, RawShownRelation),
-    Definition(RawShowedStatus, PreviewSetId),
-}
-
-#[derive(Debug, Clone)]
-pub enum RawShowedStatus {
-    Assumed, // taken as given by HOPS, mainly due to being out of project's scope
-    Conjectured, // posed as an open problem
-    Original, // first or independent
-    Derivative, // improvements or later proofs
-    Noted(RawNotedSource), // results claimed to be somewhere else
-}
-
-#[derive(Debug, Clone)]
-pub enum RawNotedSource {
-    Text(String), // outside of HOPS
-    Source(PreviewSourceId), // in HOPS
-    Omitted, // source is not noted at all
-    SrcTodo, // waiting to be added to HOPS
 }

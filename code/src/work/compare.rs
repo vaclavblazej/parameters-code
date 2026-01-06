@@ -1,8 +1,5 @@
-use crate::general::enums::{
-    ComparisonResult, CpxInfo,
-    CpxTime::{self, *},
-    SourcedCpxInfo,
-};
+use crate::data::enums::*;
+
 
 impl CpxTime {
     pub fn num(&self) -> u32 {

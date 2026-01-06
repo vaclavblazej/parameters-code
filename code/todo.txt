@@ -1,0 +1,32 @@
+├─────────────────────────────────────────────────────────────
+├─ main.rs - minor fixes
+├─ collection.rs - rewrite rest, polish builder
+├─ input
+│  ├─ builder.rs - polish
+│  ├─ build.rs - polish
+│  ├─ raw.rs - missing just data
+│  └─ source.rs - polish
+├─ data
+│  ├─ core.rs - new design for Data, Set, etc.
+│  ├─ enums.rs - ok upto details
+│  ├─ preview.rs - contains more then previews, new design
+│  └─ simple_index.rs - old hierarchy design, rework
+├─ work
+│  ├─ combine.rs
+│  ├─ compare.rs
+│  ├─ convert.rs
+│  ├─ hierarchy.rs - new work
+│  ├─ hide.rs - contains previewset
+│  └─ processing.rs - rework
+├─ output - will break after rework of data
+│  ├─ api.rs
+│  ├─ diagram.rs
+│  ├─ dot.rs
+│  ├─ markdown.rs
+│  ├─ pages.rs
+│  ├─ table.rs
+│  └─ to_markdown.rs
+├─ test - ignore for now
+│  ├─ all.rs
+│  └─ collection.rs
+├─────────────────────────────────────────────────────────────

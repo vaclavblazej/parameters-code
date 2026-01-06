@@ -3,13 +3,10 @@ use std::collections::HashMap;
 use biblatex::Entry;
 use log::error;
 
-use crate::data::core::{
-    PartialResultsBuilder, PreviewShowed, Provider, ProviderLink, Relation, ShowedFact, Tag, ShowedStatus, NotedSource
-};
-use crate::data::id::{Id, PreviewId, PreviewRelationId, PreviewSetId, RelationId};
+use crate::data::data::{Provider, ProviderLink, Tag};
+use crate::data::enums::*;
+use crate::data::id::*;
 use crate::data::preview::*;
-use crate::general::enums::{CreatedBy, Drawing, RawDrawing, SourceKey, SourcedCpxInfo};
-use crate::input::raw::*;
 use crate::work::date::Date;
 
 impl From<&RawOwn> for Own {
@@ -106,14 +103,17 @@ impl From<&RawTag> for PreviewTag {
     }
 }
 
-fn str_to_preview_set(list: Vec<PreviewSetId>, preview_set_map: &HashMap<PreviewSetId, PreviewSet>) -> Vec<PreviewSet> {
+fn str_to_preview_set(
+    list: Vec<PreviewSetId>,
+    preview_set_map: &HashMap<PreviewSetId, PreviewSet>,
+) -> Vec<PreviewSet> {
     let mut res = vec![];
     for el in list {
         match preview_set_map.get(&el) {
             Some(x) => res.push(x.clone()),
             None => {
                 error!("didn't find set with id {}", el);
-            },
+            }
         }
     }
     res

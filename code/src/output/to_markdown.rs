@@ -1,10 +1,8 @@
-use crate::data::core::{PreviewShowed, ShowedFact, SourceSubset};
-use crate::data::preview::{HasPreview, PreviewType};
-use crate::data::preview::{PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, Own};
-use crate::general::enums::{CpxInfo, CpxTime, Page, SourceKey};
 use std::fmt;
 
-use super::markdown::Markdown;
+use crate::data::enums::*;
+use crate::data::preview::{HasPreview, PreviewSource, PreviewSourceKey};
+use crate::output::markdown::Markdown;
 
 pub trait ToMarkdown {
     fn to_markdown(&self, builder: &Markdown) -> Option<String>;
@@ -38,6 +36,21 @@ impl ToMarkdown for CpxTime {
 impl ToMarkdown for PreviewSet {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         Some(format!("[[{}]]", &self.id.to_string()))
+    }
+}
+
+impl Own {
+    pub fn to_string(&self, truth: bool, plural: bool) -> String {
+        String::from(match (self, truth, plural) {
+            (Own::Is, true, false) => "is",
+            (Own::Is, true, true) => "are",
+            (Own::Has, true, false) => "has",
+            (Own::Has, true, true) => "have",
+            (Own::Is, false, false) => "is not",
+            (Own::Is, false, true) => "are not",
+            (Own::Has, false, false) => "does not have",
+            (Own::Has, false, true) => "do not have",
+        })
     }
 }
 
@@ -99,7 +112,7 @@ fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescrip
         CpxInfo::Exclusion => {
             let (a, b) = (&rel.subset.typ, &rel.superset.typ);
             RelDescription::Excludes(a.clone(), b.clone())
-        },
+        }
         CpxInfo::Unknown => RelDescription::Unknown,
     }
 }
@@ -137,13 +150,28 @@ impl PreviewRelation {
                 upper_bound.to_markdown(builder).unwrap(),
                 lower_bound.to_markdown(builder).unwrap()
             )),
-            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Parameter) => panic!("this pair was designed to be processed in a function that calls this"),
+            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Parameter) => {
+                panic!("this pair was designed to be processed in a function that calls this")
+            }
             RelDescription::IncludedIn(from, to) | RelDescription::Excludes(from, to) => {
-                let is_inclusion = matches!(relation_description(self, builder), RelDescription::IncludedIn(..));
+                let is_inclusion = matches!(
+                    relation_description(self, builder),
+                    RelDescription::IncludedIn(..)
+                );
                 let (from_str, plural) = match &from {
                     PreviewType::GraphClass => (format!("graph class {}", subset_string), false),
-                    PreviewType::Parameter => (format!("graph classes with bounded {}", subset_string), true),
-                    PreviewType::Property(s) => (format!("graph classes that {} {}", s.clone().to_string(true, true), subset_string), true),
+                    PreviewType::Parameter => (
+                        format!("graph classes with bounded {}", subset_string),
+                        true,
+                    ),
+                    PreviewType::Property(s) => (
+                        format!(
+                            "graph classes that {} {}",
+                            s.clone().to_string(true, true),
+                            subset_string
+                        ),
+                        true,
+                    ),
                     PreviewType::ParametricGraphClass => todo!(),
                 };
                 let bnd = if let PreviewType::Parameter = from {
@@ -152,14 +180,16 @@ impl PreviewRelation {
                     "constant"
                 };
                 let (to_str, own) = match to {
-                    PreviewType::GraphClass => (format!("contained in {}", superset_string), Own::Has),
+                    PreviewType::GraphClass => {
+                        (format!("contained in {}", superset_string), Own::Has)
+                    }
                     PreviewType::Parameter => (format!("{} {}", bnd, superset_string), Own::Is),
                     PreviewType::Property(s) => (superset_string, s),
                     PreviewType::ParametricGraphClass => todo!(),
                 };
                 let join = own.to_string(is_inclusion, plural);
                 Some(format!("{} {} {}", from_str, join, to_str))
-            },
+            }
             RelDescription::Equal => Some(format!(
                 "{} is equivalent to {}",
                 subset_string, superset_string
@@ -180,27 +210,51 @@ impl PreviewRelation {
                 upper_bound,
             } => "non-tight bounds",
             RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Parameter) => panic!(),
-            RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::Parameter) => "constant",
-            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::GraphClass) => "inclusion",
-            RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::GraphClass) => "inclusion",
-            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::Property(_)) => "implies",
-            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::GraphClass) => "inclusion",
-            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::Parameter) => "inclusion",
+            RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::Parameter) => {
+                "constant"
+            }
+            RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::GraphClass) => {
+                "inclusion"
+            }
+            RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::GraphClass) => {
+                "inclusion"
+            }
+            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::Property(_)) => {
+                "implies"
+            }
+            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::GraphClass) => {
+                "inclusion"
+            }
+            RelDescription::IncludedIn(PreviewType::Property(_), PreviewType::Parameter) => {
+                "inclusion"
+            }
             RelDescription::IncludedIn(PreviewType::GraphClass, PreviewType::Property(_)) => "has",
             RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Property(_)) => "has",
             RelDescription::IncludedIn(PreviewType::ParametricGraphClass, _)
-                | RelDescription::IncludedIn(_, PreviewType::ParametricGraphClass) => todo!(),
+            | RelDescription::IncludedIn(_, PreviewType::ParametricGraphClass) => todo!(),
             RelDescription::Excludes(PreviewType::Parameter, PreviewType::Parameter) => "exclusion",
-            RelDescription::Excludes(PreviewType::GraphClass, PreviewType::Parameter) => "unbounded",
-            RelDescription::Excludes(PreviewType::Parameter, PreviewType::GraphClass) => "exclusion",
-            RelDescription::Excludes(PreviewType::GraphClass, PreviewType::GraphClass) => "exclusion",
-            RelDescription::Excludes(PreviewType::Property(_), PreviewType::Property(_)) => "avoids",
-            RelDescription::Excludes(PreviewType::Property(_), PreviewType::GraphClass) => "exclusion",
-            RelDescription::Excludes(PreviewType::Property(_), PreviewType::Parameter) => "exclusion",
+            RelDescription::Excludes(PreviewType::GraphClass, PreviewType::Parameter) => {
+                "unbounded"
+            }
+            RelDescription::Excludes(PreviewType::Parameter, PreviewType::GraphClass) => {
+                "exclusion"
+            }
+            RelDescription::Excludes(PreviewType::GraphClass, PreviewType::GraphClass) => {
+                "exclusion"
+            }
+            RelDescription::Excludes(PreviewType::Property(_), PreviewType::Property(_)) => {
+                "avoids"
+            }
+            RelDescription::Excludes(PreviewType::Property(_), PreviewType::GraphClass) => {
+                "exclusion"
+            }
+            RelDescription::Excludes(PreviewType::Property(_), PreviewType::Parameter) => {
+                "exclusion"
+            }
             RelDescription::Excludes(PreviewType::GraphClass, PreviewType::Property(_)) => "avoids",
             RelDescription::Excludes(PreviewType::Parameter, PreviewType::Property(_)) => "avoids",
             RelDescription::Excludes(PreviewType::ParametricGraphClass, _)
-                | RelDescription::Excludes(_, PreviewType::ParametricGraphClass) => todo!(),
+            | RelDescription::Excludes(_, PreviewType::ParametricGraphClass) => todo!(),
             RelDescription::Equal => "equal",
             RelDescription::Unknown => "unknown to HOPS",
         }
@@ -240,18 +294,17 @@ impl ToMarkdown for ShowedFact {
                 if let Some(val) = set.preview().to_markdown(builder) {
                     res += &val;
                 }
-            }
-            // Self::Citation(citation) => {
-                // if let Some(val) = citation.to_markdown(&builder) {
-                    // res += &val;
-                // }
-            // }
+            } // Self::Citation(citation) => {
+              // if let Some(val) = citation.to_markdown(&builder) {
+              // res += &val;
+              // }
+              // }
         }
         Some(res)
     }
 }
 
-impl ToMarkdown for PreviewShowed {
+impl ToMarkdown for Showed {
     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
         let mut res = String::new();
         if let Some(val) = self.page.to_markdown(builder) {

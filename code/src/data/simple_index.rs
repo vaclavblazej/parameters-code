@@ -2,12 +2,8 @@
 
 use std::collections::HashSet;
 
-use crate::general::enums::CpxInfo;
-
-use super::{
-    core::Relation,
-    preview::{HasPreview, PreviewRelation, PreviewSet},
-};
+use crate::data::enums::CpxInfo;
+use crate::data::preview::HasPreview;
 
 /// This structure keeps which sets are with relations with other sets.
 pub struct SimpleIndex {
@@ -64,8 +60,7 @@ impl SimpleIndex {
 
     pub fn get_eqsets(&self, a: &PreviewSet) -> Vec<PreviewSet> {
         let mut seta: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_subsets(a));
-        let mut setb: HashSet<PreviewSet> =
-            HashSet::from_iter(self.get_all_supersets(a));
+        let mut setb: HashSet<PreviewSet> = HashSet::from_iter(self.get_all_supersets(a));
         seta.insert(a.clone());
         setb.insert(a.clone());
         let res: Vec<PreviewSet> = seta.intersection(&setb).cloned().collect();

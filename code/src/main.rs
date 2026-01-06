@@ -10,52 +10,47 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
-use std::time::Instant;
 
 use anyhow::Result;
 use biblatex::Bibliography;
 use general::worker::{Task, Worker};
 use log::{debug, error, info, trace, warn};
 
-use data::core::Data;
-use data::core::Relation;
-use data::core::Set;
-use data::id::{Id, PreviewSetId, PreviewId};
-use data::preview::{HasPreview, PreviewSet};
-use data::preview::PreviewType;
-use data::simple_index::SimpleIndex;
+use data::data::*;
+use data::enums::*;
+use data::id::*;
+use data::preview::*;
 use general::cache::Cache;
-use general::enums::CpxInfo;
-use general::enums::CpxTime;
 use general::file;
 use general::logger;
 use general::progress::ProgressDisplay;
+use general::timer::Timer;
 use output::api;
 use output::diagram::make_drawing;
 use output::markdown::Mappable;
 use output::markdown::Markdown;
 use output::markdown::{Address, Linkable};
 use output::pages;
-use output::pages::add_content;
 use output::pages::TargetPage;
+use output::pages::add_content;
 use output::table::render_table;
 use work::bibliography::load_bibliography;
-use work::processing::{order_sets_from_sources, process_raw_data, RelatedSets};
+use work::processing::{order_sets_from_sources, process_raw_data};
 
 mod data {
-    pub mod core;
-    // pub mod generic;
+    pub mod data;
+    pub mod enums;
     pub mod id;
     pub mod preview;
     pub mod simple_index;
 }
 mod general {
     pub mod cache;
-    pub mod enums;
     pub mod file;
-    pub mod hide;
     pub mod logger;
     pub mod progress;
+    pub mod strings;
+    pub mod timer;
     pub mod worker;
 }
 mod work {
@@ -64,13 +59,16 @@ mod work {
     pub mod compare;
     pub mod convert;
     pub mod date;
+    pub mod hide;
+    pub mod hierarchy;
     pub mod processing;
+    pub mod sets;
 }
 mod input {
     pub mod build;
+    pub mod builder;
     pub mod raw;
-    pub mod sequence;
-    pub mod set;
+    pub mod raw_enums;
     pub mod source;
 }
 mod output {
@@ -96,9 +94,7 @@ fn build_page(
     map: &HashMap<&str, Mappable>,
 ) -> anyhow::Result<()> {
     let content = match page.substitute {
-        Some(substitute) => {
-            substitute.object.get_page(markdown, paths)
-        }
+        Some(substitute) => substitute.object.get_page(markdown, paths),
         None => "[[handcrafted]]".into(),
     };
     let mut local_map = map.clone();
@@ -150,7 +146,13 @@ fn substitute(content: &str, markdown: &Markdown, map: &HashMap<&str, Mappable>)
         .join("\n")
 }
 
-fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>, paths: &Paths, name: &str, worker: &Worker) {
+fn generate_relation_table(
+    data: &Data,
+    draw_sets: &Vec<PreviewSet>,
+    paths: &Paths,
+    name: &str,
+    worker: &Worker,
+) {
     let ordered_draw_sets = order_sets_from_sources(data, draw_sets);
     let mut related_sets_map: HashMap<PreviewSet, RelatedSets> = HashMap::new();
     for set in &ordered_draw_sets {
@@ -160,24 +162,8 @@ fn generate_relation_table(data: &Data, draw_sets: &Vec<PreviewSet>, paths: &Pat
         related_sets_map: related_sets_map.clone(),
         ordered_draw_sets: ordered_draw_sets.clone(),
         paths: Box::new(paths.clone()),
-        name: name.into()
+        name: name.into(),
     });
-}
-
-struct Timer {
-    instant: Instant,
-}
-
-impl Timer {
-    fn new() -> Self {
-        Self {
-            instant: Instant::now(),
-        }
-    }
-
-    pub fn print(&self, message: &str) {
-        info!("{:?} {}", self.instant.elapsed(), message);
-    }
 }
 
 #[derive(Hash, PartialEq, Eq)]
@@ -345,11 +331,16 @@ impl Computation {
         let mock = self.args.contains(&Args::Mock);
         self.bibliography = match load_bibliography(&self.paths.bibliography_file) {
             Ok(x) => Some(x),
-            Err(err) => { error!("{}", err); None },
+            Err(err) => {
+                error!("{}", err);
+                None
+            }
         };
         let cch: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
-        if !mock && !self.args.contains(&Args::Preprocess)
-            && let Some(mut res) = cch.load() {
+        if !mock
+            && !self.args.contains(&Args::Preprocess)
+            && let Some(mut res) = cch.load()
+        {
             info!("deserialized data");
             res.recompute();
             self.some_data = Some(res);
@@ -377,15 +368,21 @@ impl Computation {
         }
         let data = self.get_data();
         self.time.print("creating main page dots");
-        let parameters: Vec<&Set> = data.sets.iter()
+        let parameters: Vec<&Set> = data
+            .sets
+            .iter()
             .filter(|x| x.typ == PreviewType::Parameter)
             .filter(|x| x.relevance >= self.hide_irrelevant_parameters_below)
             .collect();
-        let simplified_parameters: Vec<&Set> = data.sets.iter()
+        let simplified_parameters: Vec<&Set> = data
+            .sets
+            .iter()
             .filter(|x| x.typ == PreviewType::Parameter)
             .filter(|x| x.relevance >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
-        let graphs: Vec<&Set> = data.sets.iter()
+        let graphs: Vec<&Set> = data
+            .sets
+            .iter()
             .filter(|x| matches!(x.typ, PreviewType::GraphClass | PreviewType::Property(_)))
             .collect();
         for (name, set) in [
@@ -469,7 +466,7 @@ impl Computation {
         for k in handcrafted_pages.keys() {
             target_keys.insert(k);
         }
-        let mut pages = vec![];
+        let mut pages = Vec::new();
         for target in target_keys {
             let substitute = generated_pages.get(target);
             let source = handcrafted_pages.get(target);
@@ -494,9 +491,11 @@ impl Computation {
             match cmd.as_str() {
                 "help" => {
                     println!("help:");
-                    println!("    hasse <par_id> [<par_id> ...] - draws hasse diagram of the listed parameters");
+                    println!(
+                        "    hasse <par_id> [<par_id> ...] - draws hasse diagram of the listed parameters"
+                    );
                     println!("    exit - end the interactive prompt");
-                },
+                }
                 "hasse" => {
                     let mut sets = Vec::new();
                     for i in command.iter() {
@@ -505,21 +504,21 @@ impl Computation {
                     }
                     let target_dir = &self.paths.tmp_dir;
                     let name = "drawing";
-                    let res_dot_target_file = make_drawing(
-                        data,
-                        target_dir,
-                        name,
-                        &sets,
-                        None,
-                    );
+                    let res_dot_target_file = make_drawing(data, target_dir, name, &sets, None);
                     if let Ok(dot_target_file) = res_dot_target_file {
                         println!("dot drawing created at '{:?}'", dot_target_file);
                         let pdf_target_file = target_dir.join(format!("{}.pdf", name));
-                        Command::new("dot").arg("-Tpdf").arg(&dot_target_file).arg("-o").arg(&pdf_target_file).output().expect("dot command failed");
+                        Command::new("dot")
+                            .arg("-Tpdf")
+                            .arg(&dot_target_file)
+                            .arg("-o")
+                            .arg(&pdf_target_file)
+                            .output()
+                            .expect("dot command failed");
                         assert!(pdf_target_file.exists());
                         println!("pdf generated at '{:?}'", pdf_target_file);
                     }
-                },
+                }
                 "exit" => return false,
                 x => println!("unknown command '{}'", x),
             }
@@ -550,7 +549,7 @@ impl Computation {
                         break;
                     }
                     buffer = String::new();
-                },
+                }
                 Err(err) => {
                     error!("{:?}", err);
                 }
@@ -581,7 +580,6 @@ impl Computation {
         let (name, set) = ("table_simplified", &simplified_table_sets);
         generate_relation_table(data, set, &self.paths, name, &self.worker);
     }
-
 }
 
 fn main() {

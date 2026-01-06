@@ -3,16 +3,15 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::Command;
 
-use log::error;
+use log::{error, info};
 
+use crate::data::data::Data;
+use crate::data::enums::*;
+use crate::data::id::*;
 use crate::file;
-use crate::data::core::{Data, Set};
-use crate::data::id::PreviewSetId;
-use crate::data::preview::{PreviewSet, PreviewType};
-use crate::general::enums::{CpxInfo::*, CpxTime};
-use crate::work::processing::RelatedSets;
-
-use super::color::{relation_color, Color};
+use crate::general::worker::Task;
+use crate::output::color::{Color, relation_color};
+use crate::work::sets::RelatedSets;
 
 fn table_format_par(i: usize, a: &PreviewSet) -> String {
     format!("\\parname{{{}}}{{{}}}{{../{}}}", i + 1, a.name, a.id)
@@ -71,4 +70,33 @@ pub fn render_table(
     }
 
     Ok(table_folder.join("main.pdf"))
+}
+
+pub struct CreateTable {
+    pub related_sets_map: HashMap<PreviewSet, RelatedSets>,
+    pub ordered_draw_sets: Vec<PreviewSet>,
+    pub paths: Box<Paths>,
+    pub name: String,
+}
+
+impl Task for CreateTable {
+    fn process(self) -> anyhow::Result<()> {
+        let CreateTable {
+            related_sets_map,
+            ordered_draw_sets,
+            paths,
+            name,
+        } = self;
+        let tmp_folder = &paths
+            .table_tikz_folder
+            .parent()
+            .unwrap_or_else(|| panic!("the used path is not expected to be the root"))
+            .join(format!("thread_tmp_{}", name));
+        file::copy_folder(&paths.table_tikz_folder, tmp_folder);
+        let done_pdf = render_table(related_sets_map, ordered_draw_sets, tmp_folder)?;
+        let final_pdf = paths.html_dir.join(format!("{}.pdf", name));
+        info!("copy the pdf to {:?}", &final_pdf);
+        file::copy_file(&done_pdf, &final_pdf);
+        Ok(())
+    }
 }

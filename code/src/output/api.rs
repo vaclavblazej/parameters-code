@@ -1,17 +1,14 @@
-
 use std::path::Path;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::data::preview::{PreviewSet, PreviewRelation, WorkRelation, PreviewType};
+use crate::data::data::Data;
+use crate::data::enums::*;
 use crate::data::id::{BaseId, PreviewRelationId};
-use crate::data::core::Data;
-use crate::work::combine;
 use crate::general::file;
-use crate::general::hide::filter_hidden;
-use crate::general::enums::{SourcedCpxInfo, CpxInfo, CpxTime};
-
+use crate::work::combine;
+use crate::work::hide::filter_hidden;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SimpleApiSet {
@@ -33,7 +30,6 @@ pub struct SimpleApiData {
     pub sets: Vec<SimpleApiSet>,
     pub relations: Vec<SimpleApiRelation>,
 }
-
 
 impl From<&PreviewSet> for SimpleApiSet {
     fn from(raw: &PreviewSet) -> Self {
@@ -57,32 +53,33 @@ impl From<&(PreviewSet, PreviewSet)> for SimpleApiRelation {
 
 impl From<&Data> for SimpleApiData {
     fn from(raw: &Data) -> Self {
-        let initial_relations = raw.relations.iter().filter_map(|r|{
-                match r.cpx {
-                    SourcedCpxInfo::Equal { .. } | SourcedCpxInfo::Inclusion { .. } => {
-                        Some(PreviewRelation {
-                            id: r.id.preview(),
-                            subset: r.subset.clone(),
-                            superset: r.superset.clone(),
-                            cpx: CpxInfo::Inclusion {
-                                mn: None,
-                                mx: Some(CpxTime::Linear),
-                            },
-                        })
-                    },
-                    SourcedCpxInfo::Exclusion { .. } | SourcedCpxInfo::Unknown => {
-                        None
-                    }
+        let initial_relations = raw
+            .relations
+            .iter()
+            .filter_map(|r| match r.cpx {
+                SourcedCpxInfo::Equal { .. } | SourcedCpxInfo::Inclusion { .. } => {
+                    Some(PreviewRelation {
+                        id: r.id.preview(),
+                        subset: r.subset.clone(),
+                        superset: r.superset.clone(),
+                        cpx: CpxInfo::Inclusion {
+                            mn: None,
+                            mx: Some(CpxTime::Linear),
+                        },
+                    })
                 }
-            }).collect();
+                SourcedCpxInfo::Exclusion { .. } | SourcedCpxInfo::Unknown => None,
+            })
+            .collect();
         let preview_sets = raw.set_idx.keys().cloned().collect();
         let shown_relations = filter_hidden(initial_relations, &preview_sets);
-        let relations = shown_relations.iter().map(|x|{
-            SimpleApiRelation{
+        let relations = shown_relations
+            .iter()
+            .map(|x| SimpleApiRelation {
                 subset_id: x.subset.id.to_string(),
                 superset_id: x.superset.id.to_string(),
-            }
-        }).collect();
+            })
+            .collect();
         let sets = raw.set_idx.keys().map(SimpleApiSet::from).collect();
         SimpleApiData {
             date: format!("{}", chrono::Local::now().format("%Y-%m-%d")),
@@ -91,7 +88,6 @@ impl From<&Data> for SimpleApiData {
         }
     }
 }
-
 
 pub fn create_simple_api(data: &Data, api_dir: &Path) -> Result<()> {
     let simple_data = SimpleApiData::from(data);

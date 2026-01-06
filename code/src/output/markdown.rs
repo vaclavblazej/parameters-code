@@ -12,19 +12,16 @@ use log::{error, info, trace};
 use rand::seq::IndexedRandom;
 use regex::Regex;
 
-use crate::data::core::{Data, ProviderLink, Relation, Set, ShowedFact, Source, Tag};
-use crate::data::id::{BaseId, PreviewId};
-use crate::data::preview::{
-    HasPreview, PreviewRelation, PreviewSet, PreviewSource, PreviewSourceKey, PreviewTag, PreviewType
-};
-use crate::general::enums::{CreatedBy, Drawing, Page, SourceKey, SourcedCpxInfo};
+use crate::data::data::*;
+use crate::data::enums::*;
+use crate::data::id::*;
+use crate::data::preview::*;
 use crate::general::progress;
-use crate::{file, generate_relation_table, Paths, Worker};
-
-use super::color::{relation_color, Color};
-use super::diagram::{make_drawing, make_focus_drawing, make_subset_drawing};
-use super::table::render_table;
-use super::to_markdown::ToMarkdown;
+use crate::output::color::{Color, relation_color};
+use crate::output::diagram::{make_drawing, make_focus_drawing, make_subset_drawing};
+use crate::output::table::render_table;
+use crate::output::to_markdown::ToMarkdown;
+use crate::{Paths, Worker, file, generate_relation_table};
 
 type Result<T> = std::result::Result<T, MarkdownError>;
 
@@ -181,7 +178,10 @@ impl GeneratedPage for Set {
             .map(|x| builder.linkto(x))
             .collect();
         if !equivalent_strings.is_empty() {
-            res += &format!("functionally equivalent to: {}\n\n", equivalent_strings.join(", "));
+            res += &format!(
+                "functionally equivalent to: {}\n\n",
+                equivalent_strings.join(", ")
+            );
         }
         if !self.providers.is_empty() {
             let provider_strings: Vec<String> =
@@ -190,7 +190,10 @@ impl GeneratedPage for Set {
         }
         if !self.displayed_definition.is_empty() {
             if self.displayed_definition.len() == 1 {
-                res += &format!("**Definition:** {}\n\n", self.displayed_definition.first().unwrap());
+                res += &format!(
+                    "**Definition:** {}\n\n",
+                    self.displayed_definition.first().unwrap()
+                );
             } else {
                 res += "**Definitions:**\n\n";
                 for definition in &self.displayed_definition {
@@ -216,7 +219,10 @@ impl GeneratedPage for Set {
                     .data
                     .sets
                     .iter()
-                    .filter(|x| matches!(x.typ, PreviewType::GraphClass | PreviewType::Property(_)) && x.relevance > 0)
+                    .filter(|x| {
+                        matches!(x.typ, PreviewType::GraphClass | PreviewType::Property(_))
+                            && x.relevance > 0
+                    })
                     .collect(),
                 &paths.working_dir,
             ),
@@ -374,33 +380,35 @@ fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
     match &created_by {
         CreatedBy::TransferredFrom(transfer_group, handle) => {
             format!("transferred from {}", handle)
-        },
+        }
         CreatedBy::TransitiveInclusion(a, b) => {
             format!("by {} and {}", a, b)
-        },
+        }
         CreatedBy::TransitiveExclusion(a, b) => {
             format!("by {} and {}", a, b)
-        },
+        }
         CreatedBy::ParallelComposition(a, b) => {
             format!("parallel composition of {} and {}", a, b)
-        },
+        }
         CreatedBy::SameThroughEquivalence(a, b) => {
             format!("due to equivalence {} and relation {}", a, b)
-        },
+        }
         CreatedBy::SumInclusion(sumincl) => {
-            let sumstr: String = sumincl.iter()
-                .map(|x|x.to_string()).collect::<Vec<String>>().join(", ");
+            let sumstr: String = sumincl
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(", ");
             format!("implied by inclusion of summands {}", sumstr)
-        },
-        CreatedBy::TransferredFrom(group, a) => { // todo name the rule group
+        }
+        CreatedBy::TransferredFrom(group, a) => {
+            // todo name the rule group
             format!("transferred from {}", a)
-        },
+        }
         CreatedBy::Directly(source) => {
             format!("by [[{}]]", source.id)
-        },
-        CreatedBy::Todo => {
-            "todo".to_string()
-        },
+        }
+        CreatedBy::Todo => "todo".to_string(),
     }
 }
 
@@ -440,8 +448,9 @@ fn relations_list(builder: &Markdown) -> String {
     for relation in &builder.data.relations {
         let this_anchor = format!("<span id=\"{}\"></span>", relation.preview().get_url());
         let this_el = format!("[$]({})", relation.preview().get_url());
-        let join_el = if let Some(reverse_relation) =
-            builder.data.get_relation(&relation.superset, &relation.subset)
+        let join_el = if let Some(reverse_relation) = builder
+            .data
+            .get_relation(&relation.superset, &relation.subset)
         {
             format!("[→]({})", reverse_relation.preview().get_url())
         } else {
@@ -450,8 +459,8 @@ fn relations_list(builder: &Markdown) -> String {
         let sub = builder.data.get_set(&relation.subset);
         let sup = builder.data.get_set(&relation.superset);
         // let color = &format!( // todo
-            // "color: [[color {}]]\n\n",
-            // relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview()).name()
+        // "color: [[color {}]]\n\n",
+        // relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview()).name()
         // );
         res += &format!(
             "\n{}{} {} {} {} -- {}\n",
@@ -540,11 +549,7 @@ impl<'a> Markdown<'a> {
         }
     }
 
-    pub fn substitute_custom_markdown(
-        &self,
-        line: &str,
-        map: &HashMap<&str, Mappable>,
-    ) -> String {
+    pub fn substitute_custom_markdown(&self, line: &str, map: &HashMap<&str, Mappable>) -> String {
         let pattern = Regex::new(r"\[\[(?P<capturegroup>[^\]]+)\]\]").unwrap();
         let result = pattern.replace_all(line, |caps: &regex::Captures| {
             let part = caps.name("capturegroup");
@@ -571,11 +576,10 @@ impl<'a> Markdown<'a> {
     pub fn link_id(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let some_id = keys.pop_front();
         if let Some(id) = some_id {
-            match self.urls.get(&id) { Some(link) => {
-                Ok(format!("[{}]({})", link.get_name(), link.get_url()))
-            } _ => {
-                Err(MarkdownError::ErrSubstitutingId(id))
-            }}
+            match self.urls.get(&id) {
+                Some(link) => Ok(format!("[{}]({})", link.get_name(), link.get_url())),
+                _ => Err(MarkdownError::ErrSubstitutingId(id)),
+            }
         } else {
             Err(MarkdownError::ErrSubstituting)
         }
@@ -809,7 +813,7 @@ impl<'a> Markdown<'a> {
             </embed>\
             </object>\n\n",
             name, height, name, name
-            ))
+        ))
     }
 
     pub fn color(&self, keys: &mut LinkedList<String>) -> Result<String> {
@@ -817,5 +821,4 @@ impl<'a> Markdown<'a> {
         let color = Color::from_str(&colorname);
         Ok(format!("<span style=\"color:{}\">■</span>", color.hex()))
     }
-
 }

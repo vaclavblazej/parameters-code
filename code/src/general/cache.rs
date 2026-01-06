@@ -1,3 +1,5 @@
+//! Save objects into files to cache results of processing.
+
 use std::{marker::PhantomData, path::Path};
 use std::path::PathBuf;
 
@@ -7,11 +9,13 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::general::file;
 
+
 pub struct Cache<T> {
     file: PathBuf,
     _marker: PhantomData<T>,
 }
 
+/// Serializable object 
 impl<T> Cache<T> {
     pub fn new(file: &Path) -> Self {
         Self {

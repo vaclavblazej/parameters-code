@@ -1,38 +1,29 @@
-//! Interface for a simplified input of connection information.
+//! Functions for creating the data collection.
 
 use std::collections::{HashMap, HashSet};
 
 use log::error;
 
-use super::source::{RawDataProvider, RawDataSource};
-use super::{
-    raw::{
-        BuiltRawSet, BuiltRawSource, Composition, RawData, RawProvider, RawRelation, RawSet,
-        RawShowed, RawShowedFact, RawSource, RawSourceKey, RawTag, RawType, RawOwn,
-    },
-    set::SetBuilder,
-    sequence::SequenceBuilder,
-};
-use crate::{
-    data::id::{BaseId, Id, PreviewId, PreviewSetId, PreviewTagId, ProviderId, ShowedId, SourceId},
-    general::enums::{
-        Cpx::UpperBound,
-        CpxTime::{Constant, Linear},
-        Page, TransferGroup,
-    },
-};
+use crate::data::data::NameCore;
+use crate::data::enums::*;
+use crate::data::id::*;
+use crate::general::strings::nice_concat;
+use crate::input::builder::Builder;
+use crate::input::raw::*;
+use crate::input::raw_enums::*;
+use crate::input::source::RawSourceData;
 
-pub fn copyvec(vec: Vec<&PreviewSetId>) -> Vec<PreviewSetId> {
-    vec.iter().map(|&x|x.to_owned()).collect()
+pub fn copyvec<T>(vec: Vec<&PreviewId<T>>) -> Vec<PreviewId<T>> {
+    vec.iter().map(|&x| x.to_owned()).collect()
 }
 
-pub struct Builder {
+pub struct CollectionBuilder {
     pub data: RawData,
     id_sanity_map: HashSet<String>, // todo move unique checking to id.rs?
     name_sanity_map: HashSet<String>,
-    unknown_source: RawDataSource,
-    assumed_source: RawDataSource,
-    set_map: HashMap<PreviewSetId, usize>, // idx to data.sets
+    unknown_source: RawSourceData,
+    assumed_source: RawSourceData,
+    id_map: HashMap<String, usize>, // idx to data.sets
 }
 
 pub static UNKNOWN_SOURCE_ID: &str = "myit4D";
@@ -41,27 +32,38 @@ pub static ASSUMED_SOURCE_ID: &str = "9kg0oo";
 /// Defines a new graph class. We do not aim to have all graph
 /// classes in the database but only those that are very relevant
 /// to the field of parameterized complexity.
-pub fn graph_class(id: &str, name: &str, relevance: u32) -> SetBuilder {
-    let res = BuiltRawSet::new(
-        id.into(),
-        name.into(),
-        RawType::GraphClass,
-        Composition::None,
+pub fn graph_class(
+    id: &str,
+    name: &str,
+    relevance: u32,
+    definition: &str,
+) -> Builder<PreviewGraphClassId, RawGraphClass> {
+    assert!(relevance <= 9);
+    Builder::new(RawGraphClass {
+        id: GraphClassId::new(id),
         relevance,
-        );
-    SetBuilder::new(res)
+        names: NameCore::new(name),
+        definition: RawGraphClassDefinition::Text(definition),
+    })
 }
 
 /// Defines a graph class where each graph in it is associated with an integer.
-pub fn parametric_graph_class(id: &str, name: &str, relevance: u32) -> SetBuilder {
-    let res = BuiltRawSet::new(
-        id.into(),
-        name.into(),
-        RawType::GraphClass,
-        Composition::None,
+pub fn parametric_graph_class(
+    id: &str,
+    name: &str,
+    relevance: u32,
+    closed_under: PreviewGraphRelationId,
+    definition: &str,
+) -> Builder<PreviewParametricGraphClassId, RawParametricGraphClass> {
+    assert!(relevance <= 9);
+    Builder::new(RawParametricGraphClass {
+        id: ParametricGraphClassId::new(id),
         relevance,
-        );
-    SetBuilder::new(res)
+        names: NameCore::new(name),
+        closed_under,
+        tags: Vec::new(),
+        definition: String::from(definition),
+    })
 }
 
 /// Add a new parameter.
@@ -71,37 +73,89 @@ pub fn parametric_graph_class(id: &str, name: &str, relevance: u32) -> SetBuilde
 /// a separate parameter and then united with Equivalence.
 /// Equivalent parameters whose equivalence is to some degree surprising
 /// their definitions may be kept separate.
-pub fn parameter(id: &str, name: &str, relevance: u32) -> SetBuilder {
-    let res = BuiltRawSet::new(
-        id.into(),
-        name.into(),
-        RawType::Parameter,
-        Composition::None,
+pub fn parameter(
+    id: &str,
+    name: &str,
+    relevance: u32,
+    definition: &str,
+) -> Builder<PreviewParameterId, RawParameter> {
+    Builder::new(RawParameter {
+        id: ParameterId::from(id.into()),
         relevance,
-        );
-    SetBuilder::new(res)
+        names: NameCore::new(name),
+        definition: RawParameterDefinition::text(String::from(definition)),
+        tags: Vec::new(),
+    })
 }
 
-pub fn parameter_sequence(id: &str) -> SequenceBuilder {
-    SequenceBuilder::new(id)
-}
-
-/// Defines a new property that is closed under taking graph subclasses.
-pub fn property(id: &str, name: &str, own: RawOwn, relevance: u32) -> SetBuilder {
-    let res = BuiltRawSet::new(
-        id.into(),
-        name.into(),
-        RawType::Property(own),
-        Composition::None,
+pub fn higher_order_parameter(
+    id: &str,
+    name: &str,
+    relevance: u32,
+    bounds_all: PreviewParametricParameterId,
+) -> Builder<PreviewHigherOrderParameterId, RawParameter> {
+    Builder::new(RawParameter {
+        id: HigherOrderParameterId::new(id.into()),
         relevance,
-        );
-    SetBuilder::new(res)
+        names: NameCore::new(name),
+        definition: RawParameterDefinition::BoundsAll(bounds_all),
+        tags: Vec::new(),
+    })
 }
 
-pub fn source(id: &str, sourcekey: &str, relevance: u32) -> RawDataSource {
+pub fn parametric_parameter(
+    id: &str,
+    name: &str,
+    relevance: u32,
+    definition: RawParametricParameterDefinition,
+) -> Builder<PreviewParametricParameterId, RawParametricParameter> {
+    Builder::new(RawParametricParameter {
+        id: ParametricParameterId::new(id.into()),
+        relevance,
+        names: NameCore::new(name),
+        definition,
+        tags: Vec::new(),
+    })
+}
+
+pub fn graph_property(
+    id: &str,
+    name: &str,
+    own: RawOwn,
+    relevance: u32,
+    definition: RawGraphProperty,
+) -> Builder<PreviewGraphClassPropertyId, RawGraphClassProperty> {
+    assert!(relevance <= 9);
+    Builder::new(RawGraphClass {
+        id: GraphClassPropertyId::from(id.into()),
+        relevance,
+        names: NameCore::new(name),
+        definition,
+        own,
+    })
+}
+
+pub fn graph_class_property(
+    id: &str,
+    name: &str,
+    own: RawOwn,
+    relevance: u32,
+    definition: RawGraphClassPropertyDefinition,
+) -> Builder<PreviewGraphClassPropertyId, RawGraphClassProperty> {
+    assert!(relevance <= 9);
+    Builder::new(RawGraphClassProperty {
+        id: GraphClassPropertyId::new(id.into()),
+        relevance,
+        names: NameCore::new(name),
+        definition,
+        own,
+    })
+}
+
+pub fn source(id: &str, sourcekey: &str, relevance: u32) -> RawSourceData {
     assert!(relevance <= 9);
     let rawsourcekey = RawSourceKey::Bibtex {
-        key: sourcekey.into(),
+        key: String::from(sourcekey),
     };
     let mut res = BuiltRawSource {
         id: Id::new(id.into()),
@@ -109,7 +163,7 @@ pub fn source(id: &str, sourcekey: &str, relevance: u32) -> RawDataSource {
         relevance,
         drawings: vec![],
     };
-    RawDataSource::new(res)
+    RawSourceData::new(res)
 }
 
 /// Tie to other websites that keep information about parameters.
@@ -118,7 +172,7 @@ pub fn provider(
     name: &str,
     url: &str,
     format_url: Box<dyn Fn(&str) -> String>,
-    ) -> RawDataProvider {
+) -> RawDataProvider {
     let provider = RawProvider {
         id: ProviderId::new(id.into()),
         name: name.into(),
@@ -127,9 +181,9 @@ pub fn provider(
     RawDataProvider::new(provider, format_url)
 }
 
-impl Builder {
-    pub fn new() -> Builder {
-        let unknown_source = RawDataSource::new(BuiltRawSource {
+impl CollectionBuilder {
+    pub fn new() -> CollectionBuilder {
+        let unknown_source = RawSourceData::new(BuiltRawSource {
             id: Id::new(UNKNOWN_SOURCE_ID.into()),
             rawsourcekey: RawSourceKey::Other {
                 name: "unknown source".into(),
@@ -138,7 +192,7 @@ impl Builder {
             relevance: 3,
             drawings: vec![],
         });
-        let assumed_source = RawDataSource::new(BuiltRawSource {
+        let assumed_source = RawSourceData::new(BuiltRawSource {
             id: Id::new(ASSUMED_SOURCE_ID.into()),
             rawsourcekey: RawSourceKey::Other {
                 name: "assumed".into(),
@@ -154,12 +208,15 @@ impl Builder {
             name_sanity_map: HashSet::new(),
             unknown_source,
             assumed_source,
-            set_map: HashMap::new(),
+            id_map: HashMap::new(),
         }
     }
 
-    fn get<'a>(&'a self, set: &PreviewSetId) -> &'a RawSet {
-        let idx = self.set_map.get(set).unwrap();
+    fn get<'a, T, W>(&'a self, set: &W) -> &'a T
+    where
+        T: HasId<W>,
+    {
+        let idx = self.id_map.get(set).unwrap();
         self.data.sets.get(*idx).unwrap()
     }
 
@@ -172,7 +229,7 @@ impl Builder {
             name_sanity_map: _,
             mut unknown_source,
             mut assumed_source,
-            set_map: _,
+            id_map: _,
         } = self;
         for set in &data.sets {
             assumed_source = assumed_source.proved(
@@ -180,9 +237,9 @@ impl Builder {
                 Page::NotApplicable,
                 &set.id.preview(),
                 &set.id.preview(),
-                crate::general::enums::Cpx::Equal,
+                crate::data::enums::Cpx::Equal,
                 "assumed",
-                );
+            );
         }
         unknown_source.data_done(&mut data);
         assumed_source.data_done(&mut data);
@@ -206,7 +263,7 @@ impl Builder {
         let last_idx = self.data.sets.len();
         let set_id = set.id.preview();
         self.data.sets.push(set);
-        self.set_map.insert(set_id, last_idx);
+        self.id_map.insert(set_id, last_idx);
     }
 
     /// Represents that bounds on *from* instances transfer to *to* instances.
@@ -219,6 +276,86 @@ impl Builder {
     ) {
         let r = self.data.transfer.entry(group).or_default();
         r.push((from.clone(), to.clone()));
+    }
+
+    pub fn logic_fragment(
+        &self,
+        id: &str,
+        name: &str,
+        description: Option<&str>,
+    ) -> PreviewLogicFragmentId {
+        let res = RawLogicFragment {
+            id: LogicFragmentId::new(id.into()),
+            name: String::from(name),
+            description: description.map(String::from),
+        };
+        res.id.preview()
+    }
+
+    pub fn graph_operation(
+        &self,
+        id: &str,
+        name: &str,
+        definition: RawOperationDefinition,
+    ) -> PreviewGraphOperationId {
+        let res = RawOperation {
+            id: GraphOperationId::new(id.into()),
+            name: NameCore::new(name),
+            definition,
+        };
+        res.id.preview()
+    }
+
+    pub fn problem(
+        &self,
+        id: &str,
+        name: &str,
+        definition: RawProblemDefinition,
+    ) -> PreviewProblemId {
+        let id = ProblemId::new(id.into());
+        id.preview()
+    }
+
+    pub fn graph_class_operation(
+        &self,
+        id: &str,
+        name: &str,
+        definition: GraphClassOperationDefinition,
+    ) -> PreviewGraphClassOperationId {
+        let res = RawGraphClassOperation {
+            id: GraphClassOperationId::new(id.into()),
+            name: String::from(name),
+            definition,
+        };
+        res.id.preview()
+    }
+
+    pub fn graph_class_relation_type(
+        &self,
+        id: &str,
+        name: &str,
+        definition: RawGraphClassRelationDefinition,
+    ) -> PreviewGraphClassRelationId {
+        let res = RawGraphClassRelation {
+            id: GraphClassRelationId::new(id.into()),
+            name: String::from(name),
+            definition,
+        };
+        res.id.preview()
+    }
+
+    pub fn graph_relation_type(
+        &self,
+        id: &str,
+        name: &str,
+        displayed_definition: RawGraphRelationDefinition,
+    ) -> PreviewGraphRelationId {
+        let res = RawGraphRelation {
+            id: GraphRelationId::new(id.into()),
+            name: String::from(name),
+            displayed_definition,
+        };
+        res.id.preview()
     }
 
     /// Add a parameter defined as the number of vertices to be removed
@@ -235,39 +372,43 @@ impl Builder {
         let set_type = set.typ.clone();
         let set_id = set.id.preview();
         SetBuilder::new(res)
-            .displayed_definition("", &format!("Minimum number of vertices removed to make the graph into [[{}]]", set_id)) // todo move to later processing
+            .displayed_definition(
+                "",
+                &format!(
+                    "Minimum number of vertices removed to make the graph into [[{}]]",
+                    set_id
+                ),
+            ) // todo move to later processing
             .add_callback(Box::new(
-            move |builder: &mut Builder, newset: &RawSet| {
-                let mut tmp_source = builder.assumed_source();
-                match set_type {
-                    RawType::Parameter => {
-                        builder.assumed_source.ref_proved(
+                move |builder: &mut CollectionBuilder, newset: &RawSet| {
+                    let mut tmp_source = builder.assumed_source();
+                    match set_type {
+                        RawType::Parameter => builder.assumed_source.ref_proved(
                             &SourceId::get_tmp().to_string(),
                             Page::NotApplicable,
                             &set_id,
                             &newset.id.preview(),
                             UpperBound(Linear),
                             "by definition",
-                        )
-                    },
-                    RawType::GraphClass | RawType::Property(_) => {
-                        builder.assumed_source.ref_proved(
-                            &SourceId::get_tmp().to_string(),
-                            Page::NotApplicable,
-                            &set_id,
-                            &newset.id.preview(),
-                            UpperBound(Constant),
-                            "by definition",
-                        )
-                    },
-                };
-                builder.transfers_bound_to(
-                    TransferGroup::DistanceTo,
-                    &set_id,
-                    &newset.id.preview(),
-                );
-            },
-        ))
+                        ),
+                        RawType::GraphClass | RawType::Property(_) => {
+                            builder.assumed_source.ref_proved(
+                                &SourceId::get_tmp().to_string(),
+                                Page::NotApplicable,
+                                &set_id,
+                                &newset.id.preview(),
+                                UpperBound(Constant),
+                                "by definition",
+                            )
+                        }
+                    };
+                    builder.transfers_bound_to(
+                        TransferGroup::DistanceTo,
+                        &set_id,
+                        &newset.id.preview(),
+                    );
+                },
+            ))
     }
 
     /// Create a new set that represents intersection of sets.
@@ -282,7 +423,7 @@ impl Builder {
         relevance: u32,
     ) -> SetBuilder {
         let sets = vec![set_a.clone(), set_b.clone()];
-        let (typ, upper_bound) = if sets.iter().any(|x|{
+        let (typ, upper_bound) = if sets.iter().any(|x| {
             let set = self.get(x);
             set.typ == RawType::Parameter
         }) {
@@ -297,47 +438,42 @@ impl Builder {
             Composition::Intersection(sets.clone()),
             relevance,
         );
-        let mut definition = String::new();
-        definition += "an intersetcion of";
-        for (i, set_id) in sets.iter().enumerate() {
-            let join = if i+1 == sets.len() {
-                ", and"
-            } else if i == 0 || sets.len() == 2 {
-                " "
-            } else {
-                ", "
-            };
-            definition += &format!("{} [[{}]]", join, set_id);
-        }
+        let definition = format!("an intersetcion of {}", nice_concat(sets));
         SetBuilder::new(res)
             .displayed_definition("", &definition)
             .add_callback(Box::new(
-            move |builder: &mut Builder, newset: &RawSet| {
-                for set_id in &sets {
-                    let id = &format!("{}_{}", newset.id, set_id);
-                    builder.assumed_source().ref_proved("", Page::NotApplicable, &newset.id.preview(), set_id, upper_bound.clone(), "by definition");
-                }
-            },
-        ))
+                move |builder: &mut CollectionBuilder, newset: &RawSet| {
+                    for set_id in &sets {
+                        let id = &format!("{}_{}", newset.id, set_id);
+                        builder.assumed_source().ref_proved(
+                            "",
+                            Page::NotApplicable,
+                            &newset.id.preview(),
+                            set_id,
+                            upper_bound.clone(),
+                            "by definition",
+                        );
+                    }
+                },
+            ))
     }
 
-    pub fn assumed_source(&mut self) -> &mut RawDataSource {
+    pub fn assumed_source(&mut self) -> &mut RawSourceData {
         &mut self.assumed_source
     }
 
-    pub fn unknown_source(&mut self) -> &mut RawDataSource {
+    pub fn unknown_source(&mut self) -> &mut RawSourceData {
         &mut self.unknown_source
     }
 
-    pub fn web_source(&mut self, id: &str, url: &str) -> RawDataSource {
+    pub fn web_source(&mut self, id: &str, url: &str) -> RawSourceData {
         let rawsourcekey = RawSourceKey::Online { url: url.into() };
         let mut res = BuiltRawSource {
-            id: Id::new(id.into()),
+            id: SourceId::new(id.into()),
             rawsourcekey,
             relevance: 0,
-            drawings: vec![],
         };
-        RawDataSource::new(res)
+        RawSourceData::new(res)
     }
 
     /// Define a tag that some sets share so they can be grouped.

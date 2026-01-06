@@ -1,14 +1,10 @@
 use core::fmt;
-
-use crate::{
-    data::{
-        core::{PartialResult, PartialResultsBuilder, Relation}, id::PreviewSetId, preview::{PreviewSet, WorkRelation}
-    },
-    general::enums::{
-        ComparisonResult, CpxInfo, CpxTime, CreatedBy, SourcedCpxInfo::{self, *},
-    },
-};
 use log::{debug, error, trace};
+
+use crate::data::data::*;
+use crate::data::enums::*;
+use crate::data::id::*;
+use crate::work::processing::WorkRelation;
 
 #[derive(Debug)]
 pub enum CombinationError {
@@ -19,14 +15,21 @@ pub enum CombinationError {
 impl fmt::Display for CombinationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CombinationError::ExclusionInclusion(a, b) => write!(f, "Tried to combine Exclusion with Inclusion relation in parallel:\n{:?}\n{:?}", a, b),
-            CombinationError::IncompatibleWithEquivalence(a, b) => write!(f, "Tried to combine equivalence with an incompatible relation in parallel:\n{:?}\n{:?}", a, b),
+            CombinationError::ExclusionInclusion(a, b) => write!(
+                f,
+                "Tried to combine Exclusion with Inclusion relation in parallel:\n{:?}\n{:?}",
+                a, b
+            ),
+            CombinationError::IncompatibleWithEquivalence(a, b) => write!(
+                f,
+                "Tried to combine equivalence with an incompatible relation in parallel:\n{:?}\n{:?}",
+                a, b
+            ),
         }
     }
 }
 
 impl PartialResultsBuilder {
-
     pub fn new() -> Self {
         Self { arr: vec![] }
     }
@@ -101,7 +104,9 @@ pub fn combine_parallel_max(
     match (a, b) {
         ((CpxTime::Exists, a), _) | (_, (CpxTime::Exists, a)) => (CpxTime::Exists, a),
         ((CpxTime::Tower, a), _) | (_, (CpxTime::Tower, a)) => (CpxTime::Tower, a),
-        ((CpxTime::Exponential, a), _) | (_, (CpxTime::Exponential, a)) => (CpxTime::Exponential, a),
+        ((CpxTime::Exponential, a), _) | (_, (CpxTime::Exponential, a)) => {
+            (CpxTime::Exponential, a)
+        }
         ((CpxTime::Polynomial, a), _) | (_, (CpxTime::Polynomial, a)) => (CpxTime::Polynomial, a),
         ((CpxTime::Linear, a), _) | (_, (CpxTime::Linear, a)) => (CpxTime::Linear, a),
         ((CpxTime::Constant, a), (CpxTime::Constant, _)) => (CpxTime::Constant, a),
@@ -113,7 +118,7 @@ pub fn combine_serial(
     (cpxa, a): (CpxTime, PartialResult),
     (cpxb, b): (CpxTime, PartialResult),
 ) -> (PartialResult, PartialResult, CpxTime) {
-    let relation = a.relation.combine_serial(&b.relation);
+    // let relation = a.relation.combine_serial(&b.relation);
     match (cpxa, cpxb) {
         // constant is an exception here as it doesn't grow with growing parameter,
         // hence, anything is composes with also results in a constant

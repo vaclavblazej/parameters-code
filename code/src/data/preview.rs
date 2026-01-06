@@ -1,52 +1,92 @@
-//! Preview versions of the full structures.
+//! Preview versions of the data.
 
-use crate::{
-    general::enums::{CpxInfo, Page, SourceKey, SourcedCpxInfo},
-    work::date::Date,
-};
+use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use super::{
-    core::{Relation, Set, Source, Tag}, id::{
-        BaseId, Id, PreviewId, PreviewRelationId, PreviewSetId, PreviewSourceId, PreviewTagId, RelationId
-    }
-};
+use crate::data::data::*;
+use crate::data::enums::*;
+use crate::data::id::*;
+use crate::work::date::Date;
 
 pub trait HasPreview<T> {
     fn preview(&self) -> T;
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-pub enum Own {
-    Has,
-    Is,
+macro_rules! define_preview_id_name {
+    ($main:ident, $preview:ident, $previewid:ident) => {
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct $preview {
+            pub id: $previewid,
+            pub name: String,
+        }
+        impl HasPreviewId<$previewid> for $preview {}
+        impl HasPreview<$preview> for $main {
+            fn preview(&self) -> $preview {
+                $preview {
+                    id: self.id.preview(),
+                    name: self.name.clone(),
+                }
+            }
+        }
+    };
 }
 
-impl Own {
-
-    pub fn to_string(&self, truth: bool, plural: bool) -> String {
-        String::from(match (self, truth, plural) {
-            (Own::Is, true, false) => "is",
-            (Own::Is, true, true) => "are",
-            (Own::Has, true, false) => "has",
-            (Own::Has, true, true) => "have",
-            (Own::Is, false, false) => "is not",
-            (Own::Is, false, true) => "are not",
-            (Own::Has, false, false) => "does not have",
-            (Own::Has, false, true) => "do not have",
-        })
-    }
-
+macro_rules! define_preview_id_name_relevance {
+    ($main:ident, $preview:ident, $previewid:ident) => {
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct $preview {
+            pub id: $previewid,
+            pub relevance: u32,
+            pub name: String,
+        }
+        impl HasPreviewId<$previewid> for $preview {}
+        impl HasPreview<$preview> for $main {
+            fn preview(&self) -> $preview {
+                $preview {
+                    id: self.id.preview(),
+                    relevance: self.relevance,
+                    name: self.core.name.clone(),
+                }
+            }
+        }
+    };
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-pub enum PreviewType {
-    Parameter,
-    GraphClass,
+define_preview_id_name!(Tag, PreviewTag, PreviewTagId);
+define_preview_id_name!(LogicFragment, PreviewLogicFragment, PreviewLogicFragmentId);
+define_preview_id_name!(Operation, PreviewOperation, PreviewOperationId);
+define_preview_id_name!(Provider, PreviewProvider, PreviewProviderId);
+define_preview_id_name!(GraphRelation, PreviewGraphRelation, PreviewGraphRelationId);
+define_preview_id_name!(
+    GraphClassRelation,
+    PreviewGraphClassRelation,
+    PreviewGraphClassRelationId
+);
+
+define_preview_id_name_relevance!(Graph, PreviewGraph, PreviewGraphId);
+define_preview_id_name_relevance!(GraphClass, PreviewGraphClass, PreviewGraphClassId);
+define_preview_id_name_relevance!(
+    HigherOrderParameter,
+    PreviewHigherOrderParameter,
+    PreviewHigherOrderParameterId
+);
+define_preview_id_name_relevance!(
+    ParametricParameter,
+    PreviewParametricParameter,
+    PreviewParametricParameterId
+);
+define_preview_id_name_relevance!(
     ParametricGraphClass,
-    Property(Own),
-}
+    PreviewParametricGraphClass,
+    PreviewParametricGraphClassId
+);
+define_preview_id_name_relevance!(Parameter, PreviewParameter, PreviewParameterId);
+define_preview_id_name_relevance!(
+    GraphClassProperty,
+    PreviewGraphClassProperty,
+    PreviewGraphClassPropertyId
+);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PreviewSourceKey {
@@ -55,67 +95,11 @@ pub enum PreviewSourceKey {
     Other { name: String },
 }
 
-impl PreviewSourceKey {
-    pub fn to_str(&self) -> String {
-        match self {
-            PreviewSourceKey::Bibtex { key } => key.clone(),
-            PreviewSourceKey::Online { url } => url.clone(),
-            PreviewSourceKey::Other { name } => name.into(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct PreviewSource {
     pub id: PreviewSourceId,
     pub sourcekey: SourceKey,
     pub time: Date,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-pub struct PreviewSet {
-    pub id: PreviewSetId,
-    pub name: String,
-    pub typ: PreviewType,
-    pub relevance: u32,
-}
-
-impl PreviewSet {
-    pub fn is_more_relevant_than(&self, other: &PreviewSet) -> bool {
-        (self.relevance == other.relevance && self.id < other.id)
-            || self.relevance > other.relevance
-    }
-}
-
-impl HasPreview<PreviewSet> for Set {
-    fn preview(&self) -> PreviewSet {
-        PreviewSet {
-            id: self.id.preview(),
-            relevance: self.relevance,
-            typ: self.typ.clone(),
-            name: self.name.clone(),
-        }
-    }
-}
-
-impl HasPreview<PreviewTag> for Tag {
-    fn preview(&self) -> PreviewTag {
-        PreviewTag {
-            id: self.id.preview(),
-            name: self.name.clone(),
-        }
-    }
-}
-
-impl HasPreview<PreviewRelation> for Relation {
-    fn preview(&self) -> PreviewRelation {
-        PreviewRelation {
-            id: self.id.preview(),
-            subset: self.subset.clone(),
-            superset: self.superset.clone(),
-            cpx: CpxInfo::from(self.cpx.clone()),
-        }
-    }
 }
 
 impl HasPreview<PreviewSource> for Source {
@@ -128,22 +112,39 @@ impl HasPreview<PreviewSource> for Source {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct PreviewRelation {
-    pub id: PreviewRelationId,
-    pub subset: PreviewSet,
-    pub superset: PreviewSet,
-    pub cpx: CpxInfo,
-}
+// impl Display for PreviewSourceKey {
+// fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+// write!(f, "{}", match self {
+// PreviewSourceKey::Bibtex { key } => key,
+// PreviewSourceKey::Online { url } => url,
+// PreviewSourceKey::Other { name } => name,
+// })
+// }
+// }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct WorkRelation {
-    pub subset: PreviewSetId,
-    pub superset: PreviewSetId,
-}
+// #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
+// pub struct PreviewSet {
+// pub id: PreviewSetId,
+// pub name: String,
+// pub typ: PreviewType,
+// pub relevance: u32,
+// }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PreviewTag {
-    pub id: PreviewTagId,
-    pub name: String,
-}
+// impl HasPreview<PreviewRelation> for Relation {
+// fn preview(&self) -> PreviewRelation {
+// PreviewRelation {
+// id: self.id.preview(),
+// subset: self.subset.clone(),
+// superset: self.superset.clone(),
+// cpx: CpxInfo::from(self.cpx.clone()),
+// }
+// }
+// }
+
+// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub struct PreviewRelation {
+// pub id: PreviewRelationId,
+// pub subset: PreviewSet,
+// pub superset: PreviewSet,
+// pub cpx: CpxInfo,
+// }
