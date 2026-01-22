@@ -1,45 +1,75 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::output::color::Color;
+
 trait IntoDot {
     fn to_dot(&self) -> String;
 }
 
 pub struct Node {
     id: String,
-    label: String,
-    color: String,
-    attributes: String,
+    attributes: HashSet<NodeAttribute>,
 }
 
-impl IntoDot for Node {
-    fn to_dot(&self) -> String {
-        let mut res: String = String::new();
-        res.push_str(&format!(
-            "\t\"n_{}\" [label=\"{}\" URL=\"/parameters/html/{}\" color=\"{}\" {}]\n", // todo remove the hardcoded '/parameters'
-            self.id, self.label, self.id, self.color, self.attributes,
-        ));
-        res
-    }
+pub enum NodeAttribute {
+    Label(String),
+    Color(Color),
+    URL(String),
+    Shape(NodeShape),
 }
 
-impl From<&Set> for Node {
-    fn from(set: &Set) -> Node {
-        let attributes = "shape=box".into();
-        Node {
-            id: set.id.to_string(),
-            label: set.name.clone(),
-            color: "#dddddd".into(),
-            attributes,
+pub enum NodeShape {
+    Box,
+}
+
+impl From<NodeAttribute> for String {
+    fn from(attr: NodeAttribute) -> String {
+        match attr {
+            NodeAttribute::Label(str) => &format!("label=\"{}\"", str),
+            NodeAttribute::Color(color) => &format!("color=\"{}\"", color.hex()),
+            NodeAttribute::URL(url) => &format!("URL=\"/parameters/html/{}\"", url),
+            NodeAttribute::Shape(shape) => &format!(
+                "shape=\"{}\"",
+                match shape {
+                    Box => "box",
+                }
+            ),
         }
+        .into()
     }
 }
 
 pub struct Edge {
     pub from: String,
     pub to: String,
-    pub label: String,
-    pub attributes: String,
-    pub url: String,
+    pub attributes: HashSet<EdgeAttribute>,
+}
+
+pub enum EdgeAttribute {
+    Label(String),
+    URL(String),
+}
+
+impl From<EdgeAttribute> for String {
+    fn from(attr: EdgeAttribute) -> String {
+        match attr {
+            EdgeAttribute::Label(str) => &format!("label=\"{}\"", str),
+            EdgeAttribute::URL(url) => &format!("URL=\"/parameters/html/{}\"", url), // todo remove the hardcoded '/parameters'
+        }
+        .into()
+    }
+}
+
+impl IntoDot for Node {
+    fn to_dot(&self) -> String {
+        let mut res: String = String::new();
+        // self.attributes. // todo convert attributes to strings
+        res.push_str(&format!(
+            "\t\"n_{}\" [label=\"{}\" URL=\"/parameters/html/{}\" color=\"{}\" {}]\n",
+            self.id, self.label, self.id, self.color, self.attributes,
+        ));
+        res
+    }
 }
 
 impl IntoDot for Edge {
@@ -53,21 +83,7 @@ impl IntoDot for Edge {
     }
 }
 
-impl From<&PreviewRelation> for Edge {
-    fn from(prev: &PreviewRelation) -> Edge {
-        let attributes = String::new();
-        // attributes.append() ... todo
-        Edge {
-            from: prev.subset.id.to_string(),
-            to: prev.superset.id.to_string(),
-            label: "O".to_string(),
-            attributes,
-            url: prev.id.to_string(),
-        }
-    }
-}
-
-pub type SetColorCallback = dyn Fn(&Set) -> String;
+pub type SetColorCallback = dyn Fn(&Node) -> String;
 
 pub struct Graph {
     pub name: String,
@@ -86,7 +102,10 @@ impl Graph {
         }
     }
 
-    pub fn add_node(&mut self, set: &Set) {
+    pub fn add_node<T>(&mut self, set: &T)
+    where
+        T: Into<Node>,
+    {
         let mut node: Node = Node::from(set);
         if let Some(f) = &self.color_fn {
             node.color = f(set);
@@ -130,7 +149,7 @@ fn main() {
         attributes: "label=\"carving-width\" URL=\"./dS6OgO\" color=\"#c5d5e5\" shape=box"
             .to_string(),
     }];
-    fn color_fn(set: &Set) -> String {
+    fn color_fn(set: &Node) -> String {
         "gray".into()
     };
     let graph = Graph {

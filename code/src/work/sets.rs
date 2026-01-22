@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::simple_index::SimpleIndex;
+
 /// Minimal and maximal refer to inclusion-wise extremes. An isolated element
 /// would be included in all three sets.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
@@ -9,7 +11,7 @@ pub struct Sets<T> {
     pub all: Vec<T>,
 }
 
-impl Sets<T> {
+impl<T> Sets<T> {
     fn new(minimal: Vec<T>, maximal: Vec<T>, all: Vec<T>) -> Self {
         Self {
             minimal,
@@ -49,7 +51,7 @@ impl<T> RelatedSets<T> {
     }
 }
 
-fn prepare_extremes<T>(preview_set: Vec<PreviewSet>, data: &SimpleIndex) -> Sets<T> {
+pub fn prepare_extremes<T>(preview_set: Vec<T>, data: &SimpleIndex<T>) -> Sets<T> {
     let mut minimal = Vec::new();
     let mut maximal = Vec::new();
     let mut all = Vec::new();

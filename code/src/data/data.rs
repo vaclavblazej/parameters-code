@@ -2,18 +2,24 @@
 //! More complex structures use Preview structures to refer to each other.
 
 use std::collections::HashMap;
-use std::fmt;
 
 use log::trace;
 use serde::{Deserialize, Serialize};
 
+use crate::data::date::Date;
 use crate::data::enums::*;
 use crate::data::id::*;
+use crate::data::link::Link;
 use crate::data::preview::*;
-use crate::work::date::Date;
-use crate::work::sets::{RelatedSets, Sets};
+use crate::input::source::ClassicalSolvability;
+use crate::input::source::Cpx;
+use crate::input::source::EquivalenceRelation;
+use crate::input::source::ImplicationRelation;
+use crate::input::source::InclusionRelationUnderOperation;
+use crate::input::source::ParameterizedSolvability;
+use crate::tie_data_to_previewid;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
 pub struct NameCore {
     pub name: String,
     pub aka: Vec<String>,
@@ -31,112 +37,219 @@ impl NameCore {
 }
 
 pub trait Named {
-    fn name(&self) -> &NameCore {
-        self.core
+    fn name_core(&self) -> &NameCore;
+    fn name_core_mut(&mut self) -> &mut NameCore;
+
+    fn name(&self) -> String {
+        self.name_core().name.clone()
+    }
+    fn aka(&mut self, aka: String) {
+        self.name_core_mut().aka.push(aka);
+    }
+    fn abbr(&mut self, abbr: String) {
+        assert!(self.name_core_mut().abbr.is_none());
+        self.name_core_mut().abbr = Some(abbr);
     }
 }
 
-pub trait Tagged {
-    fn tag(&mut self, tag: PreviewTagId) {
-        self.tags.push(tag);
+#[macro_export]
+macro_rules! named_impl {
+    ($mytype:ident) => {
+        impl Named for $mytype {
+            fn name_core(&self) -> &NameCore {
+                &self.name_core
+            }
+            fn name_core_mut(&mut self) -> &mut NameCore {
+                &mut self.name_core
+            }
+        }
+    };
+}
+
+pub trait Tagged<With> {
+    fn tag(&self) -> &Vec<With>;
+    fn tag_mut(&mut self) -> &mut Vec<With>;
+
+    fn add_tag(&mut self, tag: With) {
+        self.tag_mut().push(tag);
     }
+}
+
+#[macro_export]
+macro_rules! tagged_impl {
+    ($mytype:ident, $tagtype:ident) => {
+        impl Tagged<$tagtype> for $mytype {
+            fn tag(&self) -> &Vec<$tagtype> {
+                &self.tags
+            }
+            fn tag_mut(&mut self) -> &mut Vec<$tagtype> {
+                &mut self.tags
+            }
+        }
+    };
 }
 
 pub trait Relevant {
-    fn relevance(&self) -> u32 {
-        self.relevance
+    fn relevance(&self) -> u32;
+    fn set_relevance(&mut self, new_relevance: u32);
+
+    fn hide(&mut self) {
+        self.set_relevance(0);
     }
 }
 
-impl<T: Tagged + Named + HasId> TaggedRef for T {}
+#[macro_export]
+macro_rules! relevant_impl {
+    ($mytype:ident) => {
+        impl Relevant for $mytype {
+            fn relevance(&self) -> u32 {
+                self.relevance
+            }
+
+            fn set_relevance(&mut self, new_relevance: u32) {
+                self.relevance = new_relevance;
+            }
+        }
+    };
+}
+
+pub trait DataRetrievable<'a, To> {
+    fn get(&self, data: &'a Data) -> Option<&'a To>;
+}
+
+macro_rules! data_gettable {
+    ($idtype:ident, $mytype:ident, $datafield:ident) => {
+        impl<'a> DataRetrievable<'a, $mytype> for $idtype {
+            // fn get(&self, key: &PreviewSet) -> &Set {
+            //     trace!("get set {} {}", key.id, key.name);
+            //     let idx: usize = *self
+            //         .set_idx
+            //         .get(key)
+            //         .unwrap_or_else(|| panic!("preview set not found {:?}", key));
+            //     &self.sets[idx]
+            // }
+            fn get(&self, data: &'a Data) -> Option<&'a $mytype> {
+                data.$datafield.get(self)
+            }
+        }
+    };
+}
+
+// trait TaggedRef: Tagged + Named + HasId {} // todo ?
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
     pub id: TagId,
-    pub name: String,
+    pub name_core: NameCore,
     pub description: String,
-    pub sets: Vec<Box<dyn TaggedRef>>,
+    pub sets: Vec<Link>,
 }
+data_gettable!(PreviewTagId, Tag, tags);
+tie_data_to_previewid!(Tag, PreviewTagId);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LogicFragment {
     pub id: LogicFragmentId,
-    pub name: String,
+    pub name_core: NameCore,
     pub description: Option<String>,
 }
+data_gettable!(PreviewLogicFragmentId, LogicFragment, logic_fragments);
+tie_data_to_previewid!(LogicFragment, PreviewLogicFragmentId);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Operation {
     pub id: OperationId,
-    pub name: NameCore,
+    pub name_core: NameCore,
     pub description: Vec<String>,
 }
+data_gettable!(PreviewOperationId, Operation, operations);
+tie_data_to_previewid!(Operation, PreviewOperationId);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Graph {
     pub id: GraphId,
     pub relevance: u32,
-    pub names: NameCore,
+    pub name_core: NameCore,
     pub definition: Vec<String>,
 }
+data_gettable!(PreviewGraphId, Graph, graphs);
+tie_data_to_previewid!(Graph, PreviewGraphId);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum GraphClassDefinition {
     Text(Vec<String>),
     Intersection(Vec<PreviewGraphClass>),
-    ParametricGraphClass(PreviewParametricGraphClass),
-    Parameter(PreviewParameter),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum GraphClassVariant {
+    GraphClass,
+    GraphProperty,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GraphClass {
     pub id: GraphClassId,
     pub relevance: u32,
-    pub names: NameCore,
+    pub name_core: NameCore,
     pub definition: GraphClassDefinition,
+    pub variant: GraphClassVariant,
 }
-impl HasPreviewId<PreviewGraphClassId> for GraphClass {}
+data_gettable!(PreviewGraphClassId, GraphClass, graph_classes);
+tie_data_to_previewid!(GraphClass, PreviewGraphClassId);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParametricParameter {
     pub id: ParametricParameterId,
     pub relevance: u32,
-    pub names: NameCore,
+    pub name_core: NameCore,
+    pub tags: Vec<PreviewTag>,
 }
-impl HasPreviewId<PreviewParametricParameterId> for ParametricParameter {}
-impl Tagged for ParametricParameter {}
-impl Relevant for ParametricParameter {}
+tagged_impl!(ParametricParameter, PreviewTag);
+relevant_impl!(ParametricParameter);
+data_gettable!(
+    PreviewParametricParameterId,
+    ParametricParameter,
+    parametric_parameters
+);
+tie_data_to_previewid!(ParametricParameter, PreviewParametricParameterId);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParametricGraphClass {
     pub id: ParametricGraphClassId,
     pub relevance: u32,
-    pub names: NameCore,
+    pub name_core: NameCore,
     pub closed_under: PreviewGraphRelation,
     pub tags: Vec<PreviewTag>,
 }
-impl HasPreviewId<PreviewParametricGraphClassId> for ParametricGraphClass {}
-impl Tagged for ParametricGraphClass {}
-impl Relevant for ParametricGraphClass {}
+tagged_impl!(ParametricGraphClass, PreviewTag);
+relevant_impl!(ParametricGraphClass);
+data_gettable!(
+    PreviewParametricGraphClassId,
+    ParametricGraphClass,
+    parametric_graph_class
+);
+tie_data_to_previewid!(ParametricGraphClass, PreviewParametricGraphClassId);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ParameterDefinition {
     Graph(String),
     GraphClass(String),
-    BoundsAll(PreviewParametricParameter),
+    BoundsAll(PreviewParametricParameter), // higher order parameter
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Parameter {
     pub id: ParameterId,
     pub relevance: u32,
-    pub names: NameCore,
+    pub name_core: NameCore,
     pub definition: ParameterDefinition,
-    pub tags: Vec<PreviewTagId>,
+    pub tags: Vec<PreviewTag>,
 }
-impl HasPreviewId<PreviewParameterId> for Parameter {}
-impl Tagged for Parameter {}
-impl Relevant for Parameter {}
+tagged_impl!(Parameter, PreviewTag);
+relevant_impl!(Parameter);
+data_gettable!(PreviewParameterId, Parameter, parameters);
+tie_data_to_previewid!(Parameter, PreviewParameterId);
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub enum Own {
@@ -155,61 +268,83 @@ pub enum GraphClassPropertyDefinition {
 pub struct GraphClassProperty {
     pub id: GraphClassPropertyId,
     pub relevance: u32,
-    pub names: NameCore,
+    pub name_core: NameCore,
     pub definition: GraphClassPropertyDefinition,
     pub own: Own,
 }
-impl HasPreviewId<PreviewGraphClassPropertyId> for GraphClassProperty {}
-impl Relevant for GraphClassProperty {}
+tie_data_to_previewid!(GraphClassProperty, PreviewGraphClassPropertyId);
+relevant_impl!(GraphClassProperty);
+data_gettable!(
+    PreviewGraphClassPropertyId,
+    GraphClassProperty,
+    graph_class_properties
+);
 
+#[derive(Debug)]
 pub enum ProblemDefinition {
     Problem(String),
     ModelChecking(PreviewLogicFragment),
 }
 
 #[derive(Debug)]
+pub struct Problem {
+    pub id: ProblemId,
+    pub name_core: NameCore,
+    pub definition: ProblemDefinition,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Provider {
     pub id: ProviderId,
-    pub name: String,
+    pub name_core: NameCore,
     pub url: String,
+    pub links: Vec<ProviderLink>,
 }
-impl HasPreviewId<PreviewProviderId> for Provider {}
+tie_data_to_previewid!(Provider, PreviewProviderId);
+data_gettable!(PreviewProviderId, Provider, providers);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProviderLink {
     pub provider: PreviewProviderId,
-    pub set: Linkable,
-    pub url: String,
+    pub set: Link,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum GraphRelationDefinition {
     Text(String),
     IsomorphicAfterOperations(Vec<PreviewOperation>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GraphRelation {
     pub id: GraphRelationId,
-    pub name: String,
+    pub name_core: NameCore,
     pub displayed_definition: GraphRelationDefinition,
 }
+data_gettable!(PreviewGraphRelationId, GraphRelation, graph_relations);
+tie_data_to_previewid!(GraphRelation, PreviewGraphRelationId);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum GraphClassRelationDefinition {
     Text(String),
     GraphRelation(GraphRelationDefinition),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GraphClassRelation {
     pub id: GraphClassRelationId,
-    pub name: String,
+    pub name_core: NameCore,
     pub definition: GraphClassRelationDefinition,
 }
+data_gettable!(
+    PreviewGraphClassRelationId,
+    GraphClassRelation,
+    graph_class_relations
+);
+tie_data_to_previewid!(GraphClassRelation, PreviewGraphClassRelationId);
 
 pub enum KnowledgeState {
-    // todo
+    // todo - check whether these are all the states
     UnknownToHOPS,
     Conjectured,
     Mentioned,
@@ -219,217 +354,174 @@ pub enum KnowledgeState {
     Disproved,
 }
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct SourceSubset {
-// pub preview: PreviewSource,
-// pub source: PreviewSourceId,
-// pub sourcekey: SourceKey,
-// pub showed: Vec<PreviewShowed>,
-// }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Source {
+    pub id: SourceId,
+    pub sourcekey: SourceKey,
+    pub wrote: Vec<PreviewWrote>,
+    pub time: Date,
+    pub drawings: Vec<Drawing>,
+}
+data_gettable!(PreviewSourceId, Source, sources);
+tie_data_to_previewid!(Source, PreviewSourceId);
 
-// /// A general structure for parameters, graph classes, any other structures.
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct Set {
-// pub id: SetId,
-// pub name: String,
-// pub typ: PreviewType,
-// pub relevance: u32,
-// pub aka: Vec<String>,
-// pub abbr: Option<String>,
-// pub tags: Vec<PreviewTag>,
-// pub providers: Vec<ProviderLink>,
-// pub timeline: Vec<SourceSubset>,
-// pub related_sets: RelatedSets,
-// pub displayed_definition: Vec<String>,
-// }
+#[derive(Debug)]
+pub struct Wrote {
+    pub text: String,
+    pub page: Page,
+    pub facts: Vec<(ShowedId, WroteStatus, Fact)>,
+}
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct Provider {
-// pub id: ProviderId,
-// pub name: String,
-// pub url: String,
-// pub links: Vec<ProviderLink>,
-// }
+#[derive(Debug, Clone)]
+pub enum WroteStatus {
+    Assumed,            // taken as given by HOPS, mainly due to being out of project's scope
+    Conjectured,        // posed as an open problem
+    Original,           // first or independent
+    Derivative,         // improvements or later proofs
+    Noted(NotedSource), // results claimed to be somewhere else
+    TodoStatus,
+}
 
-// #[derive(Debug, Serialize, Deserialize, Clone)]
-// pub struct ProviderLink {
-// pub provider_name: String,
-// pub set: PreviewSetId,
-// pub url: String,
-// }
+#[derive(Debug, Clone)]
+pub enum NotedSource {
+    SrcText(String),
+    Source(PreviewSource),
+    Omitted,
+    SrcTodo,
+}
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct Source {
-// pub id: SourceId,
-// pub sourcekey: SourceKey,
-// pub showed: Vec<PreviewShowed>,
-// pub time: Date,
-// pub drawings: Vec<Drawing>,
-// }
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Fact {
+    DefLogicFragment(PreviewLogicFragment),
+    DefParameter(PreviewParameter),
+    DefGraph(PreviewGraph),
+    DefGraphClass(PreviewGraphClass),
+    DefOperation(PreviewOperation),
+    DefProblem(PreviewProblem),
+    DefParParameter(PreviewParametricParameter),
+    DefParGraphClass(PreviewParametricGraphClass),
+    DefProperty(PreviewGraphClassProperty),
+    RelLfLf(
+        PreviewLogicFragment,
+        PreviewLogicFragment,
+        ImplicationRelation,
+    ),
+    RelOpOp(PreviewOperation, PreviewOperation, ImplicationRelation),
+    RelGrGr(PreviewGraph, PreviewGraph, InclusionRelationUnderOperation),
+    RelGcGc(
+        PreviewGraphClass,
+        PreviewGraphClass,
+        InclusionRelationUnderOperation,
+    ),
+    RelGrGc(
+        PreviewGraph,
+        PreviewGraphClass,
+        InclusionRelationUnderOperation,
+    ),
+    RelPgcPgc(
+        PreviewParametricGraphClass,
+        PreviewParametricGraphClass,
+        ImplicationRelation,
+    ),
+    RelParPar(PreviewParameter, PreviewParameter, Cpx),
+    RelPropProp(
+        PreviewGraphClassProperty,
+        PreviewGraphClassProperty,
+        ImplicationRelation,
+    ),
+    RelGcProp(
+        PreviewGraphClass,
+        PreviewGraphClassProperty,
+        EquivalenceRelation,
+    ),
+    RelParProp(
+        PreviewParameter,
+        PreviewGraphClassProperty,
+        EquivalenceRelation,
+    ),
+    RelProbProb(PreviewProblem, PreviewProblem, ImplicationRelation),
+    RelProbProp(
+        PreviewProblem,
+        PreviewGraphClassProperty,
+        ClassicalSolvability,
+    ),
+    RelProbPar(PreviewProblem, PreviewParameter, ParameterizedSolvability),
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Data {
-    pub sets: Vec<Set>,
-    pub relations: Vec<Relation>,
-    pub sources: Vec<Source>,
-    pub providers: Vec<Provider>,
-    pub tags: Vec<Tag>,
-    pub partial_results: Vec<PartialResult>,
-    #[serde(skip)]
-    pub set_idx: HashMap<PreviewSet, usize>,
-    #[serde(skip)]
-    pub set_id_idx: HashMap<PreviewSetId, usize>,
-    #[serde(skip)]
-    pub relation_idx: HashMap<(PreviewSet, PreviewSet), usize>,
-    #[serde(skip)]
-    pub relation_id_idx: HashMap<PreviewRelationId, usize>,
+    pub graph_class_relations: HashMap<PreviewGraphClassRelationId, GraphClassRelation>,
+    pub graph_classes: HashMap<PreviewGraphClassId, GraphClass>,
+    pub graph_relations: HashMap<PreviewGraphRelationId, GraphRelation>,
+    pub graph_class_properties: HashMap<PreviewGraphClassPropertyId, GraphClassProperty>,
+    pub graphs: HashMap<PreviewGraphId, Graph>,
+    pub logic_fragments: HashMap<PreviewLogicFragmentId, LogicFragment>,
+    pub operations: HashMap<PreviewOperationId, Operation>,
+    pub parameters: HashMap<PreviewParameterId, Parameter>,
+    pub parametric_graph_class: HashMap<PreviewParametricGraphClassId, ParametricGraphClass>,
+    pub parametric_parameters: HashMap<PreviewParametricParameterId, ParametricParameter>,
+    pub providers: HashMap<PreviewProviderId, Provider>,
+    pub tags: HashMap<PreviewTagId, Tag>,
+    pub sources: HashMap<PreviewSourceId, Source>,
+    pub factoids: HashMap<PreviewSourceId, Fact>,
+    pub drawings: HashMap<PreviewSourceId, Drawing>,
+    // pub relations: Vec<Relation>,
+    // pub partial_results: Vec<PartialResult>,
+    // #[serde(skip)]
+    // pub set_idx: HashMap<PreviewSet, usize>,
+    // #[serde(skip)]
+    // pub set_id_idx: HashMap<PreviewSetId, usize>,
+    // #[serde(skip)]
+    // pub relation_idx: HashMap<(PreviewSet, PreviewSet), usize>,
+    // #[serde(skip)]
+    // pub relation_id_idx: HashMap<PreviewRelationId, usize>,
 }
 
-fn compute_set_idx(sets: &[Set]) -> HashMap<PreviewSet, usize> {
-    trace!("computing set indices");
-    let mut set_idx: HashMap<PreviewSet, usize> = HashMap::new();
-    for (idx, set) in sets.iter().enumerate() {
-        set_idx.insert(set.preview(), idx);
-    }
-    set_idx
+fn convert_to_id_map<D>(arr: Vec<D>) -> HashMap<D::PreviewId, D>
+where
+    D: HasPreviewId,
+    D::PreviewId: std::hash::Hash + std::cmp::Eq,
+{
+    arr.into_iter().map(|x| (x.preview(), x)).collect()
 }
 
-fn compute_relation_idx(relations: &[Relation]) -> HashMap<(PreviewSet, PreviewSet), usize> {
-    trace!("computing relation indices");
-    let mut relation_idx: HashMap<(PreviewSet, PreviewSet), usize> = HashMap::new();
-    for (idx, relation) in relations.iter().enumerate() {
-        let pair = (relation.subset.clone(), relation.superset.clone());
-        assert!(!relation_idx.contains_key(&pair));
-        relation_idx.insert(pair, idx);
-    }
-    relation_idx
-}
-
-fn compute_relation_id_idx(relations: &[Relation]) -> HashMap<PreviewRelationId, usize> {
-    let mut relation_id_idx = HashMap::new();
-    for (idx, relation) in relations.iter().enumerate() {
-        relation_id_idx.insert(relation.id.preview(), idx);
-    }
-    relation_id_idx
-}
-
-fn compute_set_id_idx(sets: &[Set]) -> HashMap<PreviewSetId, usize> {
-    let mut set_id_idx = HashMap::new();
-    for (idx, set) in sets.iter().enumerate() {
-        set_id_idx.insert(set.id.preview(), idx);
-    }
-    set_id_idx
+pub struct DataFields {
+    graph_class_relations: Vec<GraphClassRelation>,
+    tags: Vec<Tag>,
+    providers: Vec<Provider>,
+    parametric_parameters: Vec<ParametricParameter>,
+    parametric_graph_class: Vec<ParametricGraphClass>,
+    parameters: Vec<Parameter>,
+    operations: Vec<Operation>,
+    logic_fragments: Vec<LogicFragment>,
+    graphs: Vec<Graph>,
+    graph_relations: Vec<GraphRelation>,
+    graph_classes: Vec<GraphClass>,
+    sources: Vec<Source>,
+    factoids: HashMap<PreviewSourceId, Fact>,
+    drawings: HashMap<PreviewSourceId, Drawing>,
+    graph_class_properties: Vec<GraphClassProperty>,
 }
 
 impl Data {
-    pub fn new(
-        mut sets: Vec<Set>,
-        relations: Vec<Relation>,
-        sources: Vec<Source>,
-        providers: Vec<Provider>,
-        tags: Vec<Tag>,
-        partial_results: Vec<PartialResult>,
-    ) -> Self {
+    pub fn new(fields: DataFields) -> Self {
         trace!("new data");
-        sets.sort_by_key(|x| x.name.to_lowercase().clone());
-        let set_idx = compute_set_idx(&sets);
-        let set_id_idx = compute_set_id_idx(&sets);
-        let relation_idx = compute_relation_idx(&relations);
-        let relation_id_idx = compute_relation_id_idx(&relations);
         Self {
-            sets,
-            relations,
-            sources,
-            providers,
-            tags,
-            partial_results,
-            set_idx,
-            set_id_idx,
-            relation_idx,
-            relation_id_idx,
+            graph_class_relations: convert_to_id_map(fields.graph_class_relations),
+            graph_classes: convert_to_id_map(fields.graph_classes),
+            graph_relations: convert_to_id_map(fields.graph_relations),
+            graphs: convert_to_id_map(fields.graphs),
+            logic_fragments: convert_to_id_map(fields.logic_fragments),
+            operations: convert_to_id_map(fields.operations),
+            parameters: convert_to_id_map(fields.parameters),
+            parametric_graph_class: convert_to_id_map(fields.parametric_graph_class),
+            parametric_parameters: convert_to_id_map(fields.parametric_parameters),
+            providers: convert_to_id_map(fields.providers),
+            tags: convert_to_id_map(fields.tags),
+            sources: convert_to_id_map(fields.sources),
+            factoids: fields.factoids,
+            drawings: fields.drawings,
+            graph_class_properties: convert_to_id_map(fields.graph_class_properties),
         }
-    }
-
-    pub fn recompute(&mut self) {
-        self.set_idx = compute_set_idx(&self.sets);
-        self.set_id_idx = compute_set_id_idx(&self.sets);
-        self.relation_idx = compute_relation_idx(&self.relations);
-        self.relation_id_idx = compute_relation_id_idx(&self.relations);
-    }
-
-    pub fn get_sets<I>(&self, key: I) -> Vec<&Set>
-    where
-        I: IntoIterator<Item = PreviewSet>,
-    {
-        key.into_iter().map(|x| self.get_set(&x)).collect()
-    }
-
-    pub fn get_set(&self, key: &PreviewSet) -> &Set {
-        trace!("get set {} {}", key.id, key.name);
-        let idx: usize = *self
-            .set_idx
-            .get(key)
-            .unwrap_or_else(|| panic!("preview set not found {:?}", key));
-        &self.sets[idx]
-    }
-
-    pub fn get_set_by_id(&self, id: &PreviewSetId) -> &Set {
-        trace!("get set id {}", id);
-        let idx: usize = *self
-            .set_id_idx
-            .get(id)
-            .unwrap_or_else(|| panic!("preview set not found {:?}", id));
-        &self.sets[idx]
-    }
-
-    pub fn get_relation(&self, subset: &PreviewSet, superset: &PreviewSet) -> Option<&Relation> {
-        trace!(
-            "get relation from {} {} to {} {}",
-            subset.id, subset.name, superset.id, superset.name
-        );
-        let key = (subset.clone(), superset.clone());
-        match self.relation_idx.get(&key) {
-            Some(&idx) => Some(&self.relations[idx]),
-            None => None,
-        }
-    }
-
-    pub fn get_relation_by_id(&self, id: &PreviewRelationId) -> Option<&Relation> {
-        trace!("get relation id {}", id);
-        match self.relation_id_idx.get(id) {
-            Some(&idx) => Some(&self.relations[idx]),
-            None => None,
-        }
-    }
-
-    pub fn get_relation_by_ids(&self, a: &PreviewSetId, b: &PreviewSetId) -> Option<&Relation> {
-        trace!("get relation ids {} {}", a, b);
-        self.get_relation_by_id(&RelationId::new(a, b).preview())
-    }
-
-    pub fn get_partial_result(&self, handle: &usize) -> &PartialResult {
-        self.partial_results
-            .get(*handle)
-            .unwrap_or_else(|| panic!("handle {} not found in the partial results", handle))
     }
 }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct Relation {
-//     pub id: RelationId,
-//     pub handle: usize,
-//     /// If inclusion, then subset is the parameter above which is potentially bigger for the same graph.
-//     pub subset: PreviewSet,
-//     /// If inclusion, then superset is the parameter below which is potentially smaller for the same graph.
-//     pub superset: PreviewSet,
-//     pub cpx: SourcedCpxInfo,
-// }
-//
-// // showed is a lightweight structure, hence it has no preview variant
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub struct Showed {
-//     pub id: PreviewShowedId,
-//     pub text: String,
-//     pub fact: ShowedFact,
-//     pub page: Page,
-// }

@@ -213,14 +213,18 @@ impl<T> BaseId<PreviewRelationId> for RelationId<T> {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub trait HasId {
-    fn id(&self) -> String {
-        self.id.to_string()
-    }
+    fn id(&self) -> String;
 }
-impl<T> HasId for dyn HasPreviewId<T> {}
 
-pub trait HasPreviewId<T> {
-    fn preview(&self) -> T {
-        self.id.preview()
-    }
+pub trait HasPreviewId {
+    type PreviewId;
+    fn preview(&self) -> Self::PreviewId;
+}
+
+pub trait IsPreviewIdOf {
+    type MainStructure;
+}
+
+pub trait IsIdOfPreview {
+    type PreviewStructure;
 }

@@ -1,9 +1,6 @@
 //! General structure to infer relations.
 
-use std::marker::PhantomData;
-
 use crate::data::id::*;
-
 
 /// General relation between two structures along with some composable data.
 #[derive(Debug)]
@@ -13,7 +10,8 @@ pub struct Relation<F, T, D> {
     pub data: D,
 }
 
-impl<F, T, D> Relation<F, T, D> where
+impl<F, T, D> Relation<F, T, D>
+where
     F: Clone,
     T: Clone,
     D: ComposableHomogeneous<D>,
@@ -41,15 +39,25 @@ pub trait ComposableHeterogeneousSecond<A, B> {
 }
 
 #[derive(Debug)]
-pub struct Hierarchy<NodeId, Rel, Data> {
-    pub nodes: Vec<NodeId>,
-    pub relations: Vec<Rel>,
-    _marker: PhantomData<Data>,
+pub struct Hierarchy<VertexId, Data> {
+    pub vertices: Vec<VertexId>,
+    pub relations: Vec<Relation<VertexId, VertexId, Data>>,
 }
 
-impl<NodeId, Rel, Data> Hierarchy<NodeId, Rel, Data> where
-    NodeId: Clone,
-    Rel: Relation<NodeId, NodeId, Data>,
+impl<VertexId, Data> Hierarchy<VertexId, Data>
+where
+    VertexId: Clone,
     Data: ComposableHomogeneous<Data>,
 {
+    fn add_vertex(&mut self, id: VertexId) {
+        self.vertices.push(id);
+    }
+
+    fn add_relation(&mut self, rel: Relation<VertexId, VertexId, Data>) {
+        self.relations.push(rel)
+    }
+
+    fn get_relation(&self, a: VertexId, b: VertexId) {
+        todo!()
+    }
 }

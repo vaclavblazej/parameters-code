@@ -10,11 +10,12 @@ pub enum RawOwn {
 pub enum RawParameterDefinition {
     Text(String),
     BoundsAll(PreviewParametricParameterId),
+    DistanceTo(PreviewParameterId),
 }
 
 #[derive(Debug)]
 pub enum RawOperationDefinition {
-    GraphOperation(String),
+    GraphOperation(PreviewOperationId),
     GraphClassOperation(String),
 }
 
@@ -25,6 +26,7 @@ pub enum RawGraphClassPropertyDefinition {
     FromParameter(PreviewParameterId),
 }
 
+#[derive(Debug)]
 pub enum RawProblemDefinition {
     Text(String),
     ModelChecking(PreviewLogicFragmentId),
@@ -39,15 +41,21 @@ pub enum RawGraphRelationDefinition {
 #[derive(Debug)]
 pub enum RawGraphClassRelationDefinition {
     Text(String),
-    GraphRelation(RawGraphRelationDefinition),
+    GraphRelation(PreviewGraphRelationId),
 }
 
 #[derive(Debug)]
 pub enum RawGraphClassDefinition {
-    Text(Vec<String>),
+    Text(String),
     Intersection(Vec<PreviewGraphClassId>),
     ParametricGraphClass(PreviewParametricGraphClassId),
     Parameter(PreviewParameterId),
+}
+
+#[derive(Debug)]
+pub enum RawGraphClassVariant {
+    GraphClass,
+    GraphProperty,
 }
 
 #[derive(Debug)]

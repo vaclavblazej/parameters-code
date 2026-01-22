@@ -1,4 +1,4 @@
-// warn! error! info! debug! trace!
+//! Sets up global logging with: error! warn! info! debug! trace!
 
 use log::{Level, Metadata, Record};
 use log::{LevelFilter, SetLoggerError};

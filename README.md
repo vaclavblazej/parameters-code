@@ -1,15 +1,21 @@
-# HOPS code
+# Hierarchy of Parameters -- code
 
-*Hierarchy of Parameters* (HOPS) is meant to provide overview of structural parameters, their relations, and auxiliary information.
-This repository is the true source of the [website](https://vaclavblazej.github.io/parameters/) content and is the correct place to give [feedback](https://github.com/vaclavblazej/parameters-code/issues).
+*Hierarchy of Parameters* (HOPS) is a database of structural graph parameters, properties, and their relations, with references to publications and related projects.
 
-The project consists of three parts:
+The project consists of three main parts:
 
-* [Hierarchy of Parameters website](https://vaclavblazej.github.io/parameters/)
-* [Code that generates website content (this repository)](https://github.com/vaclavblazej/parameters-code)
-* [Scripts that generate the website](https://github.com/vaclavblazej/parameters)
+* [Database and code that generates the website's content](https://github.com/vaclavblazej/parameters-code) (this repository)
+* [Scripts that generate the website](https://github.com/vaclavblazej/parameters) (intermediate)
+* [Hierarchy of Parameters](https://vaclavblazej.github.io/parameters/) (website)
 
-The web is meant to provide:
+To give **feedback** on any part of the project, you can use:
+
+* [Google form](https://docs.google.com/forms/d/e/1FAIpQLSdX5_IoxMmlguQGQzR1NhvbeQRiHTQlytK2jAOZAgZfjdcGDQ/viewform?usp=sharing&ouid=114574344732763059842) (anonymous)
+* [GitHub issues](https://github.com/vaclavblazej/parameters-code/issues) (requires a GitHib account)
+
+## The web is meant to provide
+
+### Overview of parameters
 
 * a quick overview of
     * (partially done) parameter definitions
@@ -23,7 +29,6 @@ The web is meant to provide:
     * output TikZ code that can be directly used in a scientific paper
 
 It will take a while before the website has the majority of the parameter relations and their references.
-To give your suggestions and fixes (with references) please open a [github issue](https://github.com/vaclavblazej/parameters/issues) or [mail us](mailto:vaclavblazej@gmail.com).
 
 ## Repository folders and files
 
@@ -52,11 +57,3 @@ To give your suggestions and fixes (with references) please open a [github issue
 
 This project is licensed under [MIT](LICENSE) license.
 
-## Authors and Contributors
-
-* [Václav Blažej](https://blazeva1.pages.fit/)
-
-information contributors
-
-* [Šimon Schierreich](https://pages.fit.cvut.cz/schiesim/)
-* Jan Pokorný

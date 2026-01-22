@@ -12,7 +12,6 @@ use log::{error, info, trace};
 use rand::seq::IndexedRandom;
 use regex::Regex;
 
-use crate::data::data::*;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::preview::*;
@@ -21,7 +20,7 @@ use crate::output::color::{Color, relation_color};
 use crate::output::diagram::{make_drawing, make_focus_drawing, make_subset_drawing};
 use crate::output::table::render_table;
 use crate::output::to_markdown::ToMarkdown;
-use crate::{Paths, Worker, file, generate_relation_table};
+use crate::{Paths, Worker, file};
 
 type Result<T> = std::result::Result<T, MarkdownError>;
 
@@ -46,86 +45,8 @@ impl fmt::Display for MarkdownError {
     }
 }
 
-fn html_base(id: &String) -> String {
-    format!("{{{{< base >}}}}html/{}", id)
-}
-
 fn base(id: &String) -> String {
     format!("{{{{< base >}}}}{}", id)
-}
-
-pub trait Linkable {
-    fn get_url(&self) -> String;
-    fn get_name(&self) -> String;
-}
-
-impl Linkable for ProviderLink {
-    fn get_url(&self) -> String {
-        self.url.clone()
-    }
-    fn get_name(&self) -> String {
-        self.provider_name.clone()
-    }
-}
-
-impl Linkable for PreviewRelation {
-    fn get_url(&self) -> String {
-        html_base(&format!("relations#{}", &self.id.to_string()))
-    }
-    fn get_name(&self) -> String {
-        format!("{} → {}", self.subset.name, self.superset.name)
-    }
-}
-
-impl Linkable for PreviewTag {
-    fn get_url(&self) -> String {
-        html_base(&self.id.to_string())
-    }
-    fn get_name(&self) -> String {
-        self.name.clone()
-    }
-}
-
-impl Linkable for PreviewSet {
-    fn get_url(&self) -> String {
-        html_base(&self.id.to_string())
-    }
-    fn get_name(&self) -> String {
-        self.name.clone()
-    }
-}
-
-impl Linkable for PreviewSource {
-    fn get_url(&self) -> String {
-        match &self.sourcekey {
-            SourceKey::Bibtex {
-                key: _,
-                name: _,
-                entry: _,
-                relevance: _,
-            } => html_base(&self.id.to_string()),
-            SourceKey::Online { url } => url.clone(),
-            SourceKey::Other {
-                name: _,
-                description: _,
-            } => html_base(&self.id.to_string()),
-        }
-    }
-    fn get_name(&self) -> String {
-        match &self.sourcekey {
-            SourceKey::Bibtex {
-                key,
-                name,
-                entry: _,
-                relevance: _,
-            } => name.clone().unwrap_or(key.clone()),
-            SourceKey::Online { url } => url.clone(),
-            SourceKey::Other {
-                name,
-                description: _,
-            } => name.into(),
-        }
-    }
 }
 
 pub trait GeneratedPage {
@@ -367,7 +288,7 @@ impl GeneratedPage for Source {
             };
         }
         // res += &format!("{:?} {}", self.sourcekey, self.time);
-        for s in &self.showed {
+        for s in &self.wrote {
             if let Some(val) = s.to_markdown(builder) {
                 res += &format!("* {}\n", val);
             }

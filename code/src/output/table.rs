@@ -5,7 +5,7 @@ use std::process::Command;
 
 use log::{error, info};
 
-use crate::data::data::Data;
+use crate::data::Data;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::file;
@@ -80,7 +80,7 @@ pub struct CreateTable {
 }
 
 impl Task for CreateTable {
-    fn process(self) -> anyhow::Result<()> {
+    fn process(&self) -> anyhow::Result<()> {
         let CreateTable {
             related_sets_map,
             ordered_draw_sets,

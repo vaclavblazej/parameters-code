@@ -1,4 +1,4 @@
-//! A tiny utility to print elsapsed time along with messages.
+//! Utility to print elsapsed time along with messages.
 
 use std::time::Instant;
 

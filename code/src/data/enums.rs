@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::data::Named;
 use crate::data::id::*;
+use crate::data::link::Link;
 use crate::data::preview::PreviewSource;
-use crate::work::processing::PartialResult;
 
 pub enum Value {
     Value(u32),
@@ -37,10 +37,9 @@ pub enum TransferGroup {
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum SourceKey {
     Bibtex {
-        key: String,
+        entry_key: String,
         name: Option<String>,
-        entry: Option<String>,
-        relevance: u32,
+        entry_content: Option<String>,
     },
     Online {
         url: String,
@@ -111,32 +110,26 @@ pub enum CreatedBy {
     Todo,
 }
 
-/// A processed variant of CpxInfo which has links to sources that lead to a given result
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum SourcedCpxInfo {
-    Equal {
-        source: PartialResult,
-    },
-    Inclusion {
-        mn: Option<(CpxTime, PartialResult)>,
-        mx: Option<(CpxTime, PartialResult)>,
-    },
-    Exclusion {
-        source: PartialResult,
-    },
-    Unknown,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum RawDrawing {
-    Table(Vec<Box<dyn Named>>),
-    Hasse(Vec<Box<dyn Named>>),
-}
+/// /// A processed variant of CpxInfo which has links to sources that lead to a given result
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)] // todo
+/// pub enum SourcedCpxInfo {
+///     Equal {
+///         source: PartialResult,
+///     },
+///     Inclusion {
+///         mn: Option<(CpxTime, PartialResult)>,
+///         mx: Option<(CpxTime, PartialResult)>,
+///     },
+///     Exclusion {
+///         source: PartialResult,
+///     },
+///     Unknown,
+/// }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Drawing {
-    Table(Vec<Box<dyn Named>>),
-    Hasse(Vec<Box<dyn Named>>),
+    Table(Vec<Link>),
+    Hasse(Vec<Link>),
 }
 
 impl CpxInfo {
@@ -150,37 +143,37 @@ impl CpxInfo {
         }
     }
 
-    pub fn into_sourced(self, partial_result: PartialResult) -> SourcedCpxInfo {
-        match self.clone() {
-            CpxInfo::Equal => SourcedCpxInfo::Equal {
-                source: partial_result,
-            },
-            CpxInfo::Inclusion { mn, mx } => SourcedCpxInfo::Inclusion {
-                mn: mn.map(|x| (x, partial_result.clone())),
-                mx: mx.map(|x| (x, partial_result.clone())),
-            },
-            CpxInfo::Exclusion => SourcedCpxInfo::Exclusion {
-                source: partial_result,
-            },
-            CpxInfo::Unknown => SourcedCpxInfo::Unknown,
-        }
-    }
+    // pub fn into_sourced(self, partial_result: PartialResult) -> SourcedCpxInfo {
+    //     match self.clone() {
+    //         CpxInfo::Equal => SourcedCpxInfo::Equal {
+    //             source: partial_result,
+    //         },
+    //         CpxInfo::Inclusion { mn, mx } => SourcedCpxInfo::Inclusion {
+    //             mn: mn.map(|x| (x, partial_result.clone())),
+    //             mx: mx.map(|x| (x, partial_result.clone())),
+    //         },
+    //         CpxInfo::Exclusion => SourcedCpxInfo::Exclusion {
+    //             source: partial_result,
+    //         },
+    //         CpxInfo::Unknown => SourcedCpxInfo::Unknown,
+    //     }
+    // }
 }
 
-impl From<SourcedCpxInfo> for CpxInfo {
-    fn from(sourced: SourcedCpxInfo) -> CpxInfo {
-        match sourced {
-            SourcedCpxInfo::Equal { source } => CpxInfo::Equal,
-            SourcedCpxInfo::Inclusion { mn, mx } => CpxInfo::Inclusion {
-                mn: mn.map(|(x, _)| x),
-                mx: mx.map(|(x, _)| x),
-            },
-            SourcedCpxInfo::Exclusion { source: _ } => CpxInfo::Exclusion,
-            SourcedCpxInfo::Unknown => CpxInfo::Unknown,
-        }
-    }
-}
-
+// impl From<SourcedCpxInfo> for CpxInfo {
+//     fn from(sourced: SourcedCpxInfo) -> CpxInfo {
+//         match sourced {
+//             SourcedCpxInfo::Equal { source } => CpxInfo::Equal,
+//             SourcedCpxInfo::Inclusion { mn, mx } => CpxInfo::Inclusion {
+//                 mn: mn.map(|(x, _)| x),
+//                 mx: mx.map(|(x, _)| x),
+//             },
+//             SourcedCpxInfo::Exclusion { source: _ } => CpxInfo::Exclusion,
+//             SourcedCpxInfo::Unknown => CpxInfo::Unknown,
+//         }
+//     }
+// }
+//
 pub enum ComparisonResult {
     Better,
     Worse,

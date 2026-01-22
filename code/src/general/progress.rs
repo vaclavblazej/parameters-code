@@ -1,3 +1,5 @@
+//! Utility to display an ascii progress bar.
+
 use std::io::{self, Write};
 
 use log::info;

@@ -9,112 +9,28 @@ use log::{debug, error, trace, warn};
 use rand::seq::IndexedRandom;
 use serde::{Deserialize, Serialize};
 
-use crate::data::data::*;
+use crate::data::bibliography::bibligraphy_to_source;
+use crate::data::data::Relevant;
+use crate::data::date::Date;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::preview::*;
 use crate::data::simple_index::SimpleIndex;
+use crate::data::*;
 use crate::general::file;
 use crate::general::progress::ProgressDisplay;
 use crate::input::build::{ASSUMED_SOURCE_ID, UNKNOWN_SOURCE_ID};
 use crate::input::raw::*;
-use crate::work::bibliography::bibligraphy_to_source;
+use crate::input::source::{RawSource, RawSourceKey};
 use crate::work::combine::combine_serial;
-use crate::work::date::Date;
-use crate::work::sets::RelatedSets;
+use crate::work::sets::{RelatedSets, prepare_extremes};
 
-pub fn is_more_relevant_than<T, B>(a: &dyn Relevant, b: &dyn Relevant) -> bool {
-    (a.relevance == b.relevance && a.id < b.id) || a.relevance > b.relevance
-}
-
-pub fn bfs_limit_distance(set: &Set, data: &Data, distance: usize) -> HashMap<PreviewSet, usize> {
-    let mut visited = HashMap::new();
-    let mut queue = VecDeque::new();
-    visited.insert(set.preview(), 0);
-    queue.push_back((set.preview(), 0));
-    while let Some((raw_set, current_distance)) = queue.pop_front() {
-        let set = data.get_set(&raw_set);
-        if current_distance >= distance {
-            continue;
-        }
-        for bigset in [
-            &set.related_sets.equivsets,
-            &set.related_sets.subsets.minimal,
-            &set.related_sets.supersets.maximal,
-        ] {
-            for sset in bigset {
-                if !visited.contains_key(sset) {
-                    let new_distance = current_distance + 1;
-                    visited.insert(sset.clone(), new_distance);
-                    queue.push_back((sset.clone(), new_distance));
-                }
-            }
-        }
-    }
-    visited
-}
-
-pub fn order_sets_from_sources(data: &Data, sets: &Vec<PreviewSet>) -> Vec<PreviewSet> {
-    let mut predecesors: HashMap<PreviewSet, usize> = HashMap::new();
-    let mut equivalent: HashSet<PreviewSet> = HashSet::new();
-    let sets_set: HashSet<PreviewSet> = HashSet::from_iter(sets.iter().cloned());
-    for preview in sets {
-        predecesors.insert(preview.clone(), 0);
-    }
-    for preview in sets {
-        let set = data.get_set(preview);
-        for subset in &set.related_sets.supersets.all {
-            if let Some(el) = predecesors.get_mut(subset) {
-                *el += 1;
-            }
-        }
-    }
-    let mut queue: Vec<PreviewSet> = Vec::new();
-    let mut eqqueue: Vec<PreviewSet> = Vec::new();
-    for (set, count) in &predecesors {
-        if *count == 0 {
-            queue.push(set.clone());
-        }
-    }
-    let mut resolved: HashSet<PreviewSetId> = HashSet::new();
-    let mut result = Vec::new();
-    loop {
-        let current = match eqqueue.pop() {
-            Some(c) => c,
-            None => match queue.pop() {
-                Some(c) => c,
-                None => break,
-            },
-        };
-        if resolved.contains(&current.id) {
-            continue;
-        }
-        resolved.insert(current.id.clone());
-        result.push(current.clone());
-        let set = data.get_set(&current);
-        for elem in &set.related_sets.equivsets {
-            if predecesors.contains_key(elem) {
-                eqqueue.push(elem.clone());
-            }
-        }
-        let children: Vec<&PreviewSet> = set
-            .related_sets
-            .supersets
-            .all
-            .iter()
-            .filter(|x| x.typ == PreviewType::Parameter)
-            .collect();
-        for neighbor in children {
-            if let Some(mut x) = predecesors.get_mut(neighbor) {
-                *x -= 1;
-                if *x == 0 {
-                    queue.push(neighbor.clone());
-                }
-            }
-        }
-    }
-    assert_eq!(resolved.len(), sets.len());
-    result
+pub fn is_more_relevant_than<A, B>(a: &dyn A, b: &dyn B) -> bool
+where
+    A: Relevant + HasId,
+    B: Relevant + HasId,
+{
+    (a.relevance() == b.relevance() && a.id < b.id) || a.relevance() > b.relevance()
 }
 
 /// Given a RawSet create a full Set with all the information.
@@ -235,7 +151,11 @@ fn process_source(
     trace!("processing set {:?}", source.rawsourcekey);
     let mut time = Date::empty();
     let sourcekey: SourceKey = match &source.rawsourcekey {
-        RawSourceKey::Bibtex { key } => bibligraphy_to_source(bibliography, time, key),
+        RawSourceKey::Bibtex { key } => {
+            let (res, rtime) = bibligraphy_to_source(bibliography, time, key);
+            time = rtime;
+            res
+        }
         RawSourceKey::Online { url } => SourceKey::Online { url: url.clone() },
         RawSourceKey::Other { name, description } => SourceKey::Other {
             name: name.clone(),
@@ -251,7 +171,7 @@ fn process_source(
     Source {
         id: source.id,
         sourcekey,
-        showed,
+        wrote: showed,
         time,
         drawings: source
             .drawings
@@ -618,312 +538,321 @@ fn process_relations(
     (result, partial_results_builder.done())
 }
 
-impl Relation {
-    pub fn new(
-        subset: PreviewSet,
-        superset: PreviewSet,
-        cpx: SourcedCpxInfo,
-        handle: usize,
-    ) -> Self {
-        Self {
-            id: RelationId::new(&subset.id, &superset.id),
-            handle,
-            cpx,
-            subset,
-            superset,
-        }
-    }
-}
-
-fn apply_transfers(
-    transfers: &HashMap<TransferGroup, HashMap<PreviewSetId, Vec<PreviewSet>>>,
-    partial_result: &PartialResult,
-    partial_results_builder: &mut PartialResultsBuilder,
-) -> Vec<PartialResult> {
-    let mut transferred_relations: Vec<PartialResult> = Vec::new();
-    let top = &partial_result.relation.subset;
-    let bot = &partial_result.relation.superset;
-    for (transfer_group, map) in transfers.iter() {
-        if let (Some(top_res), Some(bot_res)) = (map.get(top), map.get(bot)) {
-            let mut res_cpx: SourcedCpxInfo = partial_result.clone().to_sourced();
-            let okay = match res_cpx.clone() {
-                SourcedCpxInfo::Inclusion { mn, mx } => {
-                    res_cpx = SourcedCpxInfo::Inclusion {
-                        mn,
-                        mx: match mx {
-                            // todo get rid of these exceptions via lambda that takes the result and transforms it
-                            Some((Constant, smx)) => Some((CpxTime::Linear, smx)),
-                            x => x,
-                        },
-                    };
-                    true
-                }
-                _ => false,
-            };
-            if okay {
-                let created_by =
-                    CreatedBy::TransferredFrom(transfer_group.clone(), partial_result.handle);
-                for tr in top_res {
-                    for br in bot_res {
-                        let key = WorkRelation::new(&tr.id, &br.id);
-                        let res = partial_results_builder.partial_result(
-                            created_by.clone(),
-                            res_cpx.clone().into(),
-                            key,
-                        );
-                        transferred_relations.push(res);
-                    }
-                }
-            }
-        }
-    }
-    transferred_relations
+// impl Relation {
+//     pub fn new(
+//         subset: PreviewSet,
+//         superset: PreviewSet,
+//         cpx: SourcedCpxInfo,
+//         handle: usize,
+//     ) -> Self {
+//         Self {
+//             id: RelationId::new(&subset.id, &superset.id),
+//             handle,
+//             cpx,
+//             subset,
+//             superset,
+//         }
+//     }
+// }
+//
+// fn apply_transfers(
+//     transfers: &HashMap<TransferGroup, HashMap<PreviewSetId, Vec<PreviewSet>>>,
+//     partial_result: &PartialResult,
+//     partial_results_builder: &mut PartialResultsBuilder,
+// ) -> Vec<PartialResult> {
+//     let mut transferred_relations: Vec<PartialResult> = Vec::new();
+//     let top = &partial_result.relation.subset;
+//     let bot = &partial_result.relation.superset;
+//     for (transfer_group, map) in transfers.iter() {
+//         if let (Some(top_res), Some(bot_res)) = (map.get(top), map.get(bot)) {
+//             let mut res_cpx: SourcedCpxInfo = partial_result.clone().to_sourced();
+//             let okay = match res_cpx.clone() {
+//                 SourcedCpxInfo::Inclusion { mn, mx } => {
+//                     res_cpx = SourcedCpxInfo::Inclusion {
+//                         mn,
+//                         mx: match mx {
+//                             // todo get rid of these exceptions via lambda that takes the result and transforms it
+//                             Some((Constant, smx)) => Some((CpxTime::Linear, smx)),
+//                             x => x,
+//                         },
+//                     };
+//                     true
+//                 }
+//                 _ => false,
+//             };
+//             if okay {
+//                 let created_by =
+//                     CreatedBy::TransferredFrom(transfer_group.clone(), partial_result.handle);
+//                 for tr in top_res {
+//                     for br in bot_res {
+//                         let key = WorkRelation::new(&tr.id, &br.id);
+//                         let res = partial_results_builder.partial_result(
+//                             created_by.clone(),
+//                             res_cpx.clone().into(),
+//                             key,
+//                         );
+//                         transferred_relations.push(res);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     transferred_relations
+// }
+//
+macro_rules! process_to_preview_map {
+    ($result:ident, $field:ident, $raw_data:ident) => {
+        let $result = $raw_data
+            .$field
+            .iter()
+            .map(|x| (x.id.clone(), x.preview()))
+            .collect();
+    };
 }
 
 struct PreviewCollection {
-    preview_sets: Vec<PreviewSet>,
-    preview_relation_map: HashMap<PreviewRelationId, PreviewRelation>,
-    preview_set_map: HashMap<PreviewSetId, PreviewSet>,
-    factoids: Vec<(PreviewSourceId, Showed)>,
+    graph_classes_previews: HashMap<PreviewGraphClassId, PreviewGraphClass>,
+    graph_class_properties_previews:
+        HashMap<PreviewGraphClassPropertyId, PreviewGraphClassProperty>,
+    graphs_previews: HashMap<PreviewGraphId, PreviewGraph>,
+    logic_fragments_previews: HashMap<PreviewLogicFragmentId, PreviewLogicFragment>,
+    operations_previews: HashMap<PreviewOperationId, PreviewOperation>,
+    parameters_previews: HashMap<PreviewParameterId, PreviewParameter>,
+    parametric_graph_class_previews:
+        HashMap<PreviewParametricGraphClassId, PreviewParametricGraphClass>,
+    parametric_parameters_previews:
+        HashMap<PreviewParametricParameterId, PreviewParametricParameter>,
+    providers_previews: HashMap<PreviewProviderId, PreviewProvider>,
+    tags_previews: HashMap<PreviewTagId, PreviewTag>,
 }
 
 impl PreviewCollection {
-    fn new(
-        raw_sets: &[RawSet],
-        raw_relations: Vec<RawRelation>,
-        raw_factoids: Vec<(PreviewSourceId, RawShowed)>,
-    ) -> Self {
-        // previews ////////////////////////////////////////////////////////////////
-        let preview_sets: Vec<PreviewSet> = raw_sets.iter().map(PreviewSet::from).collect();
-        let preview_set_map: HashMap<PreviewSetId, PreviewSet> = preview_sets
-            .iter()
-            .map(|x| (x.id.clone(), x.clone()))
-            .collect();
-        let mut preview_relation_map: HashMap<PreviewRelationId, PreviewRelation> = HashMap::new();
-        for raw_relation in raw_relations {
-            let subset = preview_set_map.get(&raw_relation.subset).unwrap().clone();
-            let superset = preview_set_map.get(&raw_relation.superset).unwrap().clone();
-            let res = PreviewRelation {
-                id: RelationId::new(&subset.id, &superset.id).preview(),
-                subset,
-                superset,
-                cpx: raw_relation.cpx.clone(),
-            };
-            preview_relation_map.insert(res.id.clone(), res);
-        }
-        // factoids /////////////////////////////////////////////////////////////////
-        let mut factoids: Vec<(PreviewSourceId, Showed)> = Vec::new();
-        for (preview_source_id, raw_showed) in raw_factoids {
-            let showed_fact = match &raw_showed.fact {
-                RawShowedFact::Relation(s, raw_relation) => {
-                    let preview_relation = PreviewRelation {
-                        id: raw_relation.id.clone(),
-                        subset: preview_set_map.get(&raw_relation.subset).unwrap().clone(),
-                        superset: preview_set_map.get(&raw_relation.superset).unwrap().clone(),
-                        cpx: raw_relation.cpx.clone(),
-                    };
-                    ShowedFact::Relation(ShowedStatus::from(s), preview_relation)
-                }
-                RawShowedFact::Definition(s, x) => {
-                    ShowedFact::Definition(ShowedStatus::from(s), x.clone())
-                }
-            };
-            let prev_showed = Showed {
-                id: raw_showed.id.preview(),
-                text: raw_showed.text.clone(),
-                fact: showed_fact,
-                page: raw_showed.page.clone(),
-            };
-            factoids.push((preview_source_id, prev_showed));
-        }
+    fn new(raw_data: &RawData) -> Self {
+        process_to_preview_map!(graph_classes_previews, graph_classes, raw_data);
+        process_to_preview_map!(
+            graph_class_properties_previews,
+            graph_class_properties,
+            raw_data
+        );
+        process_to_preview_map!(graphs_previews, graphs, raw_data);
+        process_to_preview_map!(logic_fragments_previews, logic_fragments, raw_data);
+        process_to_preview_map!(operations_previews, logic_fragments, raw_data);
+        process_to_preview_map!(parameters_previews, parameters, raw_data);
+        process_to_preview_map!(
+            parametric_graph_class_previews,
+            parametric_graph_class,
+            raw_data
+        );
+        process_to_preview_map!(
+            parametric_parameters_previews,
+            parametric_parameters,
+            raw_data
+        );
+        process_to_preview_map!(providers_previews, providers, raw_data);
+        process_to_preview_map!(tags_previews, tags, raw_data);
+        // pub graph_relations: Vec<RawGraphRelation>,
+
+        // todo
+        // // previews ////////////////////////////////////////////////////////////////
+        // let preview_sets: Vec<PreviewSet> = raw_sets.iter().map(PreviewSet::from).collect();
+        // let preview_set_map: HashMap<PreviewSetId, PreviewSet> = preview_sets
+        //     .iter()
+        //     .map(|x| (x.id.clone(), x.clone()))
+        //     .collect();
+        // let mut preview_relation_map: HashMap<PreviewRelationId, PreviewRelation> = HashMap::new();
+        // for raw_relation in raw_relations {
+        //     let subset = preview_set_map.get(&raw_relation.subset).unwrap().clone();
+        //     let superset = preview_set_map.get(&raw_relation.superset).unwrap().clone();
+        //     let res = PreviewRelation {
+        //         id: RelationId::new(&subset.id, &superset.id).preview(),
+        //         subset,
+        //         superset,
+        //         cpx: raw_relation.cpx.clone(),
+        //     };
+        //     preview_relation_map.insert(res.id.clone(), res);
+        // }
+        // // factoids /////////////////////////////////////////////////////////////////
+        // let mut factoids: Vec<(PreviewSourceId, Showed)> = Vec::new();
+        // for (preview_source_id, raw_showed) in raw_factoids {
+        //     let showed_fact = match &raw_showed.fact {
+        //         RawShowedFact::Relation(s, raw_relation) => {
+        //             let preview_relation = PreviewRelation {
+        //                 id: raw_relation.id.clone(),
+        //                 subset: preview_set_map.get(&raw_relation.subset).unwrap().clone(),
+        //                 superset: preview_set_map.get(&raw_relation.superset).unwrap().clone(),
+        //                 cpx: raw_relation.cpx.clone(),
+        //             };
+        //             ShowedFact::Relation(ShowedStatus::from(s), preview_relation)
+        //         }
+        //         RawShowedFact::Definition(s, x) => {
+        //             ShowedFact::Definition(ShowedStatus::from(s), x.clone())
+        //         }
+        //     };
+        //     let prev_showed = Showed {
+        //         id: raw_showed.id.preview(),
+        //         text: raw_showed.text.clone(),
+        //         fact: showed_fact,
+        //         page: raw_showed.page.clone(),
+        //     };
+        //     factoids.push((preview_source_id, prev_showed));
+        // }
         Self {
-            preview_sets,
-            preview_set_map,
-            preview_relation_map,
-            factoids,
+            graph_classes_previews,
+            graph_class_properties_previews,
+            graphs_previews,
+            logic_fragments_previews,
+            operations_previews,
+            parameters_previews,
+            parametric_graph_class_previews,
+            parametric_parameters_previews,
+            providers_previews,
+            tags_previews,
         }
     }
 }
 
 pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -> Data {
-    let RawData {
-        graph_class_relations,
-        graph_classes,
-        graph_relations,
-        graphs,
-        grpah_class_properties,
-        logic_fragments,
-        operations,
-        parameters,
-        parametric_graph_class,
-        parametric_parameters,
-        providers,
-        tags,
-        source_data,
-    } = rawdata;
     // previews ////////////////////////////////////////////////////////////////
-    let preview_collection = PreviewCollection::new(&raw_sets, raw_relations, raw_factoids);
+    let preview_collection = PreviewCollection::new(&rawdata);
+    // destruct to components //////////////////////////////////////////////////
+    let RawData {
+        graph_class_relations: raw_graph_class_relations,
+        graph_classes: raw_graph_classes,
+        graph_relations: raw_graph_relations,
+        graphs: raw_graphs,
+        logic_fragments: raw_logic_fragments,
+        operations: raw_operations,
+        parameters: raw_parameters,
+        parametric_graph_class: raw_parametric_graph_class,
+        parametric_parameters: raw_parametric_parameters,
+        providers: raw_providers,
+        tags: raw_tags,
+        graph_class_properties: raw_graph_class_property,
+        sources: raw_sources,
+        factoids: raw_factoids,
+        drawings: raw_drawings,
+    } = rawdata;
     // sources /////////////////////////////////////////////////////////////////
-    let mut ordered_sources: Vec<PreviewSourceId> = vec![];
-    let mut sources: HashMap<PreviewSourceId, Source> = HashMap::new();
-    for rawsource in raw_sources {
-        let preview_id = rawsource.id.preview();
-        let source = process_source(rawsource, bibliography, &preview_collection);
-        ordered_sources.push(source.id.preview());
-        sources.insert(preview_id, source);
-    }
-    ordered_sources.reverse();
-    // list of composed sets ///////////////////////////////////////////////////
-    let mut composed_sets: Vec<(PreviewSetId, Vec<PreviewSet>)> = vec![];
-    for raw_set in &raw_sets {
-        if let Composition::Intersection(ref vec) = raw_set.composed {
-            let comp_preview: Vec<PreviewSet> = vec
-                .iter()
-                .map(|x| preview_collection.preview_set_map.get(x).unwrap().clone())
-                .collect();
-            composed_sets.push((raw_set.id.preview(), comp_preview));
-        }
-    }
-    // providers ///////////////////////////////////////////////////////////////
-    let mut provider_names = HashMap::new();
-    for raw_provider in &raw_providers {
-        provider_names.insert(raw_provider.id.preview(), raw_provider.name.clone());
-    }
-    let mut provider_links: HashMap<PreviewProviderId, Vec<ProviderLink>> = HashMap::new();
-    for provider_link in raw_provider_links {
-        let mut links = provider_links
-            .entry(provider_link.provider.clone())
-            .or_default();
-        let name = provider_names.get(&provider_link.provider).unwrap().clone();
-        links.push(ProviderLink::from(provider_link, name));
-    }
-    let providers: Vec<Provider> = raw_providers
-        .into_iter()
-        .filter_map(|x| {
-            if let Some(links) = provider_links.get(&x.id.preview()) {
-                Some(Provider::from(x, links.clone()))
-            } else {
-                error!("key not found in provider links {}", x.id);
-                None
-            }
-        })
-        .collect();
-    let mut set_providers: HashMap<PreviewSetId, Vec<ProviderLink>> = HashMap::new();
-    for provider in &providers {
-        for link in &provider.links {
-            set_providers
-                .entry(link.set.clone())
-                .or_default()
-                .push(link.clone());
-        }
-    }
-    // tags ////////////////////////////////////////////////////////////////////
-    let mut tags = vec![];
-    for raw_tag in raw_tags {
-        let mut sets = vec![];
-        for (tag_id, set_id) in &raw_tag_set {
-            if tag_id == &raw_tag.id.preview() {
-                sets.push(
-                    preview_collection
-                        .preview_set_map
-                        .get(set_id)
-                        .unwrap()
-                        .clone(),
-                );
-            }
-        }
-        tags.push(Tag::from(raw_tag, sets));
-    }
-    let mut tag_map: HashMap<PreviewTagId, PreviewTag> = HashMap::new();
-    for tag in &tags {
-        tag_map.insert(tag.id.preview(), tag.preview());
-    }
-    // transfers ///////////////////////////////////////////////////////////////
-    let mut transfers: HashMap<TransferGroup, HashMap<PreviewSetId, Vec<PreviewSet>>> =
-        HashMap::new();
-    for (key, raw_pairs) in &raw_transfer {
-        let mut res: HashMap<PreviewSetId, Vec<PreviewSet>> = HashMap::new();
-        for raw_pair in raw_pairs {
-            let (from, to) = raw_pair.clone();
-            let res_from: PreviewSet = preview_collection
-                .preview_set_map
-                .get(&from)
-                .unwrap()
-                .clone();
-            let res_to: PreviewSet = preview_collection.preview_set_map.get(&to).unwrap().clone();
-            res.entry(res_from.id).or_default().push(res_to);
-        }
-        transfers.insert(key.clone(), res);
-    }
-    // relations ///////////////////////////////////////////////////////////////
-    let (relations, partial_results) =
-        process_relations(&composed_sets, &transfers, &sources, &preview_collection);
-    let simple_index = SimpleIndex::new(&relations);
-    let sets = raw_sets
-        .into_iter()
-        .map(|set| {
-            process_set(
-                set,
-                &simple_index,
-                &set_providers,
-                &sources,
-                &raw_tag_set,
-                &tag_map,
-                &preview_collection,
-            )
-        })
-        .collect();
-    // finalize ////////////////////////////////////////////////////////////////
-    let res_sources = ordered_sources
+    let sources = raw_sources
         .iter()
-        .map(|x| sources.remove(x).unwrap())
+        .map(|x| process_source(x, bibliography, &preview_collection))
         .collect();
-    Data::new(
-        sets,
-        relations,
-        res_sources,
-        providers,
+    // // list of composed sets ///////////////////////////////////////////////////
+    // let mut composed_sets: Vec<(PreviewSetId, Vec<PreviewSet>)> = vec![];
+    // for raw_graph_class in &raw_graph_classes {
+    //     if let Composition::Intersection(ref vec) = raw_graph_class.composed {
+    //         let comp_preview: Vec<PreviewSet> = vec
+    //             .iter()
+    //             .map(|x| preview_collection.preview_set_map.get(x).unwrap().clone())
+    //             .collect();
+    //         composed_sets.push((raw_graph_class.id.preview(), comp_preview));
+    //     }
+    // }
+    // // providers ///////////////////////////////////////////////////////////////
+    // let mut provider_names = HashMap::new();
+    // for raw_provider in &raw_providers {
+    //     provider_names.insert(raw_provider.id.preview(), raw_provider.name.clone());
+    // }
+    // let mut provider_links: HashMap<PreviewProviderId, Vec<ProviderLink>> = HashMap::new();
+    // for provider_link in raw_provider_links {
+    //     let mut links = provider_links
+    //         .entry(provider_link.provider.clone())
+    //         .or_default();
+    //     let name = provider_names.get(&provider_link.provider).unwrap().clone();
+    //     links.push(ProviderLink::from(provider_link, name));
+    // }
+    // let providers: Vec<Provider> = raw_providers
+    //     .into_iter()
+    //     .filter_map(|x| {
+    //         if let Some(links) = provider_links.get(&x.id.preview()) {
+    //             Some(Provider::from(x, links.clone()))
+    //         } else {
+    //             error!("key not found in provider links {}", x.id);
+    //             None
+    //         }
+    //     })
+    //     .collect();
+    // let mut set_providers: HashMap<PreviewSetId, Vec<ProviderLink>> = HashMap::new();
+    // for provider in &providers {
+    //     for link in &provider.links {
+    //         set_providers
+    //             .entry(link.set.clone())
+    //             .or_default()
+    //             .push(link.clone());
+    //     }
+    // }
+    // tags ////////////////////////////////////////////////////////////////////
+    let mut tagged_sets: HashMap<PreviewTagId, Box<dyn Named>> = HashMap::new();
+    for field in vec![&raw_graph_classes, &raw_graphs] {
+        for val in field {
+            for tag in val.tags {
+                let mut sets = tagged_sets.get(tag.preview()).or_insert(Vec::new());
+                sets.push(Box::new(preview_collection.get(val.id)));
+            }
+        }
+    }
+    let tags = tagged_sets
+        .iter()
+        .map(|(tag, sets)| Tag::from(tag, sets))
+        .collect();
+    let mut tag_previews: HashMap<PreviewTagId, PreviewTag> = HashMap::new();
+    for tag in &tags {
+        tag_previews.insert(tag.id.preview(), tag.preview());
+    }
+    // // transfers ///////////////////////////////////////////////////////////////
+    // let mut transfers: HashMap<TransferGroup, HashMap<PreviewSetId, Vec<PreviewSet>>> =
+    //     HashMap::new();
+    // for (key, raw_pairs) in &raw_transfer {
+    //     let mut res: HashMap<PreviewSetId, Vec<PreviewSet>> = HashMap::new();
+    //     for raw_pair in raw_pairs {
+    //         let (from, to) = raw_pair.clone();
+    //         let res_from: PreviewSet = preview_collection
+    //             .preview_set_map
+    //             .get(&from)
+    //             .unwrap()
+    //             .clone();
+    //         let res_to: PreviewSet = preview_collection.preview_set_map.get(&to).unwrap().clone();
+    //         res.entry(res_from.id).or_default().push(res_to);
+    //     }
+    //     transfers.insert(key.clone(), res);
+    // }
+    // // relations ///////////////////////////////////////////////////////////////
+    // let (relations, partial_results) =
+    //     process_relations(&composed_sets, &transfers, &sources, &preview_collection);
+    // let simple_index = SimpleIndex::new(&relations);
+    // let sets = raw_sets
+    //     .into_iter()
+    //     .map(|set| {
+    //         process_set(
+    //             set,
+    //             &simple_index,
+    //             &set_providers,
+    //             &sources,
+    //             &raw_tag_set,
+    //             &tag_map,
+    //             &preview_collection,
+    //         )
+    //     })
+    //     .collect();
+    // // finalize ////////////////////////////////////////////////////////////////
+    // let res_sources = ordered_sources
+    //     .iter()
+    //     .map(|x| sources.remove(x).unwrap())
+    //     .collect();
+    Data::new(DataFields {
+        graph_class_relations,
         tags,
-        partial_results,
-    )
+        providers,
+        parametric_parameters,
+        parametric_graph_class,
+        parameters,
+        operations,
+        logic_fragments,
+        graphs,
+        graph_relations,
+        graph_classes,
+        sources,
+        factoids,
+        drawings,
+    })
 }
-
-// pub struct RawDataProvider {
-// provider: RawProvider,
-// links: Vec<RawProviderLink>,
-// format_url: Box<dyn Fn(&str) -> String>,
-// }
-
-// impl RawDataProvider {
-// pub fn new(
-// provider: RawProvider,
-// format_url: Box<dyn Fn(&str) -> String>,
-// ) -> Self {
-// RawDataProvider {
-// provider,
-// links: Vec::new(),
-// format_url,
-// }
-// }
-
-// pub fn link(mut self, set: &PreviewSetId, id: &str) -> Self {
-// let provider_id = self.provider.id.preview();
-// let provider_link = RawProviderLink {
-// provider: provider_id,
-// set: set.clone(),
-// url: (self.format_url)(id),
-// };
-// self.links.push(provider_link);
-// self
-// }
-
-// pub fn done(self, builder: &mut CollectionBuilder) {
-// let RawDataProvider {
-// provider,
-// mut links,
-// format_url: _,
-// } = self;
-// builder.data.providers.push(provider);
-// builder.data.provider_links.append(&mut links);
-// }
-// }

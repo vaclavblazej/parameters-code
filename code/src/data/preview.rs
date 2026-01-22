@@ -5,12 +5,64 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 
 use crate::data::data::*;
+use crate::data::date::Date;
 use crate::data::enums::*;
 use crate::data::id::*;
-use crate::work::date::Date;
+use crate::data::*;
 
 pub trait HasPreview<T> {
     fn preview(&self) -> T;
+}
+
+#[macro_export]
+macro_rules! tie_raw_to_previewid {
+    ($mytype:ident, $previewid:ident) => {
+        impl HasPreviewId for $mytype {
+            type PreviewId = $previewid;
+            fn preview(&self) -> Self::PreviewId {
+                self.id.preview()
+            }
+        }
+        impl HasId for $mytype {
+            fn id(&self) -> String {
+                self.id.to_string()
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! tie_data_to_previewid {
+    ($mytype:ident, $previewid:ident) => {
+        impl HasPreviewId for $mytype {
+            type PreviewId = $previewid;
+            fn preview(&self) -> Self::PreviewId {
+                self.id.preview()
+            }
+        }
+        impl HasId for $mytype {
+            fn id(&self) -> String {
+                self.id.to_string()
+            }
+        }
+        impl IsPreviewIdOf for $previewid {
+            type MainStructure = $mytype;
+        }
+    };
+}
+
+macro_rules! tie_preview_to_previewid {
+    ($mytype:ident, $previewid:ident) => {
+        impl HasPreviewId for $mytype {
+            type PreviewId = $previewid;
+            fn preview(&self) -> Self::PreviewId {
+                self.id.clone()
+            }
+        }
+        impl IsIdOfPreview for $previewid {
+            type PreviewStructure = $mytype;
+        }
+    };
 }
 
 macro_rules! define_preview_id_name {
@@ -18,14 +70,14 @@ macro_rules! define_preview_id_name {
         #[derive(Debug, Clone, Serialize, Deserialize)]
         pub struct $preview {
             pub id: $previewid,
-            pub name: String,
+            pub name: NameCore,
         }
-        impl HasPreviewId<$previewid> for $preview {}
+        tie_preview_to_previewid!($preview, $previewid);
         impl HasPreview<$preview> for $main {
             fn preview(&self) -> $preview {
                 $preview {
                     id: self.id.preview(),
-                    name: self.name.clone(),
+                    name: self.name_core.clone(),
                 }
             }
         }
@@ -38,15 +90,15 @@ macro_rules! define_preview_id_name_relevance {
         pub struct $preview {
             pub id: $previewid,
             pub relevance: u32,
-            pub name: String,
+            pub name: NameCore,
         }
-        impl HasPreviewId<$previewid> for $preview {}
+        tie_preview_to_previewid!($preview, $previewid);
         impl HasPreview<$preview> for $main {
             fn preview(&self) -> $preview {
                 $preview {
                     id: self.id.preview(),
                     relevance: self.relevance,
-                    name: self.core.name.clone(),
+                    name: self.name_core.clone(),
                 }
             }
         }
@@ -66,11 +118,6 @@ define_preview_id_name!(
 
 define_preview_id_name_relevance!(Graph, PreviewGraph, PreviewGraphId);
 define_preview_id_name_relevance!(GraphClass, PreviewGraphClass, PreviewGraphClassId);
-define_preview_id_name_relevance!(
-    HigherOrderParameter,
-    PreviewHigherOrderParameter,
-    PreviewHigherOrderParameterId
-);
 define_preview_id_name_relevance!(
     ParametricParameter,
     PreviewParametricParameter,
@@ -112,39 +159,32 @@ impl HasPreview<PreviewSource> for Source {
     }
 }
 
-// impl Display for PreviewSourceKey {
-// fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-// write!(f, "{}", match self {
-// PreviewSourceKey::Bibtex { key } => key,
-// PreviewSourceKey::Online { url } => url,
-// PreviewSourceKey::Other { name } => name,
-// })
-// }
-// }
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
+pub struct PreviewWrote {
+    pub text: String,
+    pub page: Page,
+}
 
-// #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-// pub struct PreviewSet {
-// pub id: PreviewSetId,
-// pub name: String,
-// pub typ: PreviewType,
-// pub relevance: u32,
-// }
+impl HasPreview<PreviewWrote> for Wrote {
+    fn preview(&self) -> PreviewWrote {
+        PreviewWrote {
+            text: self.text.clone(),
+            page: self.page.clone(),
+        }
+    }
+}
 
-// impl HasPreview<PreviewRelation> for Relation {
-// fn preview(&self) -> PreviewRelation {
-// PreviewRelation {
-// id: self.id.preview(),
-// subset: self.subset.clone(),
-// superset: self.superset.clone(),
-// cpx: CpxInfo::from(self.cpx.clone()),
-// }
-// }
-// }
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
+pub struct PreviewProblem {
+    pub id: PreviewProblemId,
+    pub name_core: NameCore,
+}
 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-// pub struct PreviewRelation {
-// pub id: PreviewRelationId,
-// pub subset: PreviewSet,
-// pub superset: PreviewSet,
-// pub cpx: CpxInfo,
-// }
+impl HasPreview<PreviewProblem> for Problem {
+    fn preview(&self) -> PreviewProblem {
+        PreviewProblem {
+            id: self.id.preview(),
+            name_core: self.name_core.clone(),
+        }
+    }
+}

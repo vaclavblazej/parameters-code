@@ -1,11 +1,13 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use biblatex::Bibliography;
+use biblatex::{Bibliography, Chunk, DateValue, PermissiveType, Spanned};
 use log::error;
 
-use crate::general::file;
-
+use crate::{
+    data::{date::Date, enums::SourceKey},
+    general::{file, strings::nice_concat},
+};
 
 pub fn load_bibliography(bibliography_file: &PathBuf) -> Result<Bibliography> {
     let bibliography_res = file::read_file_content(bibliography_file);
@@ -20,12 +22,13 @@ pub fn load_bibliography(bibliography_file: &PathBuf) -> Result<Bibliography> {
 
 pub fn bibligraphy_to_source(
     bibliography: &Option<Bibliography>,
-    time: &mut Date,
-    key: &String,
-) -> SourceKey::Bibtex {
+    raw_entry_key: &str,
+) -> (SourceKey, Date) {
     let mut name: Option<String> = None;
-    let entry = bibliography.map(|bib| {
-        bib.get(key).map(|e| {
+    let mut entry: Option<String> = None;
+    let mut date = Date::empty();
+    if let Some(bib) = bibliography {
+        bib.get(raw_entry_key).map(|e| {
             if let Ok(title) = e.title() {
                 let title_str: String = title
                     .iter()
@@ -38,35 +41,24 @@ pub fn bibligraphy_to_source(
                         a.push_str(&b);
                         a
                     });
-                name = Some(match name {
-                    Some(mut q) => {
-                        q.push_str(&title_str);
-                        q
-                    }
-                    None => title_str,
-                });
+                name = Some(title_str);
             }
             if let Ok(fauthors) = e.author() {
-                let sauthors: Vec<String> =
-                    fauthors.iter().map(|x| x.name.clone()).collect();
-                let authors = sauthors.join(", ");
-                name = Some(match name {
+                let sauthors: Vec<String> = fauthors.iter().map(|x| x.name.clone()).collect();
+                let authors = nice_concat(sauthors);
+                match name.clone() {
                     Some(mut q) => {
                         q.push_str(&format!(" by {}", authors));
-                        q
+                        name = Some(q);
                     }
-                    None => authors,
-                });
+                    None => name = Some(authors),
+                };
             }
             if let Ok(dt) = e.date() {
                 match dt {
                     PermissiveType::Typed(t) => match t.value {
                         DateValue::At(d) => {
-                            time = Date {
-                                year: Some(d.year),
-                                month: None,
-                                day: None,
-                            }
+                            date.year = Some(d.year);
                         }
                         DateValue::After(d) => {
                             panic!("unknown date type")
@@ -84,12 +76,14 @@ pub fn bibligraphy_to_source(
                 }
             }
             Some(e.to_biblatex_string())
-        })
-    });
-    SourceKey::Bibtex {
-        key: key.clone(),
-        name,
-        entry,
-        relevance: source.relevance,
+        });
     }
+    (
+        SourceKey::Bibtex {
+            entry_key: String::from(raw_entry_key),
+            name,
+            entry_content: entry,
+        },
+        date,
+    )
 }

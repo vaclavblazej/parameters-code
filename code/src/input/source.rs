@@ -1,9 +1,12 @@
 use log::warn;
+use serde::{Deserialize, Serialize};
 
 use crate::data::data::Named;
 use crate::data::enums::*;
 use crate::data::id::*;
+use crate::data::link::Link;
 use crate::input::build::CollectionBuilder;
+use crate::input::raw::RawData;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RawSourceKey {
@@ -47,12 +50,12 @@ pub struct RawWrote {
     pub facts: Vec<(ShowedId, RawWroteStatus, RawFact)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EquivalenceRelation {
     Equivalent,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ImplicationRelation {
     Equivalent,
     Implies,
@@ -60,22 +63,22 @@ pub enum ImplicationRelation {
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClassicalSolvability {
     Polynomial,
     NpHard,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ParameterizedSolvability {
     Polynomial,
-    FPT,
+    Fpt,
     Whard,
     ParaNpHard,
 }
 
 /// Enum that makes inputting complexities more convenient.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Cpx {
     Bounds(CpxTime, CpxTime),
     UpperBound(CpxTime),
@@ -89,7 +92,7 @@ pub enum Cpx {
     Todo,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InclusionRelationUnderOperation {
     relation: ImplicationRelation,
     operation: PreviewOperationId,
@@ -111,7 +114,7 @@ where
     data.rel(fr, to)
 }
 
-trait Definable {
+pub trait Definable {
     fn def(&self) -> RawFact;
 }
 
@@ -125,7 +128,7 @@ macro_rules! definable {
     };
 }
 
-trait Relatable<F, T> {
+pub trait Relatable<F, T> {
     fn rel(self, fr: &F, to: &T) -> RawFact;
 }
 
@@ -312,7 +315,7 @@ pub enum RawNotedSource {
 pub struct RawSourceData {
     source: RawSource,
     factoids: Vec<RawWrote>,
-    drawings: Vec<RawDrawing>,
+    drawings: Vec<Drawing>,
 }
 
 impl RawSourceData {
@@ -335,15 +338,15 @@ impl RawSourceData {
 
     /// Notes that a source contains a hasse diagram of the listed sets.
     /// This method recreates that diagram with results from HOPS.
-    pub fn hasse(mut self, id: &str, page: Page, sets: Vec<Box<dyn Named>>) -> Self {
-        self.drawings.push(RawDrawing::Hasse(sets.clone()));
+    pub fn hasse(mut self, id: &str, page: Page, sets: Vec<Link>) -> Self {
+        self.drawings.push(Drawing::Hasse(sets));
         self
     }
 
     /// Notes that a source has a complete comparison table of the listed sets.
     /// This recreates the same table from the results in HOPS.
-    pub fn table(mut self, id: &str, page: Page, sets: Vec<Box<dyn Named>>) -> Self {
-        self.drawings.push(RawDrawing::Table(sets.clone()));
+    pub fn table(mut self, id: &str, page: Page, sets: Vec<Link>) -> Self {
+        self.drawings.push(Drawing::Table(sets));
         self
     }
 
@@ -366,11 +369,13 @@ impl RawSourceData {
             drawings,
         } = self;
         for factoid in factoids {
-            data.factoids.push((source.id.preview(), factoid));
+            data.factoids.insert(source.id.preview(), factoid);
         }
-        data.relations.append(&mut relations);
+        for drawing in drawings {
+            data.drawings.insert(source.id.preview(), drawing);
+        }
         let res = source.id.preview();
-        data.sources.push(RawSource::from(source));
+        data.sources.push(source);
         res
     }
 }
