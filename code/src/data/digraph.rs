@@ -35,11 +35,11 @@ impl<VertexData, EdgeData> DiGraph<VertexData, EdgeData> {
     pub fn add_edge(&mut self, from: String, to: String, edge: Edge<EdgeData>) {
         self.out_edges
             .entry(from.clone())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(to.clone());
         self.in_edges
             .entry(to.clone())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(from.clone());
         self.edges.insert((from, to), edge);
     }
@@ -64,5 +64,11 @@ impl<VertexData, EdgeData> DiGraph<VertexData, EdgeData> {
             }
         }
         visited
+    }
+}
+
+impl<VertexData, EdgeData> Default for DiGraph<VertexData, EdgeData> {
+    fn default() -> Self {
+        Self::new()
     }
 }

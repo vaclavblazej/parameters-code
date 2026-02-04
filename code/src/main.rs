@@ -30,13 +30,10 @@ use crate::general::timer::Timer;
 
 use crate::data::data::{Data, Parameter};
 use crate::output::api;
-use crate::output::diagram::make_drawing;
-use crate::output::dot::DotGraph;
 use crate::output::markdown::{Mappable, Markdown};
 use crate::output::pages;
 use crate::output::pages::TargetPage;
 use crate::output::pages::add_content;
-use crate::output::table::{CreateTable, generate_relation_table, render_table};
 use crate::work::processing::process_raw_data;
 
 mod general {
@@ -349,41 +346,41 @@ impl Computation {
         self.some_data = Some(res);
     }
 
-    fn make_dots(&self) {
-        if !self.args.contains(&Args::Dots) {
-            return;
-        }
-        let data = self.get_data();
-        self.time.print("creating main page dots");
-        let parameters: Vec<&Parameter> = data
-            .parameters
-            .values()
-            .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
-            .collect();
-        let simplified_parameters: Vec<&Parameter> = data
-            .parameters
-            .values()
-            .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
-            .collect();
-        for (name, set) in [
-            ("parameters", &parameters),
-            ("parameters_simplified", &simplified_parameters),
-        ] {
-            if let Ok(done_dot) = make_drawing(
-                data,
-                &self.paths.working_dir,
-                DotGraph::new(name, None),
-                set,
-            ) {
-                let final_dot = self.paths.html_dir.join(format!("{}.dot", name));
-                info!("copy dot to {:?}", &final_dot);
-                if let Err(err) = file::copy_file(&done_dot, &final_dot) {
-                    error!("{}", err);
-                }
-            }
-        }
-    }
-
+    // fn make_dots(&self) {
+    //     if !self.args.contains(&Args::Dots) {
+    //         return;
+    //     }
+    //     let data = self.get_data();
+    //     self.time.print("creating main page dots");
+    //     let parameters: Vec<&Parameter> = data
+    //         .parameters
+    //         .values()
+    //         .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
+    //         .collect();
+    //     let simplified_parameters: Vec<&Parameter> = data
+    //         .parameters
+    //         .values()
+    //         .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
+    //         .collect();
+    //     for (name, set) in [
+    //         ("parameters", &parameters),
+    //         ("parameters_simplified", &simplified_parameters),
+    //     ] {
+    //         if let Ok(done_dot) = make_drawing(
+    //             data,
+    //             &self.paths.working_dir,
+    //             DotGraph::new(name, None),
+    //             set,
+    //         ) {
+    //             let final_dot = self.paths.html_dir.join(format!("{}.dot", name));
+    //             info!("copy dot to {:?}", &final_dot);
+    //             if let Err(err) = file::copy_file(&done_dot, &final_dot) {
+    //                 error!("{}", err);
+    //             }
+    //         }
+    //     }
+    // }
+    //
     fn make_api(&self) -> Result<()> {
         if !self.args.contains(&Args::Api) {
             return Ok(());
@@ -502,31 +499,31 @@ impl Computation {
                     );
                     println!("    exit - end the interactive prompt");
                 }
-                "hasse" => {
-                    let mut sets = Vec::new();
-                    for i in command.iter() {
-                        let set_id: PreviewParameterId = PreviewParameterId::from(i.clone());
-                        sets.push(data.get(&set_id));
-                    }
-                    let target_dir = &self.paths.tmp_dir;
-                    let name = "drawing";
-                    let res_dot_target_file = make_drawing(data, target_dir, name, &sets, None);
-                    if let Ok(dot_target_file) = res_dot_target_file {
-                        println!("dot drawing created at '{:?}'", dot_target_file);
-                        let pdf_target_file = target_dir.join(format!("{}.pdf", name));
-                        Command::new("dot")
-                            .arg("-Tpdf")
-                            .arg(&dot_target_file)
-                            .arg("-o")
-                            .arg(&pdf_target_file)
-                            .output()
-                            .expect("dot command failed");
-                        assert!(pdf_target_file.exists());
-                        println!("pdf generated at '{:?}'", pdf_target_file);
-                    }
-                }
+                // "hasse" => {
+                //     let mut sets = Vec::new();
+                //     for i in command.iter() {
+                //         let set_id: PreviewParameterId = PreviewParameterId::from(i.clone());
+                //         sets.push(data.get(&set_id));
+                //     }
+                //     let target_dir = &self.paths.tmp_dir;
+                //     let name = "drawing";
+                //     let res_dot_target_file = make_drawing(data, target_dir, name, &sets, None);
+                //     if let Ok(dot_target_file) = res_dot_target_file {
+                //         println!("dot drawing created at '{:?}'", dot_target_file);
+                //         let pdf_target_file = target_dir.join(format!("{}.pdf", name));
+                //         Command::new("dot")
+                //             .arg("-Tpdf")
+                //             .arg(&dot_target_file)
+                //             .arg("-o")
+                //             .arg(&pdf_target_file)
+                //             .output()
+                //             .expect("dot command failed");
+                //         assert!(pdf_target_file.exists());
+                //         println!("pdf generated at '{:?}'", pdf_target_file);
+                //     }
+                // }
                 "exit" => return false,
-                x => println!("unknown command '{}'", x),
+                x => warn!("unknown command '{}'", x),
             }
         }
         true
@@ -563,35 +560,35 @@ impl Computation {
         }
     }
 
-    fn make_relation_table(&self) {
-        if !self.args.contains(&Args::Table) {
-            return;
-        }
-        let data = self.get_data();
-        self.time.print("generating relation tables");
-        let table_sets: Vec<PreviewParameter> = data
-            .parameters
-            .values()
-            .map(|x| x.preview())
-            .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
-            .collect();
-        let simplified_table_sets: Vec<PreviewParameter> = data
-            .parameters
-            .values()
-            .map(|x| x.preview())
-            .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
-            .collect();
-        let (name, parameter) = ("table_simplified", &simplified_table_sets);
-        generate_relation_table(data, parameter, &self.paths, name, &self.worker);
-    }
+    // fn make_relation_table(&self) {
+    //     if !self.args.contains(&Args::Table) {
+    //         return;
+    //     }
+    //     let data = self.get_data();
+    //     self.time.print("generating relation tables");
+    //     let table_sets: Vec<PreviewParameter> = data
+    //         .parameters
+    //         .values()
+    //         .map(|x| x.preview())
+    //         .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
+    //         .collect();
+    //     let simplified_table_sets: Vec<PreviewParameter> = data
+    //         .parameters
+    //         .values()
+    //         .map(|x| x.preview())
+    //         .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
+    //         .collect();
+    //     let (name, parameter) = ("table_simplified", &simplified_table_sets);
+    //     generate_relation_table(data, parameter, &self.paths, name, &self.worker);
+    // }
 }
 
 fn main() {
     let mut computation = Computation::new();
     computation.clear();
     computation.retrieve_and_process_data();
-    computation.make_dots(); // todo needs to be abstract
-    computation.make_relation_table(); // todo needs to be abstract
+    // computation.make_dots(); // todo needs to be abstract
+    // computation.make_relation_table(); // todo needs to be abstract
     computation.make_api();
     computation.make_pages();
     computation.interactive();

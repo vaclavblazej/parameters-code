@@ -20,8 +20,6 @@ use crate::data::link::{Link, Linkable};
 use crate::data::preview::*;
 use crate::general::progress;
 use crate::output::color::Color;
-use crate::output::diagram::{make_drawing, make_focus_drawing, make_subset_drawing};
-use crate::output::table::{generate_relation_table, render_table};
 use crate::output::to_markdown::ToMarkdown;
 use crate::{Paths, Worker, file};
 
@@ -116,9 +114,9 @@ impl GeneratedPage for Parameter {
         //         self.providers.iter().map(|x| builder.linkto(x)).collect();
         //     res += &format!("providers: {}\n\n", provider_strings.join(", "));
         // }
-        let definition_string = match self.definition {
-            ParameterDefinition::Graph(text) => text,
-            ParameterDefinition::GraphClass(text) => text,
+        let definition_string = match &self.definition {
+            ParameterDefinition::Graph(text) => text.clone(),
+            ParameterDefinition::GraphClass(text) => text.clone(),
             ParameterDefinition::BoundsAll(preview_parametric_parameter) => {
                 format!(
                     "Parameter is at most $k$ if value of every {} is at most $k$.",
@@ -128,37 +126,37 @@ impl GeneratedPage for Parameter {
         };
         res += &format!("**Definition:** {}\n\n", definition_string);
         res += "[[handcrafted]]\n\n";
-        for drawing_path in [
-            make_focus_drawing(
-                &format!("local_{}", self.id),
-                builder.data,
-                digraph,
-                self,
-                2,
-                &paths.working_dir,
-            ),
-            make_subset_drawing(
-                &format!("graph_property_inclusions_{}", self.id),
-                builder.data,
-                self,
-                builder.data.parameters.values().collect(),
-                &paths.working_dir,
-            ),
-            make_subset_drawing(
-                &format!("parameter_inclusions_{}", self.id),
-                builder.data,
-                self,
-                builder
-                    .data
-                    .parameters
-                    .values()
-                    .filter(|x| x.score > 0)
-                    .collect(),
-                &paths.working_dir,
-            ),
-        ] {
-            res += &include_dot_file(drawing_path, &paths.final_dir);
-        }
+        // for drawing_path in [
+        //     make_focus_drawing(
+        //         &format!("local_{}", self.id),
+        //         builder.data,
+        //         digraph,
+        //         self,
+        //         2,
+        //         &paths.working_dir,
+        //     ),
+        //     make_subset_drawing(
+        //         &format!("graph_property_inclusions_{}", self.id),
+        //         builder.data,
+        //         self,
+        //         builder.data.parameters.values().collect(),
+        //         &paths.working_dir,
+        //     ),
+        //     make_subset_drawing(
+        //         &format!("parameter_inclusions_{}", self.id),
+        //         builder.data,
+        //         self,
+        //         builder
+        //             .data
+        //             .parameters
+        //             .values()
+        //             .filter(|x| x.score > 0)
+        //             .collect(),
+        //         &paths.working_dir,
+        //     ),
+        // ] {
+        //     res += &include_dot_file(drawing_path, &paths.final_dir);
+        // }
         // todo - having parameters and graphs both as sets means maximal doesn't show what was expected
         // let subs = &self.subsets.maximal;
         // if !subs.is_empty() {
@@ -226,71 +224,71 @@ impl GeneratedPage for Parameter {
     }
 }
 
-impl GeneratedPage for Source {
-    fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
-        let mut res = String::new();
-        match &self.sourcekey {
-            SourceKey::Bibtex {
-                entry_key,
-                name,
-                entry_content,
-            } => {
-                res += &format!("# {}\n\n", self.preview().get_name());
-                if let Some(somebib) = builder.bibliography {
-                    if let Some(val) = somebib.get(entry_key) {
-                        if let Ok(doi) = val.doi() {
-                            let doi_url = format!("https://www.doi.org/{}", doi);
-                            res += &format!("[{}]({})\n\n", doi_url, doi_url);
-                        } else if let Ok(url) = val.url() {
-                            res += &format!("[{}]({})\n\n", url, url);
-                        }
-                        // todo - print the original (unformatted) biblatex citation from main.bib
-                        res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
-                    } else {
-                        error!("unable to load {} from main.bib", entry_key);
-                        res += &format!(
-                            "an error occured while loading the bibtex entry for `{}`",
-                            entry_key
-                        );
-                    }
-                }
-            }
-            SourceKey::Other { name, description } => {
-                res += &format!("# {}\n\n", name);
-                res += &format!("{}\n\n", description);
-            }
-            SourceKey::Online { url } => {
-                res += &format!("# Online source {}\n\n", self.id);
-            }
-        }
-        for (idx, drawing) in self.drawings.iter().enumerate() {
-            let name = &format!("drawing_{}_{}", self.id, idx);
-            match drawing {
-                Drawing::Table(list) => {
-                    generate_relation_table(builder.data, list, paths, name, &builder.worker);
-                    res += &format!("[[pdf ../{}.pdf]]\n\n", name);
-                }
-                Drawing::Hasse(list) => {
-                    let drawing_path = make_drawing(
-                        builder.data,
-                        &paths.final_dir,
-                        name,
-                        &builder.data.get(list.clone()),
-                        None,
-                    );
-                    res += &include_dot_file(drawing_path, &paths.final_dir);
-                }
-            };
-        }
-        // res += &format!("{:?} {}", self.sourcekey, self.time);
-        for s in &self.wrote {
-            if let Some(val) = s.to_markdown(builder) {
-                res += &format!("* {}\n", val);
-            }
-        }
-        res
-    }
-}
+// impl GeneratedPage for Source {
+//     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
+//         let mut res = String::new();
+//         match &self.sourcekey {
+//             SourceKey::Bibtex {
+//                 entry_key,
+//                 name,
+//                 entry_content,
+//             } => {
+//                 res += &format!("# {}\n\n", self.preview().get_name());
+//                 if let Some(somebib) = builder.bibliography {
+//                     if let Some(val) = somebib.get(entry_key) {
+//                         if let Ok(doi) = val.doi() {
+//                             let doi_url = format!("https://www.doi.org/{}", doi);
+//                             res += &format!("[{}]({})\n\n", doi_url, doi_url);
+//                         } else if let Ok(url) = val.url() {
+//                             res += &format!("[{}]({})\n\n", url, url);
+//                         }
+//                         // todo - print the original (unformatted) biblatex citation from main.bib
+//                         res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
+//                     } else {
+//                         error!("unable to load {} from main.bib", entry_key);
+//                         res += &format!(
+//                             "an error occured while loading the bibtex entry for `{}`",
+//                             entry_key
+//                         );
+//                     }
+//                 }
+//             }
+//             SourceKey::Other { name, description } => {
+//                 res += &format!("# {}\n\n", name);
+//                 res += &format!("{}\n\n", description);
+//             }
+//             SourceKey::Online { url } => {
+//                 res += &format!("# Online source {}\n\n", self.id);
+//             }
+//         }
+//         for (idx, drawing) in self.drawings.iter().enumerate() {
+//             let name = &format!("drawing_{}_{}", self.id, idx);
+//             match drawing {
+//                 Drawing::Table(list) => {
+//                     generate_relation_table(builder.data, list, paths, name, &builder.worker);
+//                     res += &format!("[[pdf ../{}.pdf]]\n\n", name);
+//                 }
+//                 Drawing::Hasse(list) => {
+//                     let drawing_path = make_drawing(
+//                         builder.data,
+//                         &paths.final_dir,
+//                         name,
+//                         &builder.data.get(list.clone()),
+//                         None,
+//                     );
+//                     res += &include_dot_file(drawing_path, &paths.final_dir);
+//                 }
+//             };
+//         }
+//         // res += &format!("{:?} {}", self.sourcekey, self.time);
+//         for s in &self.wrote {
+//             if let Some(val) = s.to_markdown(builder) {
+//                 res += &format!("* {}\n", val);
+//             }
+//         }
+//         res
+//     }
+// }
 
 fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
     match &created_by {
@@ -359,39 +357,39 @@ fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
 //     format!("{}: {}", res, children)
 // }
 
-fn relations_list(builder: &Markdown) -> String {
-    let mut res = String::new();
-    for relation in &builder.data.relations {
-        let this_anchor = format!("<span id=\"{}\"></span>", relation.preview().get_url());
-        let this_el = format!("[$]({})", relation.preview().get_url());
-        let join_el = if let Some(reverse_relation) = builder
-            .data
-            .get_relation(&relation.superset, &relation.subset)
-        {
-            format!("[→]({})", reverse_relation.preview().get_url())
-        } else {
-            "→".to_string()
-        };
-        let sub = builder.data.get_set(&relation.subset);
-        let sup = builder.data.get_set(&relation.superset);
-        // let color = &format!( // todo
-        // "color: [[color {}]]\n\n",
-        // relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview()).name()
-        // );
-        res += &format!(
-            "\n{}{} {} {} {}\n",
-            // "\n{}{} {} {} {} -- {}\n",
-            this_anchor,
-            this_el,
-            builder.linkto(&relation.subset),
-            join_el,
-            builder.linkto(&relation.superset),
-            // &format_complexity(builder.data, &relation.cpx)
-        );
-        res += "\n";
-    }
-    res
-}
+// fn relations_list(builder: &Markdown) -> String {
+//     let mut res = String::new();
+//     for relation in &builder.data.relations {
+//         let this_anchor = format!("<span id=\"{}\"></span>", relation.preview().get_url());
+//         let this_el = format!("[$]({})", relation.preview().get_url());
+//         let join_el = if let Some(reverse_relation) = builder
+//             .data
+//             .get_relation(&relation.superset, &relation.subset)
+//         {
+//             format!("[→]({})", reverse_relation.preview().get_url())
+//         } else {
+//             "→".to_string()
+//         };
+//         let sub = builder.data.get_set(&relation.subset);
+//         let sup = builder.data.get_set(&relation.superset);
+//         // let color = &format!( // todo
+//         // "color: [[color {}]]\n\n",
+//         // relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview()).name()
+//         // );
+//         res += &format!(
+//             "\n{}{} {} {} {}\n",
+//             // "\n{}{} {} {} {} -- {}\n",
+//             this_anchor,
+//             this_el,
+//             builder.linkto(&relation.subset),
+//             join_el,
+//             builder.linkto(&relation.superset),
+//             // &format_complexity(builder.data, &relation.cpx)
+//         );
+//         res += "\n";
+//     }
+//     res
+// }
 
 impl GeneratedPage for Tag {
     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
@@ -494,7 +492,7 @@ impl<'a> Markdown<'a> {
             match key.as_str() {
                 "parameters" => {
                     let mut pars = self.data.parameters.values().collect::<Vec<&Parameter>>();
-                    pars.sort_by_key(|x| x.name.to_lowercase());
+                    pars.sort_by_key(|x| x.name_core.name.to_lowercase());
                     let mut table = Table::new(vec![
                         "Parameter",
                         &format!(
@@ -504,13 +502,13 @@ impl<'a> Markdown<'a> {
                     ]);
                     for set in &pars {
                         let relstring = progress::bar(set.score, 9);
-                        table.add(vec![self.linkto(&set.preview()), relstring]);
+                        table.add(vec![self.linkto(&set.get_link()), relstring]);
                     }
                     content += self.make_table(table).as_str();
                 }
-                "relations" => {
-                    content += &relations_list(self);
-                }
+                // "relations" => {
+                //     content += &relations_list(self);
+                // }
                 "graphs" => {
                     let mut graphs = self
                         .data
@@ -527,7 +525,7 @@ impl<'a> Markdown<'a> {
                     ]);
                     for set in &graphs {
                         let relstring = progress::bar(set.score, 9);
-                        table.add(vec![self.linkto(&set.preview()), relstring]);
+                        table.add(vec![self.linkto(&set.get_link()), relstring]);
                     }
                     content += self.make_table(table).as_str();
                 }
@@ -547,43 +545,43 @@ impl<'a> Markdown<'a> {
                     ]);
                     for set in &properties {
                         let relstring = progress::bar(set.score, 9);
-                        table.add(vec![self.linkto(&set.preview()), relstring]);
+                        table.add(vec![self.linkto(&set.get_link()), relstring]);
                     }
                     content += self.make_table(table).as_str();
                 }
-                "sources" => {
-                    let mut table = Table::new(vec![
-                        "#",
-                        "Year",
-                        &format!(
-                            "<a href=\"{}\">*</a>Score",
-                            base(&("docs/legend/#score").into())
-                        ),
-                        "Source",
-                    ]);
-                    let mut index = 0;
-                    for source in &self.data.sources {
-                        if let SourceKey::Bibtex {
-                            entry_key,
-                            name,
-                            entry_content,
-                        } = &source.sourcekey
-                        {
-                            let relstring = progress::bar(*score, 9);
-                            table.add(vec![
-                                format!("{:0>3}", index),
-                                source.time.to_string(),
-                                relstring,
-                                self.linkto(&source.preview()),
-                            ]);
-                            index += 1;
-                        }
-                    }
-                    content += self.make_table(table).as_str();
-                }
+                // "sources" => {
+                //     let mut table = Table::new(vec![
+                //         "#",
+                //         "Year",
+                //         &format!(
+                //             "<a href=\"{}\">*</a>Score",
+                //             base(&("docs/legend/#score").into())
+                //         ),
+                //         "Source",
+                //     ]);
+                //     let mut index = 0;
+                //     for source in &self.data.sources {
+                //         if let SourceKey::Bibtex {
+                //             entry_key,
+                //             name,
+                //             entry_content,
+                //         } = &source.sourcekey
+                //         {
+                //             let relstring = progress::bar(*score, 9);
+                //             table.add(vec![
+                //                 format!("{:0>3}", index),
+                //                 source.time.to_string(),
+                //                 relstring,
+                //                 self.linkto(&source.preview()),
+                //             ]);
+                //             index += 1;
+                //         }
+                //     }
+                //     content += self.make_table(table).as_str();
+                // }
                 "tags" => {
-                    for tag in &self.data.tags {
-                        content += &format!("* {}\n", self.linkto(&tag.preview().get_link()));
+                    for tag in self.data.tags.values() {
+                        content += &format!("* {}\n", self.linkto(&tag.get_link()));
                     }
                     content += "\n\n";
                 }

@@ -127,20 +127,20 @@ trait HasColor {
     fn color(&self) -> Color;
 }
 
-enum SimpleRelation {
+pub enum SimpleRelation {
     Arrow,
     NotArrow,
     Unknown,
 }
 
-struct DirectedRelation {
+pub struct DirectedRelation {
     from: String,
     to: String,
     from_to: SimpleRelation,
     to_from: SimpleRelation,
 }
 
-pub fn relation_color<T>(relation: DirectedRelation) -> Color {
+pub fn relation_color(relation: DirectedRelation) -> Color {
     match (relation.from_to, relation.to_from) {
         (SimpleRelation::Arrow, SimpleRelation::Arrow) => Color::Yellow,
         (SimpleRelation::Arrow, SimpleRelation::NotArrow) => Color::Green,

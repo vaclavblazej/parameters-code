@@ -103,7 +103,7 @@ pub fn create_simple_api(data: &Data, api_dir: &Path) -> Result<()> {
 pub fn create_set_api(data: &Data, api_dir: &Path) -> Result<()> {
     for parameter in data.parameters.values() {
         let serialized = serde_json::to_string_pretty(parameter)?;
-        let filename = format!("{}.json", parameter.id.to_string());
+        let filename = format!("{}.json", parameter.id());
         let final_file = api_dir.join(filename);
         file::write_file_content(&final_file, serialized.as_str())?;
     }

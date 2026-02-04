@@ -3,6 +3,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use biblatex::{Bibliography, Chunk, DateValue, Entry, PermissiveType, Person, Spanned};
+use log::info;
 use log::{debug, error, trace, warn};
 use rand::seq::IndexedRandom;
 use serde::{Deserialize, Serialize};
@@ -226,16 +227,10 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         for (showed_id, wrote_status, fact) in facts {
             match fact {
                 RawFact::Rel(r) => {
-                    relations_map
-                        .entry(r.kind())
-                        .or_insert_with(Vec::new)
-                        .push(r);
+                    relations_map.entry(r.kind()).or_default().push(r);
                 }
                 RawFact::Def(d) => {
-                    definitions_map
-                        .entry(d.kind())
-                        .or_insert_with(Vec::new)
-                        .push(d);
+                    definitions_map.entry(d.kind()).or_default().push(d);
                 }
             }
         }
@@ -312,7 +307,6 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     //     process_relations(&composed_sets, &transfers, &sources, &preview_collection);
     let parameters = raw_parameters_map
         .into_values()
-        .into_iter()
         .map(|parameter| {
             process_parameter(parameter, &tag_set, &tag_preview_map, &preview_collection)
         })

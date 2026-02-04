@@ -1,7 +1,7 @@
 //! Utilities for building the final pages
 
-use std::{collections::HashMap, path::Path};
 use std::path::PathBuf;
+use std::{collections::HashMap, path::Path};
 
 use crate::data::id::{AbstractId, HasId};
 
@@ -24,11 +24,12 @@ pub struct TargetPage<'a> {
     pub source: Option<&'a PathBuf>,
 }
 
-pub fn add_content<'a, T>(
-    collection: &'a Vec<T>,
+pub fn add_content<'a, T, I>(
+    collection: I,
     final_dir: &Path,
     generated_pages: &mut HashMap<PathBuf, Substitute<'a>>,
 ) where
+    I: Iterator<Item = &'a T>,
     T: GeneratedPage + HasId + 'static,
 {
     for element in collection {

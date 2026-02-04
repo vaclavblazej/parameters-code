@@ -98,7 +98,7 @@ pub fn parametric_graph_class(
 pub fn parameter(id: &str, name: &str, score: u32, definition: &str) -> Builder<RawParameter> {
     Builder::new(RawParameter {
         id: ParameterId::new(id.into()),
-        score: score,
+        score,
         name_core: NameCore::new(name),
         definition: RawParameterDefinition::GraphText(definition.into()),
         tags: Vec::new(),
@@ -113,7 +113,7 @@ pub fn higher_order_parameter(
 ) -> Builder<RawParameter> {
     Builder::new(RawParameter {
         id: ParameterId::new(id.into()),
-        score: score,
+        score,
         name_core: NameCore::new(name),
         definition: RawParameterDefinition::BoundsAll(bounds_all),
         tags: Vec::new(),
@@ -128,7 +128,7 @@ pub fn parametric_parameter(
 ) -> Builder<RawParametricParameter> {
     Builder::new(RawParametricParameter {
         id: ParametricParameterId::new(id.into()),
-        score: score,
+        score,
         name_core: NameCore::new(name),
         definition,
         tags: Vec::new(),
@@ -145,7 +145,7 @@ pub fn graph_class_property(
     assert!(score <= 9);
     Builder::new(RawGraphClassProperty {
         id: GraphClassPropertyId::new(id.into()),
-        score: score,
+        score,
         name_core: NameCore::new(name),
         definition,
         own,
