@@ -40,16 +40,11 @@ pub static ASSUMED_SOURCE_ID: &str = "9kg0oo";
 /// Defines a new graph class. We do not aim to have all graph
 /// classes in the database but only those that are very relevant
 /// to the field of parameterized complexity.
-pub fn graph_class(
-    id: &str,
-    name: &str,
-    relevance: u32,
-    definition: &str,
-) -> Builder<RawGraphClass> {
-    assert!(relevance <= 9);
+pub fn graph_class(id: &str, name: &str, score: u32, definition: &str) -> Builder<RawGraphClass> {
+    assert!(score <= 9);
     Builder::new(RawGraphClass {
         id: GraphClassId::new(id.into()),
-        relevance,
+        score,
         name_core: NameCore::new(name),
         definition: RawGraphClassDefinition::Text(definition.into()),
         tags: Vec::new(),
@@ -60,13 +55,13 @@ pub fn graph_class(
 pub fn graph_property(
     id: &str,
     name: &str,
-    relevance: u32,
+    score: u32,
     definition: &str,
 ) -> Builder<RawGraphClass> {
-    assert!(relevance <= 9);
+    assert!(score <= 9);
     Builder::new(RawGraphClass {
         id: GraphClassId::new(id.into()),
-        relevance,
+        score,
         name_core: NameCore::new(name),
         definition: RawGraphClassDefinition::Text(definition.into()),
         tags: Vec::new(),
@@ -78,14 +73,14 @@ pub fn graph_property(
 pub fn parametric_graph_class(
     id: &str,
     name: &str,
-    relevance: u32,
+    score: u32,
     closed_under: PreviewGraphRelationId,
     definition: &str,
 ) -> Builder<RawParametricGraphClass> {
-    assert!(relevance <= 9);
+    assert!(score <= 9);
     Builder::new(RawParametricGraphClass {
         id: ParametricGraphClassId::new(id.into()),
-        relevance,
+        score,
         name_core: NameCore::new(name),
         closed_under,
         tags: Vec::new(),
@@ -100,12 +95,12 @@ pub fn parametric_graph_class(
 /// a separate parameter and then united with Equivalence.
 /// Equivalent parameters whose equivalence is to some degree surprising
 /// their definitions may be kept separate.
-pub fn parameter(id: &str, name: &str, relevance: u32, definition: &str) -> Builder<RawParameter> {
+pub fn parameter(id: &str, name: &str, score: u32, definition: &str) -> Builder<RawParameter> {
     Builder::new(RawParameter {
         id: ParameterId::new(id.into()),
-        relevance,
+        score: score,
         name_core: NameCore::new(name),
-        definition: RawParameterDefinition::Text(definition.into()),
+        definition: RawParameterDefinition::GraphText(definition.into()),
         tags: Vec::new(),
     })
 }
@@ -113,12 +108,12 @@ pub fn parameter(id: &str, name: &str, relevance: u32, definition: &str) -> Buil
 pub fn higher_order_parameter(
     id: &str,
     name: &str,
-    relevance: u32,
+    score: u32,
     bounds_all: PreviewParametricParameterId,
 ) -> Builder<RawParameter> {
     Builder::new(RawParameter {
         id: ParameterId::new(id.into()),
-        relevance,
+        score: score,
         name_core: NameCore::new(name),
         definition: RawParameterDefinition::BoundsAll(bounds_all),
         tags: Vec::new(),
@@ -128,12 +123,12 @@ pub fn higher_order_parameter(
 pub fn parametric_parameter(
     id: &str,
     name: &str,
-    relevance: u32,
+    score: u32,
     definition: RawParametricParameterDefinition,
 ) -> Builder<RawParametricParameter> {
     Builder::new(RawParametricParameter {
         id: ParametricParameterId::new(id.into()),
-        relevance,
+        score: score,
         name_core: NameCore::new(name),
         definition,
         tags: Vec::new(),
@@ -144,28 +139,28 @@ pub fn graph_class_property(
     id: &str,
     name: &str,
     own: RawOwn,
-    relevance: u32,
+    score: u32,
     definition: RawGraphClassPropertyDefinition,
 ) -> Builder<RawGraphClassProperty> {
-    assert!(relevance <= 9);
+    assert!(score <= 9);
     Builder::new(RawGraphClassProperty {
         id: GraphClassPropertyId::new(id.into()),
-        relevance,
+        score: score,
         name_core: NameCore::new(name),
         definition,
         own,
     })
 }
 
-pub fn source(id: &str, sourcekey: &str, relevance: u32) -> RawSourceData {
-    assert!(relevance <= 9);
+pub fn source(id: &str, sourcekey: &str, score: u32) -> RawSourceData {
+    assert!(score <= 9);
     let rawsourcekey = RawSourceKey::Bibtex {
         key: String::from(sourcekey),
     };
     let mut res = RawSource {
         id: Id::new(id.into()),
         rawsourcekey,
-        relevance,
+        score,
     };
     RawSourceData::new(res)
 }
@@ -193,7 +188,7 @@ impl CollectionBuilder {
                 name: "unknown source".into(),
                 description: "This knowledge was added to the database without tying it to an appropriate resource.".into(),
             },
-            relevance: 3,
+            score: 3,
         });
         let assumed_source = RawSourceData::new(RawSource {
             id: Id::new(ASSUMED_SOURCE_ID.into()),
@@ -201,7 +196,7 @@ impl CollectionBuilder {
                 name: "assumed".into(),
                 description: "Is axiomatic knowledge from the viewpoint of HOPS website.".into(),
             },
-            relevance: 6,
+            score: 6,
         });
         let mut data = RawData::new();
         Self {
@@ -352,12 +347,12 @@ impl CollectionBuilder {
     //     &self,
     //     id: &str,
     //     set_id: &PreviewParameterId, // todo generalize?
-    //     relevance: u32,
+    //     score: u32,
     // ) -> Builder<RawParameter> {
     //     let set = self.data.parameters.get(set_id).unwrap();
     //     let res = RawParameter {
     //         id: ParameterId::new(id.into()),
-    //         relevance,
+    //         score,
     //         name_core: NameCore::new(&format!("distance to {}", set.name)),
     //         definition: RawParameterDefinition::DistanceTo(set_id.clone()),
     //         tags: Vec::new(),
@@ -413,12 +408,12 @@ impl CollectionBuilder {
         set_a: &TypeA::PreviewId,
         set_b: &IdB,
         name: &str,
-        relevance: u32,
+        score: u32,
     ) -> Builder<TypeA>
     where
         TypeA: Intersectable<IdB> + HasPreviewId,
     {
-        TypeA::intersect(id, set_a, set_b, name, relevance)
+        TypeA::intersect(id, set_a, set_b, name, score)
     }
 
     pub fn assumed_source(&mut self) -> &mut RawSourceData {
@@ -434,7 +429,7 @@ impl CollectionBuilder {
         let mut res = RawSource {
             id: SourceId::new(id.into()),
             rawsourcekey,
-            relevance: 0,
+            score: 0,
         };
         RawSourceData::new(res)
     }

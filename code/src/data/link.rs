@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::{
-    data::ProviderLink,
+    data::{Named, ProviderLink},
     enums::SourceKey,
+    id::HasId,
     preview::{PreviewSource, PreviewTag},
 };
 
@@ -29,7 +30,19 @@ pub trait Linkable {
 //     }
 // }
 
-impl Linkable for PreviewTag {
+impl<T> Linkable for T
+where
+    T: HasId + Named,
+{
+    fn get_link(&self) -> Link {
+        Link {
+            url: html_base(&self.id()),
+            name: self.name_core().name.clone(),
+        }
+    }
+}
+
+impl Linkable for &PreviewTag {
     fn get_link(&self) -> Link {
         Link {
             url: html_base(&self.id.to_string()),

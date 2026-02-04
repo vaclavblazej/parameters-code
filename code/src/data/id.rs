@@ -53,7 +53,7 @@ where
     T: AbstractId<String>,
 {
     fn get_tmp() -> Self;
-    fn preview(&self) -> T;
+    fn previewid(&self) -> T;
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd)]
@@ -96,7 +96,7 @@ impl<T> BaseId<PreviewId<T>> for Id<T> {
             _marker: PhantomData,
         }
     }
-    fn preview(&self) -> PreviewId<T> {
+    fn previewid(&self) -> PreviewId<T> {
         PreviewId::create(self.id())
     }
 }
@@ -205,7 +205,7 @@ impl<T> BaseId<PreviewRelationId> for RelationId<T> {
             _marker: PhantomData,
         }
     }
-    fn preview(&self) -> PreviewId<TypeRelation> {
+    fn previewid(&self) -> PreviewId<TypeRelation> {
         PreviewRelationId::create(self.id())
     }
 }
@@ -218,7 +218,7 @@ pub trait HasId {
 
 pub trait HasPreviewId {
     type PreviewId;
-    fn preview(&self) -> Self::PreviewId;
+    fn previewid(&self) -> Self::PreviewId;
 }
 
 pub trait IsPreviewIdOf {

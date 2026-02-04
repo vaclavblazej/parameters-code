@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use serde::{Deserialize, Serialize};
 
 use crate::data::simple_index::SimpleIndex;
@@ -51,7 +53,10 @@ impl<T> RelatedSets<T> {
     }
 }
 
-pub fn prepare_extremes<T>(preview_set: Vec<T>, data: &SimpleIndex<T>) -> Sets<T> {
+pub fn prepare_extremes<T>(preview_set: Vec<T>, data: &SimpleIndex<T>) -> Sets<T>
+where
+    T: Eq + Hash + Clone,
+{
     let mut minimal = Vec::new();
     let mut maximal = Vec::new();
     let mut all = Vec::new();

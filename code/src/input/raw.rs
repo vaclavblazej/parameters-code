@@ -63,6 +63,7 @@ raw_data_addable!(RawOperation, operations);
 #[derive(Debug)]
 pub struct RawGraph {
     pub id: GraphId,
+    pub score: u32,
     pub name_core: NameCore,
     pub definition: Vec<String>,
 }
@@ -74,7 +75,7 @@ raw_data_addable!(RawGraph, graphs);
 #[derive(Debug)]
 pub struct RawGraphClass {
     pub id: GraphClassId,
-    pub relevance: u32,
+    pub score: u32,
     pub name_core: NameCore,
     pub definition: RawGraphClassDefinition,
     pub tags: Vec<PreviewTagId>,
@@ -97,7 +98,7 @@ impl Defines<PreviewGraphClassPropertyId> for RawGraphClass {
 #[derive(Debug)]
 pub struct RawParametricParameter {
     pub id: ParametricParameterId,
-    pub relevance: u32,
+    pub score: u32,
     pub name_core: NameCore,
     pub definition: RawParametricParameterDefinition,
     pub tags: Vec<PreviewTagId>,
@@ -117,7 +118,7 @@ impl Concrete<Value, PreviewGraphClassPropertyId> for RawParametricParameter {
 #[derive(Debug)]
 pub struct RawParametricGraphClass {
     pub id: ParametricGraphClassId,
-    pub relevance: u32,
+    pub score: u32,
     pub name_core: NameCore,
     pub closed_under: PreviewGraphRelationId,
     pub tags: Vec<PreviewTagId>,
@@ -144,7 +145,7 @@ impl Concrete<Value, PreviewGraphClassPropertyId> for RawParametricGraphClass {
 #[derive(Debug)]
 pub struct RawParameter {
     pub id: ParameterId,
-    pub relevance: u32,
+    pub score: u32,
     pub name_core: NameCore,
     pub definition: RawParameterDefinition,
     pub tags: Vec<PreviewTagId>,
@@ -159,7 +160,7 @@ raw_data_addable!(RawParameter, parameters);
 #[derive(Debug)]
 pub struct RawGraphClassProperty {
     pub id: GraphClassPropertyId,
-    pub relevance: u32,
+    pub score: u32,
     pub name_core: NameCore,
     pub definition: RawGraphClassPropertyDefinition,
     pub own: RawOwn,

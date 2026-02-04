@@ -1,24 +1,27 @@
 //! Given the processed data generate markdown pages.
 
 use std::collections::{HashMap, HashSet, LinkedList, VecDeque};
+use std::env;
+use std::fmt;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{env, fmt};
 
 use biblatex::Bibliography;
 use log::{error, info, trace};
 use rand::seq::IndexedRandom;
 use regex::Regex;
 
+use crate::data::data::*;
 use crate::data::enums::*;
 use crate::data::id::*;
+use crate::data::link::{Link, Linkable};
 use crate::data::preview::*;
 use crate::general::progress;
-use crate::output::color::{Color, relation_color};
+use crate::output::color::Color;
 use crate::output::diagram::{make_drawing, make_focus_drawing, make_subset_drawing};
-use crate::output::table::render_table;
+use crate::output::table::{generate_relation_table, render_table};
 use crate::output::to_markdown::ToMarkdown;
 use crate::{Paths, Worker, file};
 
@@ -76,58 +79,60 @@ fn include_dot_file(drawing: anyhow::Result<PathBuf>, final_dir: &Path) -> Strin
     }
 }
 
-impl GeneratedPage for Set {
+impl GeneratedPage for Parameter {
     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
-        res += &format!("---\ntitle: \"{}\"\n---", self.name);
-        res += &format!("# {}\n\n", self.name);
-        if let Some(abbr) = &self.abbr {
+        res += &format!("---\ntitle: \"{}\"\n---", self.name_core.name);
+        res += &format!("# {}\n\n", self.name_core.name);
+        if let Some(abbr) = &self.name_core.abbr {
             res += &format!("abbr: {}\n\n", abbr);
         }
-        if !self.aka.is_empty() {
-            res += &format!("aka: {}\n\n", self.aka.join(", "));
+        if !self.name_core.aka.is_empty() {
+            res += &format!("aka: {}\n\n", self.name_core.aka.join(", "));
         }
         if !self.tags.is_empty() {
-            let tag_strings: Vec<String> = self.tags.iter().map(|x| builder.linkto(x)).collect();
+            let tag_strings: Vec<String> = self
+                .tags
+                .iter()
+                .map(|x| builder.linkto(&x.get_link()))
+                .collect();
             res += &format!("tags: {}\n\n", tag_strings.join(", "));
         }
-        let equivalent_strings: Vec<String> = self
-            .related_sets
-            .equivsets
-            .iter()
-            .filter(|x| x.id != self.id.preview())
-            .map(|x| builder.linkto(x))
-            .collect();
-        if !equivalent_strings.is_empty() {
-            res += &format!(
-                "functionally equivalent to: {}\n\n",
-                equivalent_strings.join(", ")
-            );
-        }
-        if !self.providers.is_empty() {
-            let provider_strings: Vec<String> =
-                self.providers.iter().map(|x| builder.linkto(x)).collect();
-            res += &format!("providers: {}\n\n", provider_strings.join(", "));
-        }
-        if !self.displayed_definition.is_empty() {
-            if self.displayed_definition.len() == 1 {
-                res += &format!(
-                    "**Definition:** {}\n\n",
-                    self.displayed_definition.first().unwrap()
-                );
-            } else {
-                res += "**Definitions:**\n\n";
-                for definition in &self.displayed_definition {
-                    res += &format!("1. {}\n", definition);
-                }
-                res += "\n";
+        // let equivalent_strings: Vec<String> = self
+        //     .related_sets
+        //     .equivsets
+        //     .iter()
+        //     .filter(|x| x.id != self.id.preview())
+        //     .map(|x| builder.linkto(x))
+        //     .collect();
+        // if !equivalent_strings.is_empty() {
+        //     res += &format!(
+        //         "functionally equivalent to: {}\n\n",
+        //         equivalent_strings.join(", ")
+        //     );
+        // }
+        // if !self.providers.is_empty() {
+        //     let provider_strings: Vec<String> =
+        //         self.providers.iter().map(|x| builder.linkto(x)).collect();
+        //     res += &format!("providers: {}\n\n", provider_strings.join(", "));
+        // }
+        let definition_string = match self.definition {
+            ParameterDefinition::Graph(text) => text,
+            ParameterDefinition::GraphClass(text) => text,
+            ParameterDefinition::BoundsAll(preview_parametric_parameter) => {
+                format!(
+                    "Parameter is at most $k$ if value of every {} is at most $k$.",
+                    preview_parametric_parameter.name_core.name
+                )
             }
-        }
+        };
+        res += &format!("**Definition:** {}\n\n", definition_string);
         res += "[[handcrafted]]\n\n";
         for drawing_path in [
             make_focus_drawing(
                 &format!("local_{}", self.id),
                 builder.data,
+                digraph,
                 self,
                 2,
                 &paths.working_dir,
@@ -136,15 +141,7 @@ impl GeneratedPage for Set {
                 &format!("graph_property_inclusions_{}", self.id),
                 builder.data,
                 self,
-                builder
-                    .data
-                    .sets
-                    .iter()
-                    .filter(|x| {
-                        matches!(x.typ, PreviewType::GraphClass | PreviewType::Property(_))
-                            && x.relevance > 0
-                    })
-                    .collect(),
+                builder.data.parameters.values().collect(),
                 &paths.working_dir,
             ),
             make_subset_drawing(
@@ -153,9 +150,9 @@ impl GeneratedPage for Set {
                 self,
                 builder
                     .data
-                    .sets
-                    .iter()
-                    .filter(|x| x.typ == PreviewType::Parameter && x.relevance > 0)
+                    .parameters
+                    .values()
+                    .filter(|x| x.score > 0)
                     .collect(),
                 &paths.working_dir,
             ),
@@ -179,53 +176,52 @@ impl GeneratedPage for Set {
         // }
         // res += "\n";
         // }
-        res += "---\n\n## Relations\n\n";
-        let mut relation_table = Table::new(vec!["Other", "", "Relation from", "Relation to"]);
-        for set in &builder.data.sets {
-            let relation_fr_el: String =
-                match builder.data.get_relation(&set.preview(), &self.preview()) {
-                    None => "unknown to HOPS".into(),
-                    Some(rel) => {
-                        // let name = rel.preview().short_description(builder); // todo
-                        // format!("[{}]({})", name, rel.preview().get_url())
-                        rel.preview().short_description(builder)
-                    }
-                };
-            let relation_to_el: String =
-                match builder.data.get_relation(&self.preview(), &set.preview()) {
-                    None => "unknown to HOPS".into(),
-                    Some(rel) => {
-                        // let name = rel.preview().short_description(builder);
-                        // format!("[{}]({})", name, rel.preview().get_url())
-                        rel.preview().short_description(builder)
-                    }
-                };
-            let colorname =
-                relation_color(&self.related_sets, set.id.to_string(), &set.preview()).name();
-            relation_table.add(vec![
-                builder.linkto(&set.preview()),
-                // the hidden span makes the color column sortable
-                format!(
-                    "<span style=\"display:none\">{}</span>[[color {}]]",
-                    colorname, colorname
-                ),
-                relation_fr_el,
-                relation_to_el,
-            ]);
-        }
-        res += builder.make_table(relation_table).as_str();
+        // res += "---\n\n## Relations\n\n";
+        // let mut relation_table = Table::new(vec!["Other", "", "Relation from", "Relation to"]);
+        // for set in &builder.data.parameters {
+        //     let relation_fr_el: String =
+        //         match builder.data.get_relation(&set.preview(), &self.preview()) {
+        //             None => "unknown to HOPS".into(),
+        //             Some(rel) => {
+        //                 // let name = rel.preview().short_description(builder); // todo
+        //                 // format!("[{}]({})", name, rel.preview().get_url())
+        //                 rel.preview().short_description(builder)
+        //             }
+        //         };
+        //     let relation_to_el: String =
+        //         match builder.data.get_relation(&self.preview(), &set.preview()) {
+        //             None => "unknown to HOPS".into(),
+        //             Some(rel) => {
+        //                 // let name = rel.preview().short_description(builder);
+        //                 // format!("[{}]({})", name, rel.preview().get_url())
+        //                 rel.preview().short_description(builder)
+        //             }
+        //         };
+        //     let colorname = relation_color(&self.related_sets, set.id(), &set.preview()).name();
+        //     relation_table.add(vec![
+        //         builder.linkto(&set.preview()),
+        //         // the hidden span makes the color column sortable
+        //         format!(
+        //             "<span style=\"display:none\">{}</span>[[color {}]]",
+        //             colorname, colorname
+        //         ),
+        //         relation_fr_el,
+        //         relation_to_el,
+        //     ]);
+        // }
+        // res += builder.make_table(relation_table).as_str();
         res += "\n";
         // make_subset_drawing
-        let sources_timeline = &self.timeline;
-        if !sources_timeline.is_empty() {
-            res += "---\n\n## Results\n\n";
-            for source in sources_timeline {
-                if let Some(val) = source.to_markdown(builder) {
-                    res += &val;
-                }
-            }
-            res += "\n";
-        }
+        // let sources_timeline = &self.timeline;
+        // if !sources_timeline.is_empty() {
+        //     res += "---\n\n## Results\n\n";
+        //     for source in sources_timeline {
+        //         if let Some(val) = source.to_markdown(builder) {
+        //             res += &val;
+        //         }
+        //     }
+        //     res += "\n";
+        // }
         res
     }
 }
@@ -235,14 +231,13 @@ impl GeneratedPage for Source {
         let mut res = String::new();
         match &self.sourcekey {
             SourceKey::Bibtex {
-                key,
+                entry_key,
                 name,
-                entry,
-                relevance,
+                entry_content,
             } => {
                 res += &format!("# {}\n\n", self.preview().get_name());
                 if let Some(somebib) = builder.bibliography {
-                    if let Some(val) = somebib.get(key) {
+                    if let Some(val) = somebib.get(entry_key) {
                         if let Ok(doi) = val.doi() {
                             let doi_url = format!("https://www.doi.org/{}", doi);
                             res += &format!("[{}]({})\n\n", doi_url, doi_url);
@@ -252,10 +247,10 @@ impl GeneratedPage for Source {
                         // todo - print the original (unformatted) biblatex citation from main.bib
                         res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
                     } else {
-                        error!("unable to load {} from main.bib", key);
+                        error!("unable to load {} from main.bib", entry_key);
                         res += &format!(
                             "an error occured while loading the bibtex entry for `{}`",
-                            key
+                            entry_key
                         );
                     }
                 }
@@ -280,7 +275,7 @@ impl GeneratedPage for Source {
                         builder.data,
                         &paths.final_dir,
                         name,
-                        &builder.data.get_sets(list.clone()),
+                        &builder.data.get(list.clone()),
                         None,
                     );
                     res += &include_dot_file(drawing_path, &paths.final_dir);
@@ -333,36 +328,36 @@ fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
     }
 }
 
-fn format_complexity(data: &Data, cpx: &SourcedCpxInfo) -> String {
-    let (res, children) = match &cpx {
-        SourcedCpxInfo::Unknown => ("unknown to HOPS", "".into()),
-        SourcedCpxInfo::Equal { source } => {
-            let format_a = format_created_by(data, &source.created_by);
-            ("equal", format_a)
-        }
-        SourcedCpxInfo::Inclusion { mn, mx } => {
-            let mut children: Vec<String> = vec![];
-            if let Some((a, sa)) = mn {
-                children.push(format!(
-                    "lower bound {}",
-                    format_created_by(data, &sa.created_by)
-                ));
-            }
-            if let Some((a, sa)) = mx {
-                children.push(format!(
-                    "upper bound {}",
-                    format_created_by(data, &sa.created_by)
-                ));
-            };
-            ("inclusion", children.join("\n"))
-        }
-        SourcedCpxInfo::Exclusion { source } => {
-            let format_a = format_created_by(data, &source.created_by);
-            ("exclusion", format_a)
-        }
-    };
-    format!("{}: {}", res, children)
-}
+// fn format_complexity(data: &Data, cpx: &SourcedCpxInfo) -> String {
+//     let (res, children) = match &cpx {
+//         SourcedCpxInfo::Unknown => ("unknown to HOPS", "".into()),
+//         SourcedCpxInfo::Equal { source } => {
+//             let format_a = format_created_by(data, &source.created_by);
+//             ("equal", format_a)
+//         }
+//         SourcedCpxInfo::Inclusion { mn, mx } => {
+//             let mut children: Vec<String> = vec![];
+//             if let Some((a, sa)) = mn {
+//                 children.push(format!(
+//                     "lower bound {}",
+//                     format_created_by(data, &sa.created_by)
+//                 ));
+//             }
+//             if let Some((a, sa)) = mx {
+//                 children.push(format!(
+//                     "upper bound {}",
+//                     format_created_by(data, &sa.created_by)
+//                 ));
+//             };
+//             ("inclusion", children.join("\n"))
+//         }
+//         SourcedCpxInfo::Exclusion { source } => {
+//             let format_a = format_created_by(data, &source.created_by);
+//             ("exclusion", format_a)
+//         }
+//     };
+//     format!("{}: {}", res, children)
+// }
 
 fn relations_list(builder: &Markdown) -> String {
     let mut res = String::new();
@@ -384,13 +379,14 @@ fn relations_list(builder: &Markdown) -> String {
         // relation_color(&sub.related_sets, sub.id.to_string(), &sup.preview()).name()
         // );
         res += &format!(
-            "\n{}{} {} {} {} -- {}\n",
+            "\n{}{} {} {} {}\n",
+            // "\n{}{} {} {} {} -- {}\n",
             this_anchor,
             this_el,
             builder.linkto(&relation.subset),
             join_el,
             builder.linkto(&relation.superset),
-            &format_complexity(builder.data, &relation.cpx)
+            // &format_complexity(builder.data, &relation.cpx)
         );
         res += "\n";
     }
@@ -400,7 +396,7 @@ fn relations_list(builder: &Markdown) -> String {
 impl GeneratedPage for Tag {
     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
-        res += &format!("# {}\n\n", self.name);
+        res += &format!("# {}\n\n", self.name_core.name);
         res += &format!("{}\n\n", self.description);
         let mut table = Table::new(vec!["has this tag"]);
         for w in &self.sets {
@@ -429,37 +425,23 @@ impl Table {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Address {
-    pub name: String,
-    pub url: String,
-}
-impl Linkable for Address {
-    fn get_url(&self) -> String {
-        self.url.clone()
-    }
-    fn get_name(&self) -> String {
-        self.name.clone()
-    }
-}
-
 pub struct Markdown<'a> {
     pub data: &'a Data,
-    pub urls: HashMap<String, Box<dyn Linkable>>,
+    pub urls: HashMap<String, Link>,
     pub bibliography: &'a Option<Bibliography>,
     pub worker: Worker,
 }
 
 #[derive(Clone, Debug)]
 pub enum Mappable {
-    Address(Address),
+    Address(Link),
     String(String),
 }
 
 impl<'a> Markdown<'a> {
     pub fn new(
         data: &'a Data,
-        urls: HashMap<String, Box<dyn Linkable>>,
+        urls: HashMap<String, Link>,
         bibliography: &'a Option<Bibliography>,
     ) -> Markdown<'a> {
         Markdown {
@@ -498,7 +480,7 @@ impl<'a> Markdown<'a> {
         let some_id = keys.pop_front();
         if let Some(id) = some_id {
             match self.urls.get(&id) {
-                Some(link) => Ok(format!("[{}]({})", link.get_name(), link.get_url())),
+                Some(link) => Ok(format!("[{}]({})", link.name, link.url)),
                 _ => Err(MarkdownError::ErrSubstitutingId(id)),
             }
         } else {
@@ -511,22 +493,17 @@ impl<'a> Markdown<'a> {
         if let Some(key) = keys.pop_front() {
             match key.as_str() {
                 "parameters" => {
-                    let mut pars = self
-                        .data
-                        .sets
-                        .iter()
-                        .filter(|&s| matches!(s.typ, PreviewType::Parameter))
-                        .collect::<Vec<&Set>>();
+                    let mut pars = self.data.parameters.values().collect::<Vec<&Parameter>>();
                     pars.sort_by_key(|x| x.name.to_lowercase());
                     let mut table = Table::new(vec![
                         "Parameter",
                         &format!(
-                            "<a href=\"{}\">*</a>Relevance",
-                            base(&("docs/legend/#relevance").into())
+                            "<a href=\"{}\">*</a>Score",
+                            base(&("docs/legend/#score").into())
                         ),
                     ]);
                     for set in &pars {
-                        let relstring = progress::bar(set.relevance, 9);
+                        let relstring = progress::bar(set.score, 9);
                         table.add(vec![self.linkto(&set.preview()), relstring]);
                     }
                     content += self.make_table(table).as_str();
@@ -537,20 +514,19 @@ impl<'a> Markdown<'a> {
                 "graphs" => {
                     let mut graphs = self
                         .data
-                        .sets
-                        .iter()
-                        .filter(|&s| matches!(s.typ, PreviewType::GraphClass))
-                        .collect::<Vec<&Set>>();
-                    graphs.sort_by_key(|x| &x.name);
+                        .graph_classes
+                        .values()
+                        .collect::<Vec<&GraphClass>>();
+                    graphs.sort_by_key(|x| &x.name_core.name);
                     let mut table = Table::new(vec![
                         "Graph class",
                         &format!(
-                            "<a href=\"{}\">*</a>Relevance",
-                            base(&("docs/legend/#relevance").into())
+                            "<a href=\"{}\">*</a>Score",
+                            base(&("docs/legend/#score").into())
                         ),
                     ]);
                     for set in &graphs {
-                        let relstring = progress::bar(set.relevance, 9);
+                        let relstring = progress::bar(set.score, 9);
                         table.add(vec![self.linkto(&set.preview()), relstring]);
                     }
                     content += self.make_table(table).as_str();
@@ -558,20 +534,19 @@ impl<'a> Markdown<'a> {
                 "properties" => {
                     let mut properties = self
                         .data
-                        .sets
-                        .iter()
-                        .filter(|&s| matches!(s.typ, PreviewType::Property(_)))
-                        .collect::<Vec<&Set>>();
-                    properties.sort_by_key(|x| &x.name);
+                        .graph_class_properties
+                        .values()
+                        .collect::<Vec<&GraphClassProperty>>();
+                    properties.sort_by_key(|x| &x.name_core.name);
                     let mut table = Table::new(vec![
                         "Property",
                         &format!(
-                            "<a href=\"{}\">*</a>Relevance",
-                            base(&("docs/legend/#relevance").into())
+                            "<a href=\"{}\">*</a>Score",
+                            base(&("docs/legend/#score").into())
                         ),
                     ]);
                     for set in &properties {
-                        let relstring = progress::bar(set.relevance, 9);
+                        let relstring = progress::bar(set.score, 9);
                         table.add(vec![self.linkto(&set.preview()), relstring]);
                     }
                     content += self.make_table(table).as_str();
@@ -581,21 +556,20 @@ impl<'a> Markdown<'a> {
                         "#",
                         "Year",
                         &format!(
-                            "<a href=\"{}\">*</a>Relevance",
-                            base(&("docs/legend/#relevance").into())
+                            "<a href=\"{}\">*</a>Score",
+                            base(&("docs/legend/#score").into())
                         ),
                         "Source",
                     ]);
                     let mut index = 0;
                     for source in &self.data.sources {
                         if let SourceKey::Bibtex {
-                            key,
+                            entry_key,
                             name,
-                            entry,
-                            relevance,
+                            entry_content,
                         } = &source.sourcekey
                         {
-                            let relstring = progress::bar(*relevance, 9);
+                            let relstring = progress::bar(*score, 9);
                             table.add(vec![
                                 format!("{:0>3}", index),
                                 source.time.to_string(),
@@ -609,7 +583,7 @@ impl<'a> Markdown<'a> {
                 }
                 "tags" => {
                     for tag in &self.data.tags {
-                        content += &format!("* {}\n", self.linkto(&tag.preview()));
+                        content += &format!("* {}\n", self.linkto(&tag.preview().get_link()));
                     }
                     content += "\n\n";
                 }
@@ -652,8 +626,8 @@ impl<'a> Markdown<'a> {
         }
     }
 
-    pub fn linkto(&self, linkable: &dyn Linkable) -> String {
-        format!("[{}]({})", linkable.get_name(), linkable.get_url())
+    pub fn linkto(&self, link: &Link) -> String {
+        format!("[{}]({})", link.name, link.url)
     }
 
     pub fn make_row(&self, row: &Vec<String>) -> String {

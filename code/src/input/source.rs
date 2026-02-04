@@ -40,7 +40,7 @@ pub struct RawShownRelation<F, T, D> {
 pub struct RawSource {
     pub id: SourceId,
     pub rawsourcekey: RawSourceKey,
-    pub relevance: u32, // from 0 to 9
+    pub score: u32, // from 0 to 9
 }
 
 #[derive(Debug)]
@@ -122,7 +122,7 @@ macro_rules! definable {
     ($main:ident, $enum:ident) => {
         impl Definable for $main {
             fn def(&self) -> RawFact {
-                RawFact::$enum(self.clone())
+                RawFact::Def(Def::$enum(self.clone()))
             }
         }
     };
@@ -136,162 +136,238 @@ macro_rules! relatable {
     ($from:ident, $to:ident, $data:ident, $enum:ident) => {
         impl Relatable<$from, $to> for $data {
             fn rel(self, fr: &$from, to: &$to) -> RawFact {
-                RawFact::$enum(fr.clone(), to.clone(), self)
+                RawFact::Rel(Rel::$enum(fr.clone(), to.clone(), self))
             }
         }
     };
 }
 
-definable!(PreviewLogicFragmentId, DefLogicFragment);
-definable!(PreviewGraphClassId, DefGraphClass);
-definable!(PreviewGraphClassPropertyId, DefProperty);
-definable!(PreviewGraphId, DefGraph);
-definable!(PreviewOperationId, DefOperation);
-definable!(PreviewParameterId, DefParameter);
-definable!(PreviewParametricGraphClassId, DefParGraphClass);
-definable!(PreviewParametricParameterId, DefParParameter);
-definable!(PreviewProblemId, DefProblem);
+definable!(PreviewLogicFragmentId, LogicFragment);
+definable!(PreviewGraphClassId, GraphClass);
+definable!(PreviewGraphClassPropertyId, Property);
+definable!(PreviewGraphId, Graph);
+definable!(PreviewOperationId, Operation);
+definable!(PreviewParameterId, Parameter);
+definable!(PreviewParametricGraphClassId, ParametricGraphClass);
+definable!(PreviewParametricParameterId, ParametricParameter);
+definable!(PreviewProblemId, Problem);
 
 relatable!(
     PreviewLogicFragmentId,
     PreviewLogicFragmentId,
     ImplicationRelation,
-    RelLfLf
+    LfLf
 );
 relatable!(
     PreviewOperationId,
     PreviewOperationId,
     ImplicationRelation,
-    RelOpOp
+    OpOp
 );
 relatable!(
     PreviewGraphId,
     PreviewGraphId,
     InclusionRelationUnderOperation,
-    RelGrGr
+    GrGr
 );
 relatable!(
     PreviewGraphClassId,
     PreviewGraphClassId,
     InclusionRelationUnderOperation,
-    RelGcGc
+    GcGc
 );
 relatable!(
     PreviewGraphId,
     PreviewGraphClassId,
     InclusionRelationUnderOperation,
-    RelGrGc
+    GrGc
 );
 relatable!(
     PreviewParametricGraphClassId,
     PreviewParametricGraphClassId,
     ImplicationRelation,
-    RelPgcPgc
+    PgcPgc
 );
-relatable!(PreviewParameterId, PreviewParameterId, Cpx, RelParPar);
+relatable!(PreviewParameterId, PreviewParameterId, Cpx, ParPar);
 relatable!(
     PreviewGraphClassPropertyId,
     PreviewGraphClassPropertyId,
     ImplicationRelation,
-    RelPropProp
+    PropProp
 );
 relatable!(
     PreviewGraphClassId,
     PreviewGraphClassPropertyId,
     EquivalenceRelation,
-    RelGcProp
+    GcProp
 );
 relatable!(
     PreviewParameterId,
     PreviewGraphClassPropertyId,
     EquivalenceRelation,
-    RelParProp
+    ParProp
 );
-// relatable!(PreviewParametricGraphClassId, PreviewParameterId, EquivalenceRelation, RelParProp); // todo as e.g. excluded minor
+// relatable!(PreviewParametricGraphClassId, PreviewParameterId, EquivalenceRelation, ParProp); // todo as e.g. excluded minor
 relatable!(
     PreviewProblemId,
     PreviewProblemId,
     ImplicationRelation,
-    RelProbProb
+    ProbProb
 );
-// relatable!(PreviewProblemId, PreviewGraphClassId, ClassicalSolvability, RelProbGc); // through the trivial property
+// relatable!(PreviewProblemId, PreviewGraphClassId, ClassicalSolvability, ProbGc); // through the trivial property
 relatable!(
     PreviewProblemId,
     PreviewGraphClassPropertyId,
     ClassicalSolvability,
-    RelProbProp
+    ProbProp
 );
 relatable!(
     PreviewProblemId,
     PreviewParameterId,
     ParameterizedSolvability,
-    RelProbPar
+    ProbPar
 );
 
 #[derive(Debug)]
-pub enum RawFact {
-    DefLogicFragment(PreviewLogicFragmentId),
-    DefParameter(PreviewParameterId),
-    DefGraph(PreviewGraphId),
-    DefGraphClass(PreviewGraphClassId),
-    DefOperation(PreviewOperationId),
-    DefProblem(PreviewProblemId),
-    DefParParameter(PreviewParametricParameterId),
-    DefParGraphClass(PreviewParametricGraphClassId),
-    DefProperty(PreviewGraphClassPropertyId),
-    RelLfLf(
+pub enum Def {
+    LogicFragment(PreviewLogicFragmentId),
+    Parameter(PreviewParameterId),
+    Graph(PreviewGraphId),
+    GraphClass(PreviewGraphClassId),
+    Operation(PreviewOperationId),
+    Problem(PreviewProblemId),
+    ParametricParameter(PreviewParametricParameterId),
+    ParametricGraphClass(PreviewParametricGraphClassId),
+    Property(PreviewGraphClassPropertyId),
+}
+
+#[derive(Debug, Eq, Hash, PartialEq)]
+pub enum DefKind {
+    LogicFragment,
+    Parameter,
+    Graph,
+    GraphClass,
+    Operation,
+    Problem,
+    ParametricParameter,
+    ParametricGraphClass,
+    Property,
+}
+
+impl Def {
+    pub fn kind(&self) -> DefKind {
+        match self {
+            Def::LogicFragment(..) => DefKind::LogicFragment,
+            Def::Parameter(..) => DefKind::Parameter,
+            Def::Graph(..) => DefKind::Graph,
+            Def::GraphClass(..) => DefKind::GraphClass,
+            Def::Operation(..) => DefKind::Operation,
+            Def::Problem(..) => DefKind::Problem,
+            Def::ParametricParameter(..) => DefKind::ParametricParameter,
+            Def::ParametricGraphClass(..) => DefKind::ParametricGraphClass,
+            Def::Property(..) => DefKind::Property,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Rel {
+    LfLf(
         PreviewLogicFragmentId,
         PreviewLogicFragmentId,
         ImplicationRelation,
     ),
-    RelOpOp(PreviewOperationId, PreviewOperationId, ImplicationRelation),
-    RelGrGr(
+    OpOp(PreviewOperationId, PreviewOperationId, ImplicationRelation),
+    GrGr(
         PreviewGraphId,
         PreviewGraphId,
         InclusionRelationUnderOperation,
     ),
-    RelGcGc(
+    GcGc(
         PreviewGraphClassId,
         PreviewGraphClassId,
         InclusionRelationUnderOperation,
     ),
-    RelGrGc(
+    GrGc(
         PreviewGraphId,
         PreviewGraphClassId,
         InclusionRelationUnderOperation,
     ),
-    RelPgcPgc(
+    PgcPgc(
         PreviewParametricGraphClassId,
         PreviewParametricGraphClassId,
         ImplicationRelation,
     ),
-    RelParPar(PreviewParameterId, PreviewParameterId, Cpx),
-    RelPropProp(
+    ParPar(PreviewParameterId, PreviewParameterId, Cpx),
+    PropProp(
         PreviewGraphClassPropertyId,
         PreviewGraphClassPropertyId,
         ImplicationRelation,
     ),
-    RelGcProp(
+    GcProp(
         PreviewGraphClassId,
         PreviewGraphClassPropertyId,
         EquivalenceRelation,
     ),
-    RelParProp(
+    ParProp(
         PreviewParameterId,
         PreviewGraphClassPropertyId,
         EquivalenceRelation,
     ),
-    RelProbProb(PreviewProblemId, PreviewProblemId, ImplicationRelation),
-    RelProbProp(
+    ProbProb(PreviewProblemId, PreviewProblemId, ImplicationRelation),
+    ProbProp(
         PreviewProblemId,
         PreviewGraphClassPropertyId,
         ClassicalSolvability,
     ),
-    RelProbPar(
+    ProbPar(
         PreviewProblemId,
         PreviewParameterId,
         ParameterizedSolvability,
     ),
+}
+
+#[derive(Debug, Eq, Hash, PartialEq)]
+pub enum RelKind {
+    LfLf,
+    OpOp,
+    GrGr,
+    GcGc,
+    GrGc,
+    PgcPgc,
+    ParPar,
+    PropProp,
+    GcProp,
+    ParProp,
+    ProbProb,
+    ProbProp,
+    ProbPar,
+}
+
+impl Rel {
+    pub fn kind(&self) -> RelKind {
+        match self {
+            Rel::ParPar(..) => RelKind::ParPar,
+            Rel::LfLf(..) => RelKind::LfLf,
+            Rel::OpOp(..) => RelKind::OpOp,
+            Rel::GrGr(..) => RelKind::GrGr,
+            Rel::GcGc(..) => RelKind::GcGc,
+            Rel::GrGc(..) => RelKind::GrGc,
+            Rel::PgcPgc(..) => RelKind::PgcPgc,
+            Rel::PropProp(..) => RelKind::PropProp,
+            Rel::GcProp(..) => RelKind::GcProp,
+            Rel::ParProp(..) => RelKind::ParProp,
+            Rel::ProbProb(..) => RelKind::ProbProb,
+            Rel::ProbProp(..) => RelKind::ProbProp,
+            Rel::ProbPar(..) => RelKind::ProbPar,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum RawFact {
+    Def(Def),
+    Rel(Rel),
 }
 
 #[derive(Debug, Clone)]

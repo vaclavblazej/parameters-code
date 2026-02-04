@@ -1,6 +1,8 @@
-use crate::data::data::{NameCore, Named, Relevant, Tagged};
+use crate::data::data::{NameCore, Named, Tagged};
 use crate::data::enums::Page;
 use crate::data::id::{HasId, HasPreviewId, PreviewGraphClassId, PreviewTagId};
+use crate::data::link::Linkable;
+use crate::data::score::Score;
 use crate::input::build::CollectionBuilder;
 use crate::input::raw::{RawDataAddable, RawGraphClass};
 use std::marker::PhantomData;
@@ -33,21 +35,21 @@ where
         for operation in &self.later_operations {
             operation(builder, &res);
         }
-        let ret = res.preview();
+        let ret = res.previewid();
         builder.add_set(*res);
         ret
     }
 }
 
-// impl<R> Builder<R>
-// where
-//     R: Relevant,
-// {
-//     pub fn hide(mut self) -> Self {
-//         self.hide();
-//         self
-//     }
-// }
+impl<R> Builder<R>
+where
+    R: Score,
+{
+    pub fn hide(mut self) -> Self {
+        self.built_struct.hide();
+        self
+    }
+}
 
 impl<R> Builder<R>
 where

@@ -8,7 +8,8 @@ pub enum RawOwn {
 
 #[derive(Debug)]
 pub enum RawParameterDefinition {
-    Text(String),
+    GraphText(String),
+    GraphClassText(String),
     BoundsAll(PreviewParametricParameterId),
     DistanceTo(PreviewParameterId),
 }

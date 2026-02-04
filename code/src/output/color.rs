@@ -1,5 +1,4 @@
-use crate::work::processing::RelatedSets;
-
+use crate::input::source::Cpx;
 
 pub fn interpolate_nums(from: u8, to: u8, ratio: f32) -> u8 {
     let diff = ((to as i16) - (from as i16)) as f32;
@@ -27,6 +26,7 @@ pub fn interpolate_colors(from: &str, to: &str, ratio: f32) -> String {
     numbers_to_color((r, g, b))
 }
 
+#[derive(Debug, Eq, PartialEq, Hash)]
 pub enum Color {
     Gray,
     Red,
@@ -123,27 +123,50 @@ impl Color {
     }
 }
 
-pub fn relation_color<T>(related_sets: &RelatedSets<T>, aid: String, other: &T) -> Color {
-    let a_eq_b = related_sets.equivsets.contains(other);
-    let a_gte_b = related_sets.supersets.all.contains(other);
-    let a_lte_b = related_sets.subsets.all.contains(other);
-    let a_ngte_b = related_sets.super_exclusions.all.contains(other);
-    let a_nlte_b = related_sets.sub_exclusions.all.contains(other);
-    match (a_gte_b, a_lte_b, a_ngte_b, a_nlte_b) {
-        (true, _, true, _) | (_, true, _, true) => panic!("impossible resulting case between form set {} to {}", aid, other.id),
-        (true, true, false, false)   => panic!("unexpected equivalence which should be in set.equivsets instead of being just contained in subsets and supersets for {} and {}", aid, other.id),
-        (false, true, true, false)   => Color::Green,
-        (false, false, true, true)   => Color::Blue,
-        (true, false, false, true)   => Color::Red,
-        (true, false, false, false)  => Color::Orange,
-        (false, true, false, false)  => Color::Lime,
-        (false, false, true, false)  => Color::Cyan,
-        (false, false, false, true)  => Color::Magenta,
-        (false, false, false, false) => {
-            match a_eq_b {
-                true => Color::Yellow,
-                false => Color::Gray,
-            }
+trait HasColor {
+    fn color(&self) -> Color;
+}
+
+enum SimpleRelation {
+    Arrow,
+    NotArrow,
+    Unknown,
+}
+
+struct DirectedRelation {
+    from: String,
+    to: String,
+    from_to: SimpleRelation,
+    to_from: SimpleRelation,
+}
+
+pub fn relation_color<T>(relation: DirectedRelation) -> Color {
+    match (relation.from_to, relation.to_from) {
+        (SimpleRelation::Arrow, SimpleRelation::Arrow) => Color::Yellow,
+        (SimpleRelation::Arrow, SimpleRelation::NotArrow) => Color::Green,
+        (SimpleRelation::Arrow, SimpleRelation::Unknown) => Color::Lime,
+        (SimpleRelation::NotArrow, SimpleRelation::Arrow) => Color::Red,
+        (SimpleRelation::NotArrow, SimpleRelation::NotArrow) => Color::Blue,
+        (SimpleRelation::NotArrow, SimpleRelation::Unknown) => Color::Magenta,
+        (SimpleRelation::Unknown, SimpleRelation::Arrow) => Color::Orange,
+        (SimpleRelation::Unknown, SimpleRelation::NotArrow) => Color::Cyan,
+        (SimpleRelation::Unknown, SimpleRelation::Unknown) => Color::Gray,
+    }
+}
+
+impl HasColor for Cpx {
+    fn color(&self) -> Color {
+        match self {
+            Cpx::Bounds(cpx_time, cpx_time1) => todo!(),
+            Cpx::UpperBound(cpx_time) => todo!(),
+            Cpx::LowerBound(cpx_time) => todo!(),
+            Cpx::StrictUpperBound(cpx_time) => todo!(),
+            Cpx::Exactly(cpx_time) => todo!(),
+            Cpx::Equivalent(cpx_time, cpx_time1) => todo!(),
+            Cpx::Equal => todo!(),
+            Cpx::Exclusion => todo!(),
+            Cpx::Incomparable => todo!(),
+            Cpx::Todo => todo!(),
         }
     }
 }

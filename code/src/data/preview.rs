@@ -9,6 +9,7 @@ use crate::data::date::Date;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::*;
+use crate::input::raw::*;
 
 pub trait HasPreview<T> {
     fn preview(&self) -> T;
@@ -19,7 +20,7 @@ macro_rules! tie_raw_to_previewid {
     ($mytype:ident, $previewid:ident) => {
         impl HasPreviewId for $mytype {
             type PreviewId = $previewid;
-            fn preview(&self) -> Self::PreviewId {
+            fn previewid(&self) -> Self::PreviewId {
                 self.id.preview()
             }
         }
@@ -36,7 +37,7 @@ macro_rules! tie_data_to_previewid {
     ($mytype:ident, $previewid:ident) => {
         impl HasPreviewId for $mytype {
             type PreviewId = $previewid;
-            fn preview(&self) -> Self::PreviewId {
+            fn previewid(&self) -> Self::PreviewId {
                 self.id.preview()
             }
         }
@@ -55,7 +56,7 @@ macro_rules! tie_preview_to_previewid {
     ($mytype:ident, $previewid:ident) => {
         impl HasPreviewId for $mytype {
             type PreviewId = $previewid;
-            fn preview(&self) -> Self::PreviewId {
+            fn previewid(&self) -> Self::PreviewId {
                 self.id.clone()
             }
         }
@@ -66,7 +67,7 @@ macro_rules! tie_preview_to_previewid {
 }
 
 macro_rules! define_preview_id_name {
-    ($main:ident, $preview:ident, $previewid:ident) => {
+    ($main:ident, $rawmain:ident, $preview:ident, $previewid:ident) => {
         #[derive(Debug, Clone, Serialize, Deserialize)]
         pub struct $preview {
             pub id: $previewid,
@@ -81,23 +82,10 @@ macro_rules! define_preview_id_name {
                 }
             }
         }
-    };
-}
-
-macro_rules! define_preview_id_name_relevance {
-    ($main:ident, $preview:ident, $previewid:ident) => {
-        #[derive(Debug, Clone, Serialize, Deserialize)]
-        pub struct $preview {
-            pub id: $previewid,
-            pub relevance: u32,
-            pub name: NameCore,
-        }
-        tie_preview_to_previewid!($preview, $previewid);
-        impl HasPreview<$preview> for $main {
+        impl HasPreview<$preview> for $rawmain {
             fn preview(&self) -> $preview {
                 $preview {
                     id: self.id.preview(),
-                    relevance: self.relevance,
                     name: self.name_core.clone(),
                 }
             }
@@ -105,32 +93,91 @@ macro_rules! define_preview_id_name_relevance {
     };
 }
 
-define_preview_id_name!(Tag, PreviewTag, PreviewTagId);
-define_preview_id_name!(LogicFragment, PreviewLogicFragment, PreviewLogicFragmentId);
-define_preview_id_name!(Operation, PreviewOperation, PreviewOperationId);
-define_preview_id_name!(Provider, PreviewProvider, PreviewProviderId);
-define_preview_id_name!(GraphRelation, PreviewGraphRelation, PreviewGraphRelationId);
+macro_rules! define_preview_id_name_score {
+    ($main:ident, $rawmain:ident, $preview:ident, $previewid:ident) => {
+        #[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
+        pub struct $preview {
+            pub id: $previewid,
+            pub score: u32,
+            pub name_core: NameCore,
+        }
+        tie_preview_to_previewid!($preview, $previewid);
+        impl HasPreview<$preview> for &$main {
+            fn preview(&self) -> $preview {
+                $preview {
+                    id: self.id.preview(),
+                    score: self.score,
+                    name_core: self.name_core.clone(),
+                }
+            }
+        }
+        impl HasPreview<$preview> for $rawmain {
+            fn preview(&self) -> $preview {
+                $preview {
+                    id: self.id.preview(),
+                    score: self.score,
+                    name_core: self.name_core.clone(),
+                }
+            }
+        }
+    };
+}
+
+define_preview_id_name!(Tag, RawTag, PreviewTag, PreviewTagId);
+define_preview_id_name!(
+    LogicFragment,
+    RawLogicFragment,
+    PreviewLogicFragment,
+    PreviewLogicFragmentId
+);
+define_preview_id_name!(
+    Operation,
+    RawOperation,
+    PreviewOperation,
+    PreviewOperationId
+);
+define_preview_id_name!(Provider, RawProvider, PreviewProvider, PreviewProviderId);
+define_preview_id_name!(
+    GraphRelation,
+    RawGraphRelation,
+    PreviewGraphRelation,
+    PreviewGraphRelationId
+);
 define_preview_id_name!(
     GraphClassRelation,
+    RawGraphClassRelation,
     PreviewGraphClassRelation,
     PreviewGraphClassRelationId
 );
 
-define_preview_id_name_relevance!(Graph, PreviewGraph, PreviewGraphId);
-define_preview_id_name_relevance!(GraphClass, PreviewGraphClass, PreviewGraphClassId);
-define_preview_id_name_relevance!(
+define_preview_id_name_score!(Graph, RawGraph, PreviewGraph, PreviewGraphId);
+define_preview_id_name_score!(
+    GraphClass,
+    RawGraphClass,
+    PreviewGraphClass,
+    PreviewGraphClassId
+);
+define_preview_id_name_score!(
     ParametricParameter,
+    RawParametricParameter,
     PreviewParametricParameter,
     PreviewParametricParameterId
 );
-define_preview_id_name_relevance!(
+define_preview_id_name_score!(
     ParametricGraphClass,
+    RawParametricGraphClass,
     PreviewParametricGraphClass,
     PreviewParametricGraphClassId
 );
-define_preview_id_name_relevance!(Parameter, PreviewParameter, PreviewParameterId);
-define_preview_id_name_relevance!(
+define_preview_id_name_score!(
+    Parameter,
+    RawParameter,
+    PreviewParameter,
+    PreviewParameterId
+);
+define_preview_id_name_score!(
     GraphClassProperty,
+    RawGraphClassProperty,
     PreviewGraphClassProperty,
     PreviewGraphClassPropertyId
 );

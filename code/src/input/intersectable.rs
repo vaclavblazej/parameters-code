@@ -11,7 +11,7 @@ where
         a: &Self::PreviewId,
         b: &WithId,
         name: &str,
-        relevance: u32,
+        score: u32,
     ) -> Builder<Self>;
 }
 
@@ -21,11 +21,11 @@ impl Intersectable<PreviewGraphClassId> for RawGraphClass {
         a: &PreviewGraphClassId,
         b: &PreviewGraphClassId,
         name: &str,
-        relevance: u32,
+        score: u32,
     ) -> Builder<Self> {
         Builder::new(RawGraphClass {
             id: GraphClassId::new(id.into()),
-            relevance,
+            score,
             name_core: NameCore::new(name),
             definition: crate::input::raw_enums::RawGraphClassDefinition::Intersection(vec![
                 a.clone(),
@@ -58,11 +58,11 @@ impl Intersectable<PreviewGraphClassPropertyId> for RawGraphClass {
         a: &PreviewGraphClassId,
         b: &PreviewGraphClassPropertyId,
         name: &str,
-        relevance: u32,
+        score: u32,
     ) -> Builder<Self> {
         Builder::new(RawGraphClass {
             id: GraphClassId::new(id.into()),
-            relevance,
+            score,
             name_core: NameCore::new(name),
             definition: todo!(),
             variant: crate::input::raw_enums::RawGraphClassVariant::GraphClass, // todo
@@ -77,11 +77,11 @@ impl Intersectable<PreviewGraphClassId> for RawParameter {
         a: &PreviewParameterId,
         b: &PreviewGraphClassId,
         name: &str,
-        relevance: u32,
+        score: u32,
     ) -> Builder<Self> {
         Builder::new(RawParameter {
             id: ParameterId::new(id.into()),
-            relevance,
+            score,
             name_core: NameCore::new(name),
             definition: todo!(),
             tags: Vec::new(),

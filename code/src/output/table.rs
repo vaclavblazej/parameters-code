@@ -1,19 +1,27 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::Command;
 
 use log::{error, info};
 
-use crate::data::Data;
+use crate::data::data::Data;
 use crate::data::enums::*;
 use crate::data::id::*;
-use crate::file;
-use crate::general::worker::Task;
-use crate::output::color::{Color, relation_color};
+use crate::data::link::Linkable;
+use crate::data::preview::PreviewParameter;
+use crate::general::worker::{Task, Worker};
+use crate::output::color::Color;
 use crate::work::sets::RelatedSets;
+use crate::{Paths, file};
 
-fn table_format_par(i: usize, a: &PreviewSet) -> String {
+pub struct TableEntry {
+    pub id: String,
+    pub name: String,
+}
+
+fn table_format_par(i: usize, a: &TableEntry) -> String {
     format!("\\parname{{{}}}{{{}}}{{../{}}}", i + 1, a.name, a.id)
 }
 
@@ -22,8 +30,8 @@ fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
 }
 
 pub fn render_table(
-    set_info: &HashMap<PreviewSet, RelatedSets>,
-    ordered_draw_sets: &[PreviewSet],
+    set_info: &HashMap<TableEntry, RelatedSets>,
+    ordered_draw_sets: &[TableEntry],
     table_folder: &PathBuf,
 ) -> anyhow::Result<PathBuf> {
     let size_str = format!("\\def\\parlen{{{}}}\n", ordered_draw_sets.len());
@@ -73,8 +81,8 @@ pub fn render_table(
 }
 
 pub struct CreateTable {
-    pub related_sets_map: HashMap<PreviewSet, RelatedSets>,
-    pub ordered_draw_sets: Vec<PreviewSet>,
+    pub related_sets_map: HashMap<TableEntry, RelatedSets>,
+    pub ordered_draw_sets: Vec<TableEntry>,
     pub paths: Box<Paths>,
     pub name: String,
 }
@@ -99,4 +107,85 @@ impl Task for CreateTable {
         file::copy_file(&done_pdf, &final_pdf);
         Ok(())
     }
+}
+
+pub fn generate_relation_table<T>(
+    data: &Data,
+    draw_sets: &Vec<T>,
+    paths: &Paths,
+    name: &str,
+    worker: &Worker,
+) where
+    T: Linkable,
+{
+    let ordered_draw_sets = order_sets_from_sources(data, draw_sets);
+    let mut related_sets_map: HashMap<PreviewSet, RelatedSets> = HashMap::new();
+    for set in &ordered_draw_sets {
+        related_sets_map.insert(set.clone(), data.get_set(set).related_sets.clone());
+    }
+    worker.send(CreateTable {
+        related_sets_map: related_sets_map.clone(),
+        ordered_draw_sets: ordered_draw_sets.clone(),
+        paths: Box::new(paths.clone()),
+        name: name.into(),
+    });
+}
+
+// todo move this processing to utilities for diagrams on diagram structures
+pub fn order_sets_from_sources(
+    entities: &Vec<PreviewParameter>,
+    successors: &HashSet<PreviewParameterId, Vec<PreviewParameterId>>,
+) -> Vec<PreviewParameterId> {
+    let mut predecesor_count: HashMap<PreviewParameterId, usize> = HashMap::new();
+    for preview in entities {
+        predecesor_count.insert(preview.previewid(), 0);
+    }
+    for preview in entities {
+        let set: &Vec<PreviewParameterId> = &successors.get(&preview.previewid()).unwrap();
+        for subset in set {
+            if let Some(el) = predecesor_count.get_mut(subset) {
+                *el += 1;
+            }
+        }
+    }
+    let mut queue: Vec<PreviewParameterId> = Vec::new();
+    let mut eqqueue: Vec<PreviewParameterId> = Vec::new();
+    for (set, count) in &predecesor_count {
+        if *count == 0 {
+            queue.push(set.clone());
+        }
+    }
+    let mut resolved: HashSet<PreviewParameterId> = HashSet::new();
+    let mut result: Vec<PreviewParameterId> = Vec::new();
+    loop {
+        let current_id = match eqqueue.pop() {
+            Some(c) => c,
+            None => match queue.pop() {
+                Some(c) => c,
+                None => break,
+            },
+        };
+        if resolved.contains(&current_id) {
+            continue;
+        }
+        resolved.insert(current_id.clone());
+        result.push(current_id.clone());
+        let set = successors.get(&current_id);
+        for elem in &set.related_sets.equivsets {
+            if predecesor_count.contains_key(elem) {
+                eqqueue.push(elem.clone());
+            }
+        }
+        let children: Vec<&PreviewParameterId> = set.related_sets.supersets.all.iter().collect();
+        for neighbor in children {
+            if let Some(mut x) = predecesor_count.get_mut(neighbor) {
+                *x -= 1;
+                if *x == 0 {
+                    queue.push(neighbor.clone());
+                }
+            }
+        }
+    }
+    assert_eq!(resolved.len(), entities.len());
+    result
 }
