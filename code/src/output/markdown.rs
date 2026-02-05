@@ -391,6 +391,51 @@ fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
 //     res
 // }
 
+impl GeneratedPage for GraphClass {
+    fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        res += &format!("---\ntitle: \"{}\"\n---", self.name_core.name);
+        res += &format!("# {}\n\n", self.name_core.name);
+        if let Some(abbr) = &self.name_core.abbr {
+            res += &format!("abbr: {}\n\n", abbr);
+        }
+        if !self.name_core.aka.is_empty() {
+            res += &format!("aka: {}\n\n", self.name_core.aka.join(", "));
+        }
+        if !self.tags.is_empty() {
+            let tag_strings: Vec<String> = self
+                .tags
+                .iter()
+                .map(|x| builder.linkto(&x.get_link()))
+                .collect();
+            res += &format!("tags: {}\n\n", tag_strings.join(", "));
+        }
+        let definition_string = match &self.definition {
+            GraphClassDefinition::Text(texts) => texts.join("\n\n"),
+            GraphClassDefinition::Intersection(classes) => {
+                let class_links: Vec<String> = classes
+                    .iter()
+                    .map(|c| builder.linkto(&c.get_link()))
+                    .collect();
+                format!("Intersection of: {}", class_links.join(", "))
+            }
+            GraphClassDefinition::ParametricGraphClass(pgc) => {
+                format!("Instance of {}", builder.linkto(&pgc.get_link()))
+            }
+            GraphClassDefinition::Parameter(param) => {
+                format!(
+                    "Graphs where {} is bounded",
+                    builder.linkto(&param.get_link())
+                )
+            }
+        };
+        res += &format!("**Definition:** {}\n\n", definition_string);
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
 impl GeneratedPage for Tag {
     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();

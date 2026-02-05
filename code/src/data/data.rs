@@ -175,6 +175,8 @@ tie_data_to_previewid!(Graph, PreviewGraphId);
 pub enum GraphClassDefinition {
     Text(Vec<String>),
     Intersection(Vec<PreviewGraphClass>),
+    ParametricGraphClass(PreviewParametricGraphClass),
+    Parameter(PreviewParameter),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -190,8 +192,11 @@ pub struct GraphClass {
     pub name_core: NameCore,
     pub definition: GraphClassDefinition,
     pub variant: GraphClassVariant,
+    pub tags: Vec<PreviewTag>,
 }
 named_impl!(GraphClass);
+tagged_impl!(GraphClass, PreviewTag);
+score_impl!(GraphClass);
 data_gettable!(PreviewGraphClassId, GraphClass, graph_classes);
 tie_data_to_previewid!(GraphClass, PreviewGraphClassId);
 

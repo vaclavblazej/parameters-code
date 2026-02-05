@@ -30,9 +30,21 @@ use crate::work::hierarchy::Relation;
 use crate::work::preview_collection::PreviewCollection;
 use crate::work::sets::{RelatedSets, prepare_extremes};
 
+fn resolve_tags<Id: Eq>(
+    entity_id: &Id,
+    tag_set: &[(PreviewTagId, Id)],
+    tag_map: &HashMap<PreviewTagId, PreviewTag>,
+) -> Vec<PreviewTag> {
+    tag_set
+        .iter()
+        .filter(|(_, id)| id == entity_id)
+        .filter_map(|(tag_id, _)| tag_map.get(tag_id).cloned())
+        .collect()
+}
+
 fn process_parameter(
     parameter: RawParameter,
-    tag_set: &Vec<(PreviewTagId, PreviewParameterId)>,
+    tag_set: &[(PreviewTagId, PreviewParameterId)],
     tag_map: &HashMap<PreviewTagId, PreviewTag>,
     preview_collection: &PreviewCollection,
 ) -> Parameter {
@@ -101,12 +113,7 @@ fn process_parameter(
     //     vec![]
     // };
     // let transfers = HashMap::new(); // todo
-    let mut tags: Vec<PreviewTag> = vec![];
-    for (tag, set_id) in tag_set {
-        if *set_id == id {
-            tags.push(tag_map.get(tag).unwrap().clone());
-        }
-    }
+    let tags = resolve_tags(&id.preview(), tag_set, tag_map);
     Parameter {
         id,
         name_core,
@@ -121,6 +128,31 @@ fn process_parameter(
         //     prepare_extremes(sub_exclusions, help),
         //     prepare_extremes(unknown, help),
         // ),
+    }
+}
+
+fn process_graph_class(
+    graph_class: RawGraphClass,
+    tag_set: &[(PreviewTagId, PreviewGraphClassId)],
+    tag_map: &HashMap<PreviewTagId, PreviewTag>,
+    preview_collection: &PreviewCollection,
+) -> GraphClass {
+    let RawGraphClass {
+        id,
+        score,
+        name_core,
+        definition,
+        tags: _,
+        variant,
+    } = graph_class;
+    let tags = resolve_tags(&id.preview(), tag_set, tag_map);
+    GraphClass {
+        id,
+        score,
+        name_core,
+        definition: GraphClassDefinition::from(definition, preview_collection),
+        variant: GraphClassVariant::from(variant),
+        tags,
     }
 }
 
@@ -311,6 +343,19 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
             process_parameter(parameter, &tag_set, &tag_preview_map, &preview_collection)
         })
         .collect();
+    // graph classes //////////////////////////////////////////////////////////////
+    let mut graph_class_tag_set: Vec<(PreviewTagId, PreviewGraphClassId)> = Vec::new();
+    for gc in &raw_graph_classes {
+        for preview_tag_id in &gc.tags {
+            graph_class_tag_set.push((preview_tag_id.clone(), gc.id.preview()));
+        }
+    }
+    let graph_classes = raw_graph_classes
+        .into_iter()
+        .map(|gc| {
+            process_graph_class(gc, &graph_class_tag_set, &tag_preview_map, &preview_collection)
+        })
+        .collect();
     // // finalize ////////////////////////////////////////////////////////////////
     // let res_sources = ordered_sources
     //     .iter()
@@ -328,7 +373,7 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         logic_fragments: vec![],
         graphs: vec![],
         graph_relations: vec![],
-        graph_classes: vec![],
+        graph_classes,
         sources: vec![],
         factoids: HashMap::new(),
         drawings: HashMap::new(),

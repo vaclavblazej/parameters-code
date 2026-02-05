@@ -418,21 +418,11 @@ impl Computation {
             factoids,
             drawings,
         } = data;
-        for col in vec![
-            // sources, // todo
-            // tags,
-            // graph_classes,
-            // graphs,
-            // logic_fragments,
-            // operations,
-            parameters,
-            // parametric_graph_class,
-            // parametric_parameters,
-            // providers,
-        ] {
-            for (id, val) in col {
-                links.insert(id.to_string(), val.get_link());
-            }
+        for (id, val) in parameters {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in graph_classes {
+            links.insert(id.to_string(), val.get_link());
         }
         // for source in sources {
         //     links.insert(source.id.to_string(), Box::new(source.preview()));
@@ -442,6 +432,11 @@ impl Computation {
         // }
         add_content(
             parameters.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            graph_classes.values(),
             &self.paths.final_dir,
             &mut generated_pages,
         );

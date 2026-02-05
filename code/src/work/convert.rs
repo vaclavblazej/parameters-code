@@ -12,7 +12,7 @@ use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::preview::*;
 use crate::input::raw::{RawProvider, RawProviderLink, RawTag};
-use crate::input::raw_enums::RawOwn;
+use crate::input::raw_enums::{RawGraphClassDefinition, RawGraphClassVariant, RawOwn};
 use crate::input::source::RawNotedSource;
 use crate::input::source::definition;
 use crate::work::preview_collection::PreviewCollection;
@@ -70,6 +70,46 @@ impl Tag {
             name_core: raw.name_core,
             description: raw.description,
             sets,
+        }
+    }
+}
+
+impl GraphClassDefinition {
+    pub fn from(item: RawGraphClassDefinition, preview_collection: &PreviewCollection) -> Self {
+        match item {
+            RawGraphClassDefinition::Text(text) => Self::Text(vec![text]),
+            RawGraphClassDefinition::Intersection(ids) => {
+                let previews = ids
+                    .iter()
+                    .filter_map(|id| preview_collection.graph_classes_previews.get(id).cloned())
+                    .collect();
+                Self::Intersection(previews)
+            }
+            RawGraphClassDefinition::ParametricGraphClass(id) => {
+                let preview = preview_collection
+                    .parametric_graph_class_previews
+                    .get(&id)
+                    .unwrap()
+                    .clone();
+                Self::ParametricGraphClass(preview)
+            }
+            RawGraphClassDefinition::Parameter(id) => {
+                let preview = preview_collection
+                    .parameters_previews
+                    .get(&id)
+                    .unwrap()
+                    .clone();
+                Self::Parameter(preview)
+            }
+        }
+    }
+}
+
+impl GraphClassVariant {
+    pub fn from(raw: RawGraphClassVariant) -> Self {
+        match raw {
+            RawGraphClassVariant::GraphClass => Self::GraphClass,
+            RawGraphClassVariant::GraphProperty => Self::GraphProperty,
         }
     }
 }

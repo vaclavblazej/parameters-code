@@ -4,7 +4,9 @@ use crate::data::{
     data::{Named, ProviderLink},
     enums::SourceKey,
     id::HasId,
-    preview::{PreviewSource, PreviewTag},
+    preview::{
+        PreviewGraphClass, PreviewParameter, PreviewParametricGraphClass, PreviewSource, PreviewTag,
+    },
 };
 
 fn html_base(id: &String) -> String {
@@ -47,6 +49,33 @@ impl Linkable for &PreviewTag {
         Link {
             url: html_base(&self.id.to_string()),
             name: self.name.name.clone(),
+        }
+    }
+}
+
+impl Linkable for &PreviewGraphClass {
+    fn get_link(&self) -> Link {
+        Link {
+            url: html_base(&self.id.to_string()),
+            name: self.name_core.name.clone(),
+        }
+    }
+}
+
+impl Linkable for &PreviewParametricGraphClass {
+    fn get_link(&self) -> Link {
+        Link {
+            url: html_base(&self.id.to_string()),
+            name: self.name_core.name.clone(),
+        }
+    }
+}
+
+impl Linkable for &PreviewParameter {
+    fn get_link(&self) -> Link {
+        Link {
+            url: html_base(&self.id.to_string()),
+            name: self.name_core.name.clone(),
         }
     }
 }
