@@ -32,16 +32,17 @@ impl<VertexData, EdgeData> DiGraph<VertexData, EdgeData> {
         self.vertices.insert(id, vertex);
     }
 
-    pub fn add_edge(&mut self, from: String, to: String, edge: Edge<EdgeData>) {
+    pub fn add_edge(&mut self, edge: Edge<EdgeData>) {
         self.out_edges
-            .entry(from.clone())
+            .entry(edge.from.clone())
             .or_default()
-            .push(to.clone());
+            .push(edge.to.clone());
         self.in_edges
-            .entry(to.clone())
+            .entry(edge.to.clone())
             .or_default()
-            .push(from.clone());
-        self.edges.insert((from, to), edge);
+            .push(edge.from.clone());
+        self.edges
+            .insert((edge.from.clone(), edge.to.clone()), edge);
     }
 
     pub fn bfs_get_distance(&self, set: String) -> HashMap<String, usize> {

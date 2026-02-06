@@ -18,7 +18,7 @@ use crate::input::source::ClassicalSolvability;
 use crate::input::source::Cpx;
 use crate::input::source::EquivalenceRelation;
 use crate::input::source::ImplicationRelation;
-use crate::input::source::InclusionRelationUnderOperation;
+use crate::input::source::InclusionRelationUnderGraphRelation;
 use crate::input::source::ParameterizedSolvability;
 use crate::tie_data_to_previewid;
 
@@ -168,6 +168,7 @@ pub struct Graph {
     pub definition: Vec<String>,
 }
 named_impl!(Graph);
+score_impl!(Graph);
 data_gettable!(PreviewGraphId, Graph, graphs);
 tie_data_to_previewid!(Graph, PreviewGraphId);
 
@@ -367,13 +368,17 @@ pub enum KnowledgeState {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Source {
     pub id: SourceId,
+    pub name_core: NameCore,
     pub sourcekey: SourceKey,
     pub wrote: Vec<PreviewWrote>,
     pub time: Date,
     pub drawings: Vec<Drawing>,
+    pub score: u32,
 }
 data_gettable!(PreviewSourceId, Source, sources);
 tie_data_to_previewid!(Source, PreviewSourceId);
+score_impl!(Source);
+named_impl!(Source);
 
 #[derive(Debug)]
 pub struct Wrote {
@@ -421,16 +426,20 @@ pub enum Relation {
         ImplicationRelation,
     ),
     OpOp(PreviewOperation, PreviewOperation, ImplicationRelation),
-    GrGr(PreviewGraph, PreviewGraph, InclusionRelationUnderOperation),
+    GrGr(
+        PreviewGraph,
+        PreviewGraph,
+        InclusionRelationUnderGraphRelation,
+    ),
     GcGc(
         PreviewGraphClass,
         PreviewGraphClass,
-        InclusionRelationUnderOperation,
+        InclusionRelationUnderGraphRelation,
     ),
     GrGc(
         PreviewGraph,
         PreviewGraphClass,
-        InclusionRelationUnderOperation,
+        InclusionRelationUnderGraphRelation,
     ),
     PgcPgc(
         PreviewParametricGraphClass,
@@ -485,6 +494,7 @@ pub struct Data {
     pub sources: HashMap<PreviewSourceId, Source>,
     pub factoids: HashMap<PreviewSourceId, Fact>,
     pub drawings: HashMap<PreviewSourceId, Drawing>,
+    pub arc_parameter_parameter: Vec<(PreviewParameterId, PreviewParameterId, Cpx)>,
     // pub relations: Vec<Relation>,
     // pub partial_results: Vec<PartialResult>,
     // #[serde(skip)]
@@ -521,6 +531,7 @@ pub struct DataFields {
     pub factoids: HashMap<PreviewSourceId, Fact>,
     pub drawings: HashMap<PreviewSourceId, Drawing>,
     pub graph_class_properties: Vec<GraphClassProperty>,
+    pub arc_parameter_parameter: Vec<(PreviewParameterId, PreviewParameterId, Cpx)>,
 }
 
 impl Data {
@@ -542,6 +553,7 @@ impl Data {
             factoids: fields.factoids,
             drawings: fields.drawings,
             graph_class_properties: convert_to_id_map(fields.graph_class_properties),
+            arc_parameter_parameter: fields.arc_parameter_parameter,
         }
     }
 }

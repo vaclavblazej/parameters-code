@@ -4,14 +4,13 @@ use crate::data::data::Own;
 use crate::data::enums::*;
 use crate::data::id::HasId;
 use crate::data::preview::{HasPreview, PreviewSource, PreviewSourceKey};
-use crate::output::markdown::Markdown;
 
 pub trait ToMarkdown {
-    fn to_markdown(&self, builder: &Markdown) -> Option<String>;
+    fn to_markdown(&self) -> Option<String>;
 }
 
 impl ToMarkdown for Page {
-    fn to_markdown(&self, builder: &Markdown) -> Option<String> {
+    fn to_markdown(&self) -> Option<String> {
         let mut res = String::new();
         match self {
             Self::Pp(num) => Some(format!("page {}", num)),
@@ -22,7 +21,7 @@ impl ToMarkdown for Page {
 }
 
 impl ToMarkdown for CpxTime {
-    fn to_markdown(&self, builder: &Markdown) -> Option<String> {
+    fn to_markdown(&self) -> Option<String> {
         Some(String::from(match self {
             // formed to continue line "upper bounded by ..."
             CpxTime::Constant => "a constant",
@@ -39,7 +38,7 @@ impl<T> ToMarkdown for T
 where
     T: HasId,
 {
-    fn to_markdown(&self, builder: &Markdown) -> Option<String> {
+    fn to_markdown(&self) -> Option<String> {
         Some(format!("[[{}]]", &self.id()))
     }
 }
@@ -79,7 +78,7 @@ impl Own {
 //     Unknown,
 // }
 
-// fn relation_description(rel: &PreviewRelation, builder: &Markdown) -> RelDescription {
+// fn relation_description(rel: &PreviewRelation) -> RelDescription {
 //     match &rel.cpx {
 //         CpxInfo::Inclusion { mn: None, mx: None } => panic!("none none"),
 //         CpxInfo::Inclusion {
@@ -123,27 +122,27 @@ impl Own {
 // }
 
 // impl PreviewRelation {
-//     pub fn long_description(&self, builder: &Markdown) -> Option<String> {
-//         let subset_string = self.subset.to_markdown(builder).unwrap();
-//         let superset_string = self.superset.to_markdown(builder).unwrap();
-//         match relation_description(self, builder) {
+//     pub fn long_description(&self) -> Option<String> {
+//         let subset_string = self.subset.to_markdown().unwrap();
+//         let superset_string = self.superset.to_markdown().unwrap();
+//         match relation_description(self) {
 //             RelDescription::UpperBound { bound } => Some(format!(
 //                 "{} upper bounds {} by {}",
 //                 subset_string,
 //                 superset_string,
-//                 bound.to_markdown(builder).unwrap()
+//                 bound.to_markdown().unwrap()
 //             )),
 //             RelDescription::LowerBound { bound } => Some(format!(
 //                 "there exist cases where {} is $k$ but {} is at least {}",
 //                 subset_string,
 //                 superset_string,
-//                 bound.to_markdown(builder).unwrap()
+//                 bound.to_markdown().unwrap()
 //             )),
 //             RelDescription::BothBounds { bound } => Some(format!(
 //                 "{} upper and lower bounds {} by {}",
 //                 subset_string,
 //                 superset_string,
-//                 bound.to_markdown(builder).unwrap()
+//                 bound.to_markdown().unwrap()
 //             )),
 //             RelDescription::UpperLowerBound {
 //                 lower_bound,
@@ -152,15 +151,15 @@ impl Own {
 //                 "{} upper bounds {} by {} and lower bounds it by {}",
 //                 subset_string,
 //                 superset_string,
-//                 upper_bound.to_markdown(builder).unwrap(),
-//                 lower_bound.to_markdown(builder).unwrap()
+//                 upper_bound.to_markdown().unwrap(),
+//                 lower_bound.to_markdown().unwrap()
 //             )),
 //             RelDescription::IncludedIn(PreviewType::Parameter, PreviewType::Parameter) => {
 //                 panic!("this pair was designed to be processed in a function that calls this")
 //             }
 //             RelDescription::IncludedIn(from, to) | RelDescription::Excludes(from, to) => {
 //                 let is_inclusion = matches!(
-//                     relation_description(self, builder),
+//                     relation_description(self),
 //                     RelDescription::IncludedIn(..)
 //                 );
 //                 let (from_str, plural) = match &from {
@@ -203,10 +202,10 @@ impl Own {
 //         }
 //     }
 //
-//     pub fn short_description(&self, builder: &Markdown) -> String {
-//         let subset_string = self.subset.to_markdown(builder).unwrap();
-//         let superset_string = self.superset.to_markdown(builder).unwrap();
-//         match relation_description(self, builder) {
+//     pub fn short_description(&self) -> String {
+//         let subset_string = self.subset.to_markdown().unwrap();
+//         let superset_string = self.superset.to_markdown().unwrap();
+//         match relation_description(self) {
 //             RelDescription::UpperBound { bound } => "upper bound",
 //             RelDescription::LowerBound { bound } => "only lower bound",
 //             RelDescription::BothBounds { bound } => "tight bounds",
@@ -268,7 +267,7 @@ impl Own {
 // }
 
 // impl ToMarkdown for PreviewSource {
-//     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
+//     fn to_markdown(&self) -> Option<String> {
 //         match &self.sourcekey {
 //             SourceKey::Bibtex {
 //                 key,
@@ -286,21 +285,22 @@ impl Own {
 // }
 
 // impl ToMarkdown for ShowedFact {
-//     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
+//     fn to_markdown(&self) -> Option<String> {
 //         let mut res = String::new();
 //         match self {
 //             Self::Relation(status, relation) => {
-//                 if let Some(val) = relation.long_description(builder) {
+//                 if let Some(val) = relation.long_description() {
 //                     res += &val;
 //                 }
 //             }
 //             Self::Definition(status, preview_set) => {
-//                 let set = builder.data.get_set_by_id(preview_set);
-//                 if let Some(val) = set.preview().to_markdown(builder) {
+//                 let set = builder.data.get_set_by_id(preview_set); // todo builder was removed
+//                 from parameters
+//                 if let Some(val) = set.preview().to_markdown() {
 //                     res += &val;
 //                 }
 //             } // Self::Citation(citation) => {
-//               // if let Some(val) = citation.to_markdown(&builder) {
+//               // if let Some(val) = citation.to_markdown() {
 //               // res += &val;
 //               // }
 //               // }
@@ -310,12 +310,12 @@ impl Own {
 // }
 //
 // impl ToMarkdown for Showed {
-//     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
+//     fn to_markdown(&self) -> Option<String> {
 //         let mut res = String::new();
-//         if let Some(val) = self.page.to_markdown(builder) {
+//         if let Some(val) = self.page.to_markdown() {
 //             res += &format!("{} : ", val);
 //         }
-//         if let Some(val) = self.fact.to_markdown(builder) {
+//         if let Some(val) = self.fact.to_markdown() {
 //             res += &val;
 //         }
 //         if !res.is_empty() && !self.text.is_empty() {
@@ -327,7 +327,7 @@ impl Own {
 // }
 //
 // impl ToMarkdown for SourceSubset {
-//     fn to_markdown(&self, builder: &Markdown) -> Option<String> {
+//     fn to_markdown(&self) -> Option<String> {
 //         let mut res = String::new();
 //         res += "*";
 //         if self.preview.time.year.is_some() {
@@ -335,7 +335,7 @@ impl Own {
 //         };
 //         res += &format!(" [[{}]]\n", &self.preview.id.to_string());
 //         for showed in &self.showed {
-//             res += &format!("    * {}\n", showed.to_markdown(builder).unwrap());
+//             res += &format!("    * {}\n", showed.to_markdown().unwrap());
 //         }
 //         Some(res)
 //     }

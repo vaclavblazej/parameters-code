@@ -1,59 +1,80 @@
-# Hierarchy of Parameters -- code
+# Hierarchy of Parameters (HOPS)
 
-*Hierarchy of Parameters* (HOPS) is a database of structural graph parameters, properties, and their relations, with references to publications and related projects.
+A database of structural graph parameters, their properties, and relationships in parameterized complexity theory.
 
-The project consists of three main parts:
+**[View the Website](https://vaclavblazej.github.io/parameters/)**
 
-* [Database and code that generates the website's content](https://github.com/vaclavblazej/parameters-code) (this repository)
-* [Scripts that generate the website](https://github.com/vaclavblazej/parameters) (intermediate)
-* [Hierarchy of Parameters](https://vaclavblazej.github.io/parameters/) (website)
+## About
 
-To give **feedback** on any part of the project, you can use:
+HOPS provides a comprehensive reference for researchers working with graph parameters. The database includes:
 
-* [Google form](https://docs.google.com/forms/d/e/1FAIpQLSdX5_IoxMmlguQGQzR1NhvbeQRiHTQlytK2jAOZAgZfjdcGDQ/viewform?usp=sharing&ouid=114574344732763059842) (anonymous)
-* [GitHub issues](https://github.com/vaclavblazej/parameters-code/issues) (requires a GitHib account)
+* Parameter definitions (treewidth, pathwidth, clique-width, etc.)
+* Bounding relationships between parameters
+* References to relevant publications
+* Visual diagrams showing parameter hierarchies
 
-## The web is meant to provide
+## Repository Structure
 
-### Overview of parameters
+```
+parameters/
+├── code/           # Rust database and content generator
+├── handcrafted/    # Manual website content and bibliography (main.bib)
+├── web/            # Generated Hugo website (git submodule)
+├── docs/           # Project documentation
+└── scripts/        # Utility scripts
+```
 
-* a quick overview of
-    * (partially done) parameter definitions
-    * (partially done) bounding connections
-    * (in future) graph classes that distinguish parameters (via ISGCI)
-* (current focus) display relevant references
-* (in future) single PDF
-* (in future) interactive mode
-    * let users with visualize the boundary of tractability and hardness for their problems
-    * customize the view by hiding and positioning the nodes
-    * output TikZ code that can be directly used in a scientific paper
+## Quick Start
 
-It will take a while before the website has the majority of the parameter relations and their references.
+### Prerequisites
 
-## Repository folders and files
+* [Rust](https://rustup.rs/) (latest stable)
+* [Graphviz](https://graphviz.org/) (for diagram generation)
+* [Hugo](https://gohugo.io/) (for local website preview)
 
-* main content
-    * `code` source data and codes that export the data into human-readable form to the `web/content` folder
-    * `handcrafted` are the non-generated parts of the website
-* extras
-    * `.git`, `.gitignore`, `.gitmodules` git versioning data
-    * `README.md` documentation
-    * `web` git submodule that points to the repository with the website sources
+### Generate the Website
 
-## Inspired by
+```bash
+cd code
+cargo run all
+```
 
-* 2013-2019 [Parameterized Hierarchy](https://manyu.pro/assets/parameter-hierarchy.pdf) by M. Sorge.
+### Preview Locally
+
+```bash
+cd web
+hugo server
+```
+
+## Contributing
+
+Contributions are welcome!
+You can help by:
+
+* **Adding parameters** - Edit `code/src/collection.rs` using the builder API
+* **Adding relations** - Document bounds between parameters with source references
+* **Improving content** - Enhance descriptions or add missing information
+* **Reporting issues** - Submit bug reports or feature requests
+
+## Documentation
+
+* [Contributing Guide](docs/contributing.md) - How to add parameters and relations
+* [Codebase Overview](docs/code.md) - Technical architecture and module structure
+
+## Feedback
+
+* [GitHub Issues](https://github.com/vaclavblazej/parameters-code/issues) - Bug reports, feature requests
+* [Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSdX5_IoxMmlguQGQzR1NhvbeQRiHTQlytK2jAOZAgZfjdcGDQ/viewform) - Anonymous feedback
+
+## Related Work
+
+This project builds upon earlier work in the field:
+
+* [Parameterized Hierarchy](https://manyu.pro/assets/parameter-hierarchy.pdf) (2013-2019) by Manuel Sorge
 * [Comparing Graph Parameters](https://fpt.akt.tu-berlin.de/publications/theses/BA-Schr%C3%B6der.pdf) by J. Ch. B. Schröder
-* 2010 [Comparing 17 graph parameters](https://core.ac.uk/download/pdf/30926677.pdf) by Róbert Sasák
-
-## Generating content
-
-* Install `rust`, `pdflatex`, and `graphviz`
-* Change to the project directory
-* Change to code subdirectory `cd code`
-* Compile and run the generating code `cargo run`
+* [Comparing 17 Graph Parameters](https://core.ac.uk/download/pdf/30926677.pdf) (2010) by Róbert Sasák
 
 ## License
 
-This project is licensed under [MIT](LICENSE) license.
+[MIT License](LICENSE) - Copyright (c) 2023-2026 Vaclav Blazej & contributors
 

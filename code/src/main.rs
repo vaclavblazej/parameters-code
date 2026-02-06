@@ -15,6 +15,7 @@ use anyhow::Result;
 use biblatex::Bibliography;
 use general::worker::{Task, Worker};
 use log::{debug, error, info, trace, warn};
+use rayon::prelude::*;
 
 use crate::data::bibliography::load_bibliography;
 use crate::data::enums::*;
@@ -30,10 +31,12 @@ use crate::general::timer::Timer;
 
 use crate::data::data::{Data, Parameter};
 use crate::output::api;
+use crate::output::dot::{DotEdge, DotGraph, DotVertex, DotVertexAttribute};
 use crate::output::markdown::{Mappable, Markdown};
 use crate::output::pages;
 use crate::output::pages::TargetPage;
 use crate::output::pages::add_content;
+use crate::output::table::generate_relation_table;
 use crate::work::processing::process_raw_data;
 
 mod general {
@@ -74,7 +77,6 @@ mod work {
     pub mod hierarchy;
     pub mod preview_collection;
     pub mod processing;
-    pub mod sets;
 }
 mod output {
     pub mod api;
@@ -86,23 +88,14 @@ mod output {
     pub mod table;
     pub mod to_markdown;
 }
-mod test {
-    pub mod all;
-    pub mod collection;
-}
 mod collection;
 
-fn build_page(
-    page: &TargetPage,
-    markdown: &Markdown,
-    paths: &Paths,
-    map: &HashMap<&str, Mappable>,
-) -> anyhow::Result<()> {
+fn build_page(page: &TargetPage, markdown: &Markdown, paths: &Paths) -> anyhow::Result<()> {
     let content = match page.substitute {
         Some(substitute) => substitute.object.get_page(markdown, paths),
         None => "[[handcrafted]]".into(),
     };
-    let mut local_map = map.clone();
+    let mut local_map = HashMap::new();
     let handcrafted_content = match page.source {
         Some(source) => {
             if source.as_os_str().to_str().unwrap().ends_with(".md") {
@@ -128,18 +121,17 @@ fn generate_pages(
     pages: &Vec<TargetPage>,
     markdown: &Markdown,
     paths: &Paths,
-    map: &HashMap<&str, Mappable>,
 ) -> anyhow::Result<()> {
-    let mut progress = ProgressDisplay::new("generating pages", pages.len() as u32);
-    // todo - maybe use par_iter for iterating parallely to speed up the computation?
+    let progress = ProgressDisplay::new("generating pages", pages.len() as u32);
     let res: Result<Vec<()>> = pages
-        .iter()
+        .par_iter()
         .map(|page| -> anyhow::Result<()> {
             progress.increase(1);
-            build_page(page, markdown, paths, map)
+            build_page(page, markdown, paths)
         })
         .collect();
     progress.done();
+    res?;
     Ok(())
 }
 
@@ -160,7 +152,6 @@ enum Args {
     Api,
     Clear,
     Interactive,
-    Mock,
     Debug,
     Trace,
 }
@@ -213,9 +204,6 @@ impl Computation {
                 }
                 "clear" => {
                     args.insert(Args::Clear);
-                }
-                "mock" => {
-                    args.insert(Args::Mock);
                 }
                 "trace" => {
                     args.insert(Args::Trace);
@@ -313,7 +301,6 @@ impl Computation {
     }
 
     fn retrieve_and_process_data(&mut self) {
-        let mock = self.args.contains(&Args::Mock);
         self.bibliography = match load_bibliography(&self.paths.bibliography_file) {
             Ok(x) => Some(x),
             Err(err) => {
@@ -322,8 +309,7 @@ impl Computation {
             }
         };
         let data_cache: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
-        if !mock
-            && !self.args.contains(&Args::Preprocess)
+        if !self.args.contains(&Args::Preprocess)
             && let Some(mut res) = data_cache.load()
         {
             info!("deserialized data");
@@ -331,56 +317,65 @@ impl Computation {
             return;
         }
         self.time.print("retrieving data collection");
-        let mut rawdata = match mock {
-            false => collection::build_collection(),
-            true => todo!(), // test::collection::build_collection(),
-        };
+        let mut rawdata = collection::build_collection();
         self.time.print("processing data");
         let res = process_raw_data(rawdata, &self.bibliography);
-        if !mock {
-            match data_cache.save(&res) {
-                Ok(()) => {}
-                Err(err) => info!("{:?}", err),
-            }
+        match data_cache.save(&res) {
+            Ok(()) => {}
+            Err(err) => info!("{:?}", err),
         }
         self.some_data = Some(res);
     }
 
-    // fn make_dots(&self) {
-    //     if !self.args.contains(&Args::Dots) {
-    //         return;
-    //     }
-    //     let data = self.get_data();
-    //     self.time.print("creating main page dots");
-    //     let parameters: Vec<&Parameter> = data
-    //         .parameters
-    //         .values()
-    //         .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
-    //         .collect();
-    //     let simplified_parameters: Vec<&Parameter> = data
-    //         .parameters
-    //         .values()
-    //         .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
-    //         .collect();
-    //     for (name, set) in [
-    //         ("parameters", &parameters),
-    //         ("parameters_simplified", &simplified_parameters),
-    //     ] {
-    //         if let Ok(done_dot) = make_drawing(
-    //             data,
-    //             &self.paths.working_dir,
-    //             DotGraph::new(name, None),
-    //             set,
-    //         ) {
-    //             let final_dot = self.paths.html_dir.join(format!("{}.dot", name));
-    //             info!("copy dot to {:?}", &final_dot);
-    //             if let Err(err) = file::copy_file(&done_dot, &final_dot) {
-    //                 error!("{}", err);
-    //             }
-    //         }
-    //     }
-    // }
-    //
+    fn make_dots(&self) {
+        if !self.args.contains(&Args::Dots) {
+            return;
+        }
+        let data = self.get_data();
+        self.time.print("creating main page dots");
+        let parameters: Vec<&Parameter> = data
+            .parameters
+            .values()
+            .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
+            .collect();
+        let simplified_parameters: Vec<&Parameter> = data
+            .parameters
+            .values()
+            .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
+            .collect();
+        for (name, displayed_parameters) in [
+            ("parameters", parameters),
+            ("parameters_simplified", simplified_parameters),
+        ] {
+            let mut digraph = DotGraph::new(name, None);
+            for dp in &displayed_parameters {
+                digraph.add_vertex(dp);
+            }
+            let displayed_ids: HashSet<PreviewParameterId> = displayed_parameters
+                .iter()
+                .map(|&x| x.previewid())
+                .collect();
+            for (f, t, cpx) in &data.arc_parameter_parameter {
+                if displayed_ids.contains(f) && displayed_ids.contains(t) {
+                    digraph.add_edge(DotEdge {
+                        from: f.to_string(),
+                        to: t.to_string(),
+                        data: HashSet::new(),
+                    });
+                }
+            }
+            // todo get parameter relations from data and filter them so that only those between
+            // displayed_parameters are preserved; then add them to digraph as edges
+            if let Ok(done_dot) = digraph.save_to_file(&self.paths.working_dir) {
+                let final_dot = self.paths.html_dir.join(format!("{}.dot", name));
+                info!("copy dot to {:?}", &final_dot);
+                if let Err(err) = file::copy_file(&done_dot, &final_dot) {
+                    error!("{}", err);
+                }
+            }
+        }
+    }
+
     fn make_api(&self) -> Result<()> {
         if !self.args.contains(&Args::Api) {
             return Ok(());
@@ -417,6 +412,7 @@ impl Computation {
             sources,
             factoids,
             drawings,
+            arc_parameter_parameter,
         } = data;
         for (id, val) in parameters {
             links.insert(id.to_string(), val.get_link());
@@ -440,8 +436,12 @@ impl Computation {
             &self.paths.final_dir,
             &mut generated_pages,
         );
-        // add_content(sources, &self.paths.final_dir, &mut generated_pages);
-        // add_content(tags, &self.paths.final_dir, &mut generated_pages);
+        add_content(tags.values(), &self.paths.final_dir, &mut generated_pages);
+        add_content(
+            sources.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
         self.time.print("fetching handcrafted pages");
         let mut handcrafted_pages: HashMap<PathBuf, PathBuf> = HashMap::new();
         for source in file::iterate_folder_recursively(&self.paths.handcrafted_dir) {
@@ -475,11 +475,8 @@ impl Computation {
             });
         }
         self.time.print("building general substitution map");
-        let mut map: HashMap<&str, Mappable> = HashMap::new();
-        // todo add custom entries to the hash map for [[key]] notation in the handcrafted pages
-        // map.insert("test", Mappable::Address(Address{name: "qq".into(), url: "hello.com".into()}));
         let markdown = Markdown::new(data, links, &self.bibliography);
-        generate_pages(&pages, &markdown, &self.paths, &map); // takes long
+        generate_pages(&pages, &markdown, &self.paths);
         self.time.print("pages done");
         markdown.worker.join();
     }
@@ -555,35 +552,35 @@ impl Computation {
         }
     }
 
-    // fn make_relation_table(&self) {
-    //     if !self.args.contains(&Args::Table) {
-    //         return;
-    //     }
-    //     let data = self.get_data();
-    //     self.time.print("generating relation tables");
-    //     let table_sets: Vec<PreviewParameter> = data
-    //         .parameters
-    //         .values()
-    //         .map(|x| x.preview())
-    //         .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
-    //         .collect();
-    //     let simplified_table_sets: Vec<PreviewParameter> = data
-    //         .parameters
-    //         .values()
-    //         .map(|x| x.preview())
-    //         .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
-    //         .collect();
-    //     let (name, parameter) = ("table_simplified", &simplified_table_sets);
-    //     generate_relation_table(data, parameter, &self.paths, name, &self.worker);
-    // }
+    fn make_relation_table(&self) {
+        if !self.args.contains(&Args::Table) {
+            return;
+        }
+        let data = self.get_data();
+        self.time.print("generating relation tables");
+        let table_sets: Vec<PreviewParameter> = data
+            .parameters
+            .values()
+            .map(|x| x.preview())
+            .filter(|x| x.score >= self.hide_irrelevant_parameters_below)
+            .collect();
+        let simplified_table_sets: Vec<PreviewParameter> = data
+            .parameters
+            .values()
+            .map(|x| x.preview())
+            .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
+            .collect();
+        let (name, parameter) = ("table_simplified", &simplified_table_sets);
+        generate_relation_table(data, parameter, &self.paths, name, &self.worker);
+    }
 }
 
 fn main() {
     let mut computation = Computation::new();
     computation.clear();
     computation.retrieve_and_process_data();
-    // computation.make_dots(); // todo needs to be abstract
-    // computation.make_relation_table(); // todo needs to be abstract
+    computation.make_dots();
+    computation.make_relation_table();
     computation.make_api();
     computation.make_pages();
     computation.interactive();

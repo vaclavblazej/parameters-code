@@ -28,7 +28,6 @@ use crate::input::source::{RawFact, RawWrote};
 use crate::input::source::{RawSource, RawSourceKey};
 use crate::work::hierarchy::Relation;
 use crate::work::preview_collection::PreviewCollection;
-use crate::work::sets::{RelatedSets, prepare_extremes};
 
 fn resolve_tags<Id: Eq>(
     entity_id: &Id,
@@ -162,9 +161,14 @@ impl RawSource {
         bibliography: &Option<Bibliography>,
         preview_collection: &PreviewCollection,
     ) -> Source {
-        trace!("processing set {:?}", self.rawsourcekey);
+        let RawSource {
+            id,
+            rawsourcekey,
+            score,
+        } = self;
+        trace!("processing set {:?}", rawsourcekey);
         let mut time = Date::empty();
-        let sourcekey: SourceKey = match &self.rawsourcekey {
+        let sourcekey: SourceKey = match &rawsourcekey {
             RawSourceKey::Bibtex { key } => {
                 let (res, rtime) = bibligraphy_to_source(bibliography, key);
                 time = rtime;
@@ -183,11 +187,13 @@ impl RawSource {
         //     }
         // }
         Source {
-            id: self.id,
+            id,
+            name_core: NameCore::new(&sourcekey.get_name()),
             sourcekey,
             wrote: showed,
             time,
             drawings: vec![],
+            score,
             // drawings: source // todo
             //     .drawings
             //     .iter()
@@ -218,10 +224,19 @@ impl RawSource {
 //     }
 // }
 
+pub fn extract_tags<T>(item: T) -> Vec<(Link, PreviewTagId)>
+where
+    T: Linkable + Tagged<PreviewTagId>,
+{
+    let link = item.get_link();
+    item.tag()
+        .iter()
+        .map(|tag| (link.clone(), tag.clone()))
+        .collect()
+}
+
 pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -> Data {
-    // previews ////////////////////////////////////////////////////////////////
     let preview_collection = PreviewCollection::new(&rawdata);
-    // destruct to components //////////////////////////////////////////////////
     let RawData {
         graph_class_relations: raw_graph_class_relations,
         graph_classes: raw_graph_classes,
@@ -241,17 +256,14 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         provider_links: raw_provider_links,
         problems: raw_problems,
     } = rawdata;
-    // maps ////////////////////////////////////////////////////////////////////
     let raw_parameters_map = convert_to_id_map(raw_parameters);
     let tag_map = convert_to_id_map(raw_tags);
-    // sources /////////////////////////////////////////////////////////////////
     let sources = convert_to_id_map(
         raw_sources
             .into_iter()
             .map(|source| source.process(bibliography, &preview_collection))
             .collect(),
     );
-    // wrote ///////////////////////////////////////////////////////////////////
     let mut definitions_map: HashMap<DefKind, Vec<Def>> = HashMap::new();
     let mut relations_map: HashMap<RelKind, Vec<Rel>> = HashMap::new();
     for (source_id, raw_wrote) in raw_factoids {
@@ -267,7 +279,12 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
             }
         }
     }
-    // // providers ///////////////////////////////////////////////////////////////
+    let mut arc_parameter_parameter = Vec::new();
+    for x in relations_map.get(&RelKind::ParPar).unwrap_or(&vec![]) {
+        if let Rel::ParPar(f, t, cpx) = x {
+            arc_parameter_parameter.push((f.clone(), t.clone(), cpx.clone()));
+        }
+    }
     // let mut provider_names = HashMap::new();
     // for raw_provider in &raw_providers {
     //     provider_names.insert(raw_provider.id.preview(), raw_provider.name.clone());
@@ -300,7 +317,6 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     //             .push(link.clone());
     //     }
     // }
-    // tags ////////////////////////////////////////////////////////////////////
     let parameter_links: HashMap<PreviewParameterId, Link> = raw_parameters_map
         .iter()
         .map(|(k, v)| (v.previewid(), v.get_link()))
@@ -323,6 +339,7 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     //         );
     //     }
     // }
+    // extract_tags(raw_parameters_map.values()); // todo use
     let tags: Vec<Tag> = tag_map
         .into_iter()
         .map(|(tagid, tag)| {
@@ -334,7 +351,6 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     for tag in &tags {
         tag_preview_map.insert(tag.id.preview(), tag.preview());
     }
-    // // relations ///////////////////////////////////////////////////////////////
     // let (relations, partial_results) =
     //     process_relations(&composed_sets, &transfers, &sources, &preview_collection);
     let parameters = raw_parameters_map
@@ -343,7 +359,6 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
             process_parameter(parameter, &tag_set, &tag_preview_map, &preview_collection)
         })
         .collect();
-    // graph classes //////////////////////////////////////////////////////////////
     let mut graph_class_tag_set: Vec<(PreviewTagId, PreviewGraphClassId)> = Vec::new();
     for gc in &raw_graph_classes {
         for preview_tag_id in &gc.tags {
@@ -353,15 +368,14 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     let graph_classes = raw_graph_classes
         .into_iter()
         .map(|gc| {
-            process_graph_class(gc, &graph_class_tag_set, &tag_preview_map, &preview_collection)
+            process_graph_class(
+                gc,
+                &graph_class_tag_set,
+                &tag_preview_map,
+                &preview_collection,
+            )
         })
         .collect();
-    // // finalize ////////////////////////////////////////////////////////////////
-    // let res_sources = ordered_sources
-    //     .iter()
-    //     .map(|x| sources.remove(x).unwrap())
-    //     .collect();
-    // todo
     Data::new(DataFields {
         graph_class_relations: vec![],
         tags,
@@ -374,9 +388,10 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         graphs: vec![],
         graph_relations: vec![],
         graph_classes,
-        sources: vec![],
+        sources: sources.into_values().collect(),
         factoids: HashMap::new(),
         drawings: HashMap::new(),
         graph_class_properties: vec![],
+        arc_parameter_parameter,
     })
 }

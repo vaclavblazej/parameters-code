@@ -158,7 +158,7 @@ pub fn source(id: &str, sourcekey: &str, score: u32) -> RawSourceData {
         key: String::from(sourcekey),
     };
     let mut res = RawSource {
-        id: Id::new(id.into()),
+        id: Id::new(id),
         rawsourcekey,
         score,
     };
@@ -183,7 +183,7 @@ pub fn provider(
 impl CollectionBuilder {
     pub fn new() -> CollectionBuilder {
         let unknown_source = RawSourceData::new(RawSource {
-            id: Id::new(UNKNOWN_SOURCE_ID.into()),
+            id: Id::new(UNKNOWN_SOURCE_ID),
             rawsourcekey: RawSourceKey::Other {
                 name: "unknown source".into(),
                 description: "This knowledge was added to the database without tying it to an appropriate resource.".into(),
@@ -191,7 +191,7 @@ impl CollectionBuilder {
             score: 3,
         });
         let assumed_source = RawSourceData::new(RawSource {
-            id: Id::new(ASSUMED_SOURCE_ID.into()),
+            id: Id::new(ASSUMED_SOURCE_ID),
             rawsourcekey: RawSourceKey::Other {
                 name: "assumed".into(),
                 description: "Is axiomatic knowledge from the viewpoint of HOPS website.".into(),
@@ -437,7 +437,7 @@ impl CollectionBuilder {
     /// Define a tag that some sets share so they can be grouped.
     pub fn tag(&mut self, id: &str, name: &str, description: &str) -> PreviewTagId {
         let res = RawTag {
-            id: Id::new(id.into()),
+            id: Id::new(id),
             name_core: NameCore::new(name),
             description: description.into(),
         };

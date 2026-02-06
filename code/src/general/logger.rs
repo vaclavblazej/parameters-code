@@ -3,6 +3,8 @@
 use log::{Level, Metadata, Record};
 use log::{LevelFilter, SetLoggerError};
 
+use crate::general::progress::with_progress_suspended;
+
 static LOGGER: SimpleLogger = SimpleLogger;
 
 pub fn init(level_filter: LevelFilter) -> Result<(), SetLoggerError> {
@@ -17,7 +19,9 @@ impl log::Log for SimpleLogger {
     }
 
     fn log(&self, record: &Record) {
-        println!("{} - {}", record.level(), record.args());
+        with_progress_suspended(|| {
+            println!("{} - {}", record.level(), record.args());
+        });
     }
 
     fn flush(&self) {}

@@ -123,10 +123,6 @@ impl Color {
     }
 }
 
-trait HasColor {
-    fn color(&self) -> Color;
-}
-
 pub enum SimpleRelation {
     Arrow,
     NotArrow,
@@ -151,22 +147,5 @@ pub fn relation_color(relation: DirectedRelation) -> Color {
         (SimpleRelation::Unknown, SimpleRelation::Arrow) => Color::Orange,
         (SimpleRelation::Unknown, SimpleRelation::NotArrow) => Color::Cyan,
         (SimpleRelation::Unknown, SimpleRelation::Unknown) => Color::Gray,
-    }
-}
-
-impl HasColor for Cpx {
-    fn color(&self) -> Color {
-        match self {
-            Cpx::Bounds(cpx_time, cpx_time1) => todo!(),
-            Cpx::UpperBound(cpx_time) => todo!(),
-            Cpx::LowerBound(cpx_time) => todo!(),
-            Cpx::StrictUpperBound(cpx_time) => todo!(),
-            Cpx::Exactly(cpx_time) => todo!(),
-            Cpx::Equivalent(cpx_time, cpx_time1) => todo!(),
-            Cpx::Equal => todo!(),
-            Cpx::Exclusion => todo!(),
-            Cpx::Incomparable => todo!(),
-            Cpx::Todo => todo!(),
-        }
     }
 }

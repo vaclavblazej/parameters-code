@@ -13,7 +13,6 @@ use crate::data::link::Linkable;
 use crate::data::preview::PreviewParameter;
 use crate::general::worker::{Task, Worker};
 use crate::output::color::Color;
-use crate::work::sets::RelatedSets;
 use crate::{Paths, file};
 
 pub struct TableEntry {
@@ -108,29 +107,30 @@ fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
 //         Ok(())
 //     }
 // }
-//
-// // pub fn generate_relation_table<T>(
-// //     data: &Data,
-// //     draw_sets: &Vec<T>,
-// //     paths: &Paths,
-// //     name: &str,
-// //     worker: &Worker,
-// // ) where
-// //     T: Linkable,
-// // {
-// //     let ordered_draw_sets = order_sets_from_sources(data, draw_sets);
-// //     let mut related_sets_map: HashMap<PreviewSet, RelatedSets> = HashMap::new();
-// //     for set in &ordered_draw_sets {
-// //         related_sets_map.insert(set.clone(), data.get_set(set).related_sets.clone());
-// //     }
-// //     worker.send(CreateTable {
-// //         related_sets_map: related_sets_map.clone(),
-// //         ordered_draw_sets: ordered_draw_sets.clone(),
-// //         paths: Box::new(paths.clone()),
-// //         name: name.into(),
-// //     });
-// // }
-// //
+
+pub fn generate_relation_table<T>(
+    data: &Data,
+    draw_sets: &Vec<T>,
+    paths: &Paths,
+    name: &str,
+    worker: &Worker,
+) where
+    T: Linkable,
+{
+    // todo
+    // let ordered_draw_sets = order_sets_from_sources(data, draw_sets);
+    // let mut related_sets_map: HashMap<PreviewSet, RelatedSets> = HashMap::new();
+    // for set in &ordered_draw_sets {
+    //     related_sets_map.insert(set.clone(), data.get_set(set).related_sets.clone());
+    // }
+    // worker.send(CreateTable {
+    //     related_sets_map: related_sets_map.clone(),
+    //     ordered_draw_sets: ordered_draw_sets.clone(),
+    //     paths: Box::new(paths.clone()),
+    //     name: name.into(),
+    // });
+}
+
 // // todo move this processing to utilities for diagrams on diagram structures
 // pub fn order_sets_from_sources(
 //     entities: &Vec<PreviewParameter>,

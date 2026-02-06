@@ -44,7 +44,7 @@ where
     }
 }
 
-impl Linkable for &PreviewTag {
+impl Linkable for PreviewTag {
     fn get_link(&self) -> Link {
         Link {
             url: html_base(&self.id.to_string()),
@@ -53,7 +53,7 @@ impl Linkable for &PreviewTag {
     }
 }
 
-impl Linkable for &PreviewGraphClass {
+impl Linkable for PreviewGraphClass {
     fn get_link(&self) -> Link {
         Link {
             url: html_base(&self.id.to_string()),
@@ -62,7 +62,7 @@ impl Linkable for &PreviewGraphClass {
     }
 }
 
-impl Linkable for &PreviewParametricGraphClass {
+impl Linkable for PreviewParametricGraphClass {
     fn get_link(&self) -> Link {
         Link {
             url: html_base(&self.id.to_string()),
@@ -71,7 +71,7 @@ impl Linkable for &PreviewParametricGraphClass {
     }
 }
 
-impl Linkable for &PreviewParameter {
+impl Linkable for PreviewParameter {
     fn get_link(&self) -> Link {
         Link {
             url: html_base(&self.id.to_string()),

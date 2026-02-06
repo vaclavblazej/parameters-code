@@ -93,9 +93,9 @@ pub enum Cpx {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct InclusionRelationUnderOperation {
-    relation: ImplicationRelation,
-    operation: PreviewOperationId,
+pub struct InclusionRelationUnderGraphRelation {
+    pub relation: ImplicationRelation,
+    pub graph_relation: PreviewGraphRelationId,
 }
 
 pub fn definition<T>(set: T) -> RawFact
@@ -119,10 +119,15 @@ pub trait Definable {
 }
 
 macro_rules! definable {
-    ($main:ident, $enum:ident) => {
-        impl Definable for $main {
+    ($mainid:ident, $enum:ident) => {
+        impl Definable for $mainid {
             fn def(&self) -> RawFact {
-                RawFact::Def(Def::$enum(self.clone()))
+                RawFact::Def(Def::$enum((*self).clone()))
+            }
+        }
+        impl Definable for &$mainid {
+            fn def(&self) -> RawFact {
+                (*self).def()
             }
         }
     };
@@ -167,19 +172,19 @@ relatable!(
 relatable!(
     PreviewGraphId,
     PreviewGraphId,
-    InclusionRelationUnderOperation,
+    InclusionRelationUnderGraphRelation,
     GrGr
 );
 relatable!(
     PreviewGraphClassId,
     PreviewGraphClassId,
-    InclusionRelationUnderOperation,
+    InclusionRelationUnderGraphRelation,
     GcGc
 );
 relatable!(
     PreviewGraphId,
     PreviewGraphClassId,
-    InclusionRelationUnderOperation,
+    InclusionRelationUnderGraphRelation,
     GrGc
 );
 relatable!(
@@ -281,17 +286,17 @@ pub enum Rel {
     GrGr(
         PreviewGraphId,
         PreviewGraphId,
-        InclusionRelationUnderOperation,
+        InclusionRelationUnderGraphRelation,
     ),
     GcGc(
         PreviewGraphClassId,
         PreviewGraphClassId,
-        InclusionRelationUnderOperation,
+        InclusionRelationUnderGraphRelation,
     ),
     GrGc(
         PreviewGraphId,
         PreviewGraphClassId,
-        InclusionRelationUnderOperation,
+        InclusionRelationUnderGraphRelation,
     ),
     PgcPgc(
         PreviewParametricGraphClassId,
@@ -409,6 +414,14 @@ impl RawSourceData {
         text: &str,
         facts: Vec<(&str, RawWroteStatus, RawFact)>,
     ) -> Self {
+        self.factoids.push(RawWrote {
+            text: text.into(),
+            page,
+            facts: facts
+                .into_iter()
+                .map(|(id, st, fact)| (ShowedId::new(id), st, fact))
+                .collect(),
+        });
         self
     }
 

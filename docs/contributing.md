@@ -1,51 +1,84 @@
-# How to add missing information
+# How to Contribute
 
-Easiest way is to go to [raise a project issue](https://github.com/vaclavblazej/parameters-code/issues).
-Those are reviewed and added to the project.
+## Reporting Issues
 
-For more technically inclined one may also create a pull request for changes of the `collection.rs` file.
-To accommodate that let us discuss how the hierarchy information is stored.
+The easiest way to contribute is to [raise a project issue](https://github.com/vaclavblazej/parameters-code/issues).
 
-## Collection
+## Making Changes
 
-Currently all the information is stored in `/code/src/collection.rs` source file.
-The information is created using *builder* pattern that makes the input less teadeous.
+For more technically inclined contributors, you can create a pull request with changes to the `collection.rs` file.
+This section explains how the hierarchy information is stored.
 
-```
-let mut create = Builder::new(); // The builder is created once at the beginning.
-...
-let connected = create.graph_class("KlMP0i", "connected");  // Create graph class
-let forest = create.graph_class("JngPPm", "forest");        // Create graph class
-let tree = create.intersection("rJyICu", &connected, &forest, "tree"); // Intersection of sets
-let vertex_cover = create.parameter("4lp9Yj", "vertex cover"); // Create parameter
-```
+## Collection Structure
 
-All the data is associated with its 6-alphanumeric code.
-This id is meant to keep consistency in case of changes -- e.g. a parameter may change its name through time but its id stays the same.
+All information is stored in `/code/src/collection.rs`.
+The data is created using a *builder* pattern for convenient input.
 
-Once the variables for parameters are created we may add further information through sources.
-Source is meant to represent a scientific publication.
-Structure uses a *builder* pattern to make it convenient to input all information about a publication.
-References to the publications are kept in file `/handmade/main.bib` and it is *necessary* to add a biblatex citation there if we want to use a source in the code.
+```rust
+let mut create = CollectionBuilder::new();
 
-```
-let mysource1993 = create.source("a3idzk", "BiblatexKey1993")
-    .defined("L7aY6D", Unknown, &treewidth, "..., the treewidth of an undirected graph ...")
-    .showed("RgLQ2P", Pp(21), &pathwidth, &treewidth, UpperBound(Linear), "Theorem 4")
-    .showed("", Unknown, &treewidth, &pathwidth, Exclusion, "Observation 3")
-    .cited("pJxHVS", Unknown, othersource1991, "Based on the work by [Sa19] ...")
-    .done();
+// Create graph classes with: id, name, score, definition
+let forest = graph_class("JngPPm", "forest", 5, "A graph without cycles.").done(&mut create);
+
+// Create graph properties
+let connected = graph_property("KlMP0i", "connected", 5, "A graph where every pair of vertices has a path between them.").done(&mut create);
+
+// Create parameters with: id, name, score, definition
+let vertex_cover = parameter("4lp9Yj", "vertex cover", 7, "Minimum number of vertices...").done(&mut create);
 ```
 
-Methods require values that we discuss next
+### Identifiers
 
-* The 6-alphanumeric id can be omitted (put `""` in its place) in contributions.
-* Page number is `Pp(page)` or `Unknown` or `NotApplicable`.
-* Reference to variable of the parameter in question, e.g. `&treewidth` (note the ampersand). The relations are given in `superset, subset` order (discussed later). Note that each pair of parameters have a relation in both directions, these are treated separately.
-* In parameter blowup we indicate how much the parameter can change. Examples follow.
-    * If parameter A bounds parameter B then in a typical case we input `A, B, UpperBound(asymptotic_blowup)`.
-    * If parameter A is equivalent to B then `A, B, Equivalence`
-    * If bounded parameter A does *not* mean B is bounded then we put `A, B, Exclusion`
-    * If A bounds B and we know some lower bound we put e.g. `A, B, Bounds(Polynomial, Exponential)`
-* Context of the fact either lists the entire definition/proof (if short) or can just refer to where we can find that fact in the cited publication. This string can use latex however each backslash `\` must be escaped, meaning instead of one we input two backslashes `\\`.
+All data is associated with a 6-character alphanumeric ID.
+This ID maintains consistency when names change over time.
+When adding new items, you can generate a random ID or leave it empty (`""`) - maintainers will assign one.
+
+### Scores
+
+Each item has a score from 0-9 indicating its relevance/importance.
+Higher scores mean the item appears more prominently in diagrams and tables.
+
+## Adding Sources
+
+Sources represent scientific publications.
+Reference citations must be added to `/handcrafted/main.bib` in BibLaTeX format before they can be used in code.
+
+```rust
+create.source("a3idzk", "BiblatexKey1993")
+    .wrote(Pp(1), // page of the result, can be Unknown or NotApplicable,
+        "Corollary 3. For any graph $G$ ...", // short text of the result
+        vec![ // list of definitions and relations implied by the text
+            (
+                "Xdg7Hv", // result id
+                Original, // status
+                definition(&chordality) // result
+            ),
+            ("D5VlqV", Original, relation(&size, &chordality, UpperBound(Linear)),
+        ])
+    .done(&mut create);
+```
+
+The status dictates the attribution for the result.
+It can be 
+
+| RawWroteStatus | Description |
+| -------------- | ----------- |
+| Assumed | taken as given by HOPS, mainly due to being out of project's scope |
+| Conjectured | posed as an open problem |
+| Original | first or independent |
+| Derivative | improvements or later proofs |
+| Noted(RawNotedSource) | results claimed to be somewhere else |
+| TodoStatus | is to be filled by the mainteiners or contributors |
+
+### LaTeX in Text
+
+Text fields can use LaTeX notation.
+Each backslash must be escaped: use `\\` instead of `\`.
+
+## Development Workflow
+
+1. Edit `code/src/collection.rs`
+2. Run `cd code && cargo run fast` to regenerate the website
+3. Preview locally with `cd web && hugo server`
+4. Submit a pull request
 

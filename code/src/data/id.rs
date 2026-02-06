@@ -66,8 +66,8 @@ impl<T> Id<T> {
     pub fn preview(&self) -> PreviewId<T> {
         PreviewId::create(self.id())
     }
-    pub fn new(code: String) -> Self {
-        Id::create(code)
+    pub fn new(code: &str) -> Self {
+        Id::create(code.into())
     }
 }
 

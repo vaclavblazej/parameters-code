@@ -50,7 +50,7 @@ fn base(id: &String) -> String {
     format!("{{{{< base >}}}}{}", id)
 }
 
-pub trait GeneratedPage {
+pub trait GeneratedPage: Sync + Send {
     fn get_page(&self, builder: &Markdown, path: &Paths) -> String;
 }
 
@@ -224,71 +224,71 @@ impl GeneratedPage for Parameter {
     }
 }
 
-// impl GeneratedPage for Source {
-//     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
-//         let mut res = String::new();
-//         match &self.sourcekey {
-//             SourceKey::Bibtex {
-//                 entry_key,
-//                 name,
-//                 entry_content,
-//             } => {
-//                 res += &format!("# {}\n\n", self.preview().get_name());
-//                 if let Some(somebib) = builder.bibliography {
-//                     if let Some(val) = somebib.get(entry_key) {
-//                         if let Ok(doi) = val.doi() {
-//                             let doi_url = format!("https://www.doi.org/{}", doi);
-//                             res += &format!("[{}]({})\n\n", doi_url, doi_url);
-//                         } else if let Ok(url) = val.url() {
-//                             res += &format!("[{}]({})\n\n", url, url);
-//                         }
-//                         // todo - print the original (unformatted) biblatex citation from main.bib
-//                         res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
-//                     } else {
-//                         error!("unable to load {} from main.bib", entry_key);
-//                         res += &format!(
-//                             "an error occured while loading the bibtex entry for `{}`",
-//                             entry_key
-//                         );
-//                     }
-//                 }
-//             }
-//             SourceKey::Other { name, description } => {
-//                 res += &format!("# {}\n\n", name);
-//                 res += &format!("{}\n\n", description);
-//             }
-//             SourceKey::Online { url } => {
-//                 res += &format!("# Online source {}\n\n", self.id);
-//             }
-//         }
-//         for (idx, drawing) in self.drawings.iter().enumerate() {
-//             let name = &format!("drawing_{}_{}", self.id, idx);
-//             match drawing {
-//                 Drawing::Table(list) => {
-//                     generate_relation_table(builder.data, list, paths, name, &builder.worker);
-//                     res += &format!("[[pdf ../{}.pdf]]\n\n", name);
-//                 }
-//                 Drawing::Hasse(list) => {
-//                     let drawing_path = make_drawing(
-//                         builder.data,
-//                         &paths.final_dir,
-//                         name,
-//                         &builder.data.get(list.clone()),
-//                         None,
-//                     );
-//                     res += &include_dot_file(drawing_path, &paths.final_dir);
-//                 }
-//             };
-//         }
-//         // res += &format!("{:?} {}", self.sourcekey, self.time);
-//         for s in &self.wrote {
-//             if let Some(val) = s.to_markdown(builder) {
-//                 res += &format!("* {}\n", val);
-//             }
-//         }
-//         res
-//     }
-// }
+impl GeneratedPage for Source {
+    fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
+        let mut res = String::new();
+        match &self.sourcekey {
+            SourceKey::Bibtex {
+                entry_key,
+                name,
+                entry_content,
+            } => {
+                // res += &format!("# {}\n\n", self.preview().get_name());
+                if let Some(somebib) = builder.bibliography {
+                    if let Some(val) = somebib.get(entry_key) {
+                        if let Ok(doi) = val.doi() {
+                            let doi_url = format!("https://www.doi.org/{}", doi);
+                            res += &format!("[{}]({})\n\n", doi_url, doi_url);
+                        } else if let Ok(url) = val.url() {
+                            res += &format!("[{}]({})\n\n", url, url);
+                        }
+                        // todo - print the original (unformatted) biblatex citation from main.bib
+                        res += &format!("```bibtex\n{}\n```\n", val.to_biblatex_string());
+                    } else {
+                        error!("unable to load {} from main.bib", entry_key);
+                        res += &format!(
+                            "an error occured while loading the bibtex entry for `{}`",
+                            entry_key
+                        );
+                    }
+                }
+            }
+            SourceKey::Other { name, description } => {
+                res += &format!("# {}\n\n", name);
+                res += &format!("{}\n\n", description);
+            }
+            SourceKey::Online { url } => {
+                res += &format!("# Online source {}\n\n", self.id);
+            }
+        }
+        for (idx, drawing) in self.drawings.iter().enumerate() {
+            let name = &format!("drawing_{}_{}", self.id, idx);
+            match drawing {
+                Drawing::Table(list) => {
+                    // generate_relation_table(builder.data, list, paths, name, &builder.worker);
+                    // res += &format!("[[pdf ../{}.pdf]]\n\n", name);
+                }
+                Drawing::Hasse(list) => {
+                    // let drawing_path = make_drawing(
+                    //     builder.data,
+                    //     &paths.final_dir,
+                    //     name,
+                    //     &builder.data.get(list.clone()),
+                    //     None,
+                    // );
+                    // res += &include_dot_file(drawing_path, &paths.final_dir);
+                }
+            };
+        }
+        // res += &format!("{:?} {}", self.sourcekey, self.time);
+        // for s in &self.wrote {
+        //     if let Some(val) = s.to_markdown(builder) {
+        //         res += &format!("* {}\n", val);
+        //     }
+        // }
+        res
+    }
+}
 
 fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
     match &created_by {
@@ -506,13 +506,13 @@ impl<'a> Markdown<'a> {
                         Ok(res) => res,
                         Err(error) => {
                             error!("  {}", error);
-                            "<< substitution error >>".into()
+                            format!("<< substitution error for key {} >>", key)
                         }
                     }
                 }
                 None => {
                     error!("substitution error");
-                    "<< substitution error >>".into()
+                    "<< substitution error unparsed key >>".to_string()
                 }
             }
         });
@@ -594,36 +594,36 @@ impl<'a> Markdown<'a> {
                     }
                     content += self.make_table(table).as_str();
                 }
-                // "sources" => {
-                //     let mut table = Table::new(vec![
-                //         "#",
-                //         "Year",
-                //         &format!(
-                //             "<a href=\"{}\">*</a>Score",
-                //             base(&("docs/legend/#score").into())
-                //         ),
-                //         "Source",
-                //     ]);
-                //     let mut index = 0;
-                //     for source in &self.data.sources {
-                //         if let SourceKey::Bibtex {
-                //             entry_key,
-                //             name,
-                //             entry_content,
-                //         } = &source.sourcekey
-                //         {
-                //             let relstring = progress::bar(*score, 9);
-                //             table.add(vec![
-                //                 format!("{:0>3}", index),
-                //                 source.time.to_string(),
-                //                 relstring,
-                //                 self.linkto(&source.preview()),
-                //             ]);
-                //             index += 1;
-                //         }
-                //     }
-                //     content += self.make_table(table).as_str();
-                // }
+                "sources" => {
+                    let mut table = Table::new(vec![
+                        "#",
+                        "Year",
+                        &format!(
+                            "<a href=\"{}\">*</a>Score",
+                            base(&("docs/legend/#score").into())
+                        ),
+                        "Source",
+                    ]);
+                    let mut index = 0;
+                    for source in self.data.sources.values() {
+                        if let SourceKey::Bibtex {
+                            entry_key,
+                            name,
+                            entry_content,
+                        } = &source.sourcekey
+                        {
+                            let relstring = progress::bar(source.score, 9);
+                            table.add(vec![
+                                format!("{:0>3}", index),
+                                source.time.to_string(),
+                                relstring,
+                                self.linkto(&source.get_link()),
+                            ]);
+                            index += 1;
+                        }
+                    }
+                    content += self.make_table(table).as_str();
+                }
                 "tags" => {
                     for tag in self.data.tags.values() {
                         content += &format!("* {}\n", self.linkto(&tag.get_link()));

@@ -50,6 +50,20 @@ pub enum SourceKey {
     },
 }
 
+impl SourceKey {
+    pub fn get_name(&self) -> String {
+        match self {
+            SourceKey::Bibtex {
+                entry_key,
+                name,
+                entry_content,
+            } => name.clone().unwrap_or("-- entry without title --".into()),
+            SourceKey::Online { url } => url.clone(),
+            SourceKey::Other { name, description } => name.clone(),
+        }
+    }
+}
+
 /// High-level representation of values for computational complexity.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CpxTime {
