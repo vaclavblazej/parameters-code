@@ -13,15 +13,17 @@ use log::{error, info, trace};
 use rand::seq::IndexedRandom;
 use regex::Regex;
 
+use crate::cli::paths::Paths;
 use crate::data::data::*;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::link::{Link, Linkable};
 use crate::data::preview::*;
-use crate::general::progress;
+use crate::general::strings::nice_concat;
+use crate::general::worker::Worker;
+use crate::general::{file, progress};
 use crate::output::color::Color;
 use crate::output::to_markdown::ToMarkdown;
-use crate::{Paths, Worker, file};
 
 type Result<T> = std::result::Result<T, MarkdownError>;
 
@@ -123,6 +125,25 @@ impl GeneratedPage for Parameter {
                     preview_parametric_parameter.name_core.name
                 )
             }
+            ParameterDefinition::DistanceTo(preview_parameter) => format!(
+                "Parameter is at most $k$ when we can remove $k$ vertices to end up with {}",
+                preview_parameter.name_core.name
+            ),
+            ParameterDefinition::Intersection(preview_parameters) => {
+                format!(
+                    "Is intersection of {}",
+                    nice_concat(
+                        preview_parameters
+                            .iter()
+                            .map(|x| x.name_core.name.clone())
+                            .collect()
+                    )
+                )
+            }
+            ParameterDefinition::FromParametricParameter(preview_parametric_parameter) => format!(
+                "concretization of {}",
+                preview_parametric_parameter.name_core.name
+            ),
         };
         res += &format!("**Definition:** {}\n\n", definition_string);
         res += "[[handcrafted]]\n\n";

@@ -2,11 +2,12 @@
 //! their inclusions, and related graph classes, tags, bibliographic sources,
 //! theorems, proofs, and so on.
 
+use crate::data::data::GraphClass;
 use crate::data::enums::{CpxTime::*, Page::*, Value::*};
 use crate::data::id::PreviewGraphClassId;
 use crate::input::build::{CollectionBuilder, *};
 use crate::input::intersectable;
-use crate::input::raw::RawData;
+use crate::input::raw::{RawData, RawGraphClass, RawParameter};
 use crate::input::raw_enums::{
     RawGraphClassPropertyDefinition as GcProp, RawGraphRelationDefinition as GrRel,
     RawOperationDefinition as Op, RawParameterDefinition as Par,
@@ -198,41 +199,41 @@ pub fn build_collection() -> RawData {
     // .displayed_definition("2szioJ", "$P_4$-free")
     .tag(&tag_modules)
     .done(&mut create);
-    // let complete = create
-    //     .intersection(
-    //         "EhdXNA", &cluster, &connected, "complete", 9,
-    //         // "Contains all the edges.",
-    //     )
-    //     .done(&mut create);
-    // let forest = graph_class("JngPPm", "forest", 9, "A graph with no cycle.").done(&mut create);
-    // let tree = create
-    //     .intersection(
-    //         "rJyICu", &connected, &forest, "tree", 7,
-    //         // "A connected graph without cycles.",
-    //     )
-    //     // .displayed_definition("npoYQB", "A connected graph with $n$ vertices and $n-1$ edges.")
-    //     .done(&mut create);
-    // let interval = graph_class(
-    //     "p5skoj",
-    //     "interval",
-    //     7,
-    //     "Intersection graph of intervals on the real line.",
-    // )
-    // .tag(&tag_intersection)
-    // .done(&mut create);
+    let complete = create
+        .intersection::<_, _, RawGraphClass>(
+            "EhdXNA", &cluster, &connected, "complete", 9,
+            // "Contains all the edges.",
+        )
+        .done(&mut create);
+    let forest = graph_class("JngPPm", "forest", 9, "A graph with no cycle.").done(&mut create);
+    let tree = create
+        .intersection::<_, _, RawGraphClass>(
+            "rJyICu", &connected, &forest, "tree", 7,
+            // "A connected graph without cycles.",
+        )
+        // .displayed_definition("npoYQB", "A connected graph with $n$ vertices and $n-1$ edges.")
+        .done(&mut create);
+    let interval = graph_class(
+        "p5skoj",
+        "interval",
+        7,
+        "Intersection graph of intervals on the real line.",
+    )
+    .tag(&tag_intersection)
+    .done(&mut create);
     let edgeless = graph_property("LsiBbX", "edgeless", 1, "Contains no edges.").done(&mut create);
     let linear_forest =
         graph_class("skQuFN", "linear forest", 4, "A disjoint union of paths.").done(&mut create);
-    // let path = create
-    //     .intersection(
-    //         "ryPlqz",
-    //         &connected,
-    //         &linear_forest,
-    //         "path",
-    //         3,
-    //         // "Vertices can be ordered such that exactly those next to each other in the order are connected by an edge.")
-    //     )
-    //     .done(&mut create);
+    let path = create
+        .intersection::<_, _, RawGraphClass>(
+            "ryPlqz",
+            &connected,
+            &linear_forest,
+            "path",
+            3,
+            // "Vertices can be ordered such that exactly those next to each other in the order are connected by an edge.")
+        )
+        .done(&mut create);
     let outerplanar = graph_class("0oCyaG", "outerplanar", 5, "A planar graph that can be drawin in a way where one face is incident to all the vertices.")
         .tag(&tag_topology)
         .done(&mut create);
@@ -244,17 +245,17 @@ pub fn build_collection() -> RawData {
     )
     .tag(&tag_coloring)
     .done(&mut create);
-    // let planar = graph_class("loZ5LD", "planar", 8, "Has an embedding with vertices being points, edges being curves between respective points, which is planar, i.e., no curves cross each other.")
-    //     .tag(&tag_topology)
-    //     .done(&mut create);
-    // let stars = graph_class("10JR3F", "stars", 4, "Disjoint union of stars.").done(&mut create);
-    // let star = create
-    //     .intersection(
-    //         "CortlU", &connected, &stars, "star",
-    //         3,
-    //         // "Contains only edges that connect a vertex to every other vertex.",
-    //     )
-    //     .done(&mut create);
+    let planar = graph_class("loZ5LD", "planar", 8, "Has an embedding with vertices being points, edges being curves between respective points, which is planar, i.e., no curves cross each other.")
+        .tag(&tag_topology)
+        .done(&mut create);
+    let stars = graph_class("10JR3F", "stars", 4, "Disjoint union of stars.").done(&mut create);
+    let star = create
+        .intersection::<_, _, RawGraphClass>(
+            "CortlU", &connected, &stars, "star",
+            3,
+            // "Contains only edges that connect a vertex to every other vertex.",
+        )
+        .done(&mut create);
     let cycles =
         graph_class("2iJr52", "cycles", 4, "Every component is a cycle.").done(&mut create);
     // let cycle = create
@@ -481,10 +482,16 @@ pub fn build_collection() -> RawData {
     // let slim_tree_cut_width = parameter("oFvl4c", "slim tree-cut width", 2).done(&mut create);
     // let edge_treewidth = parameter("pKi2tL", "edge-treewidth", 2).done(&mut create);
     // let overlap_treewidth = parameter("P8yP3M", "overlap treewidth", 2).done(&mut create);
-    // let degree_treewidth = create
-    //     .intersection("nCWUh3", &maximum_degree, &treewidth, "degree treewidth", 6)
-    //     .tag(&tag_tree_decomposition)
-    //     .done(&mut create);
+    let degree_treewidth = create
+        .intersection::<_, _, RawParameter>(
+            "nCWUh3",
+            &maximum_degree,
+            &treewidth,
+            "degree treewidth",
+            6,
+        )
+        .tag(&tag_tree_decomposition)
+        .done(&mut create);
     let domino_treewidth = parameter(
         "aEs5ap",
         "domino treewidth",
@@ -506,26 +513,29 @@ pub fn build_collection() -> RawData {
         .done(&mut create);
     let clique_tree_width =
         parameter("7P9WUz", "clique-tree-width", 2, "see [[FLSQsw]]").done(&mut create);
-    // let rank_width = parameter("fojquT", "rank-width", 7, "Let $T$ be a ternary tree and $\\tau$ be a bijection between graph's vertices and the set of leaves in $T$. Every edge of $T$ cuts $V(G)$ into two parts. Rank of such a cut is rank of a biadjacency matrix describing the cut edges. Rank-width of $G$ is minimum over all ternary trees $T$, maximum over ranks of cuts implied by edges in $T$.")
-    //     .done(&mut create);
-    // // let linear_rank_width = parameter("cHugsk", "linear rank-width", 2)
-    // //     .tag(&tag_linear)
-    // //     .done(&mut create);
-    // // let boolean_width = parameter("A2jPWT", "boolean width", 5).done(&mut create);
-    // let twin_width = parameter("OrH7et", "twin-width", 8, "A contraction sequence for a graph $G$ is a sequence of $n-1$ contractions -- identification of two not necessarily adjacent vertices. Note that at any point each vertex of a partially contracted graph represents a subset of vertices in the original graph. Vertices of a partially contracted graph are joined with an edge if there is a complete bipartite graph between the represented subsets of vertices in the original graph. Similarly, there is a non-edge if the two sets have no edges between them. Last, there is a red-edge is there are some edges and some non-edges. Red degree of a partially contracted graph is the maximum number of red edges adjacent to a single vertex. Twin-width is the minimum over contraction sequences of maximum over the sequence's red degree.")
-    //     .abbr("tww")
-    //     .done(&mut create);
-    // let r_flip_width = parametric_parameter("4DIiH0", "radius-r flip-width", 3).done(&mut create);
-    // let inf_flip_width = r_flip_width
-    //     .concretize("nYXiuT", "radius-inf flip-width", Infinity, 3)
-    //     .done(&mut create);
-    // let flip_width = higher_order_parameter(
-    //     "jYG7BR",
-    //     "flip-width",
-    //     5,
-    //     RawParameterDefinition::BoundsAll(r_flip_width),
-    // )
-    // .done(&mut create);
+    let rank_width = parameter("fojquT", "rank-width", 7, "Let $T$ be a ternary tree and $\\tau$ be a bijection between graph's vertices and the set of leaves in $T$. Every edge of $T$ cuts $V(G)$ into two parts. Rank of such a cut is rank of a biadjacency matrix describing the cut edges. Rank-width of $G$ is minimum over all ternary trees $T$, maximum over ranks of cuts implied by edges in $T$.")
+        .done(&mut create);
+    let linear_rank_width = parameter("cHugsk", "linear rank-width", 2, "todo")
+        .tag(&tag_linear)
+        .done(&mut create);
+    let boolean_width = parameter("A2jPWT", "boolean width", 5, "todo").done(&mut create);
+    let twin_width = parameter("OrH7et", "twin-width", 8, "A contraction sequence for a graph $G$ is a sequence of $n-1$ contractions -- identification of two not necessarily adjacent vertices. Note that at any point each vertex of a partially contracted graph represents a subset of vertices in the original graph. Vertices of a partially contracted graph are joined with an edge if there is a complete bipartite graph between the represented subsets of vertices in the original graph. Similarly, there is a non-edge if the two sets have no edges between them. Last, there is a red-edge is there are some edges and some non-edges. Red degree of a partially contracted graph is the maximum number of red edges adjacent to a single vertex. Twin-width is the minimum over contraction sequences of maximum over the sequence's red degree.")
+        .abbr("tww")
+        .done(&mut create);
+    let r_flip_width =
+        // Definition 4.1 in https://arxiv.org/pdf/2302.00352v1
+        parametric_parameter("4DIiH0", "radius-r flip-width", 3, RawParametricParameterDefinition::GraphParameter("The *radius-$r$ flip-width* of a graph $G$, denoted ${\\rm fw}_r(G)$, is the smallest number $k \\in \\mathbb N$ such that the cops have a winning strategy in the flip-width game of radius $r$ and width $k$ on $G$.".into())).done(&mut create);
+    let inf_flip_width = create
+        .concretize::<_, RawParameter>(
+            &r_flip_width,
+            "nYXiuT",
+            "radius-inf flip-width",
+            Infinity,
+            3,
+        )
+        .done(&mut create);
+    let flip_width =
+        higher_order_parameter("jYG7BR", "flip-width", 5, r_flip_width).done(&mut create);
     // let weak_d_coloring_number =
     //     parametric_parameter("3F3oc3", "weak d-coloring number", 4).done(&mut create);
     // let weak_inf_coloring_number = weak_d_coloring_number
@@ -1061,7 +1071,7 @@ pub fn build_collection() -> RawData {
     // .ref_noted_relation("ORlCs0", NotApplicable, &cycles, &dist_to_perfect, Exclusion, "", SrcTodo)
     // .ref_noted_relation("tZrOta", NotApplicable, &cycle, &maximum_leaf_num, UpperBound(Constant), "", SrcTodo)
     // // .ref_noted_relation("cYF2KU", NotApplicable, &cycle, &girth, Exclusion, "")
-    // .ref_noted_relation("CkDe7e", NotApplicable, &maximum_leaf_num, &feedback_edge_set, UpperBound(Polynomial), "M. Bentert (personal communication)", SrcTodo) // todo not unknown
+    // .ref_noted_relation("CkDe7e", NotApplicable, &maximum_leaf_num, &feedback_edge_set, UpperBound(Polynomial), "M. Bentert (personal communication)", SrcTodo) // todo not PageTodo
     // .ref_noted_relation("QeiwSR", NotApplicable, &bounded_components, &cutwidth, UpperBound(Polynomial), "By greedily placing one component after another.", SrcTodo)
     // .ref_noted_relation("EjGaM8", NotApplicable, &bounded_components, &dist_to_perfect, Exclusion, "By a disjoint union of small components with distance to perfect at least 1.", SrcTodo)
     // .ref_noted_relation("bQLN2O", NotApplicable, &bounded_components, &dist_to_planar, Exclusion, "By a disjoint union of many $K_5$ graphs.", SrcTodo)
@@ -1076,8 +1086,8 @@ pub fn build_collection() -> RawData {
     // .ref_noted_relation("8io8sJ", NotApplicable, &path, &maximum_matching, Exclusion, "", SrcTodo)
     // .ref_noted_relation("GiDjOm", NotApplicable, &star, &maximum_matching, UpperBound(Constant), "", SrcTodo)
     // .ref_noted_relation("rmHBsY", NotApplicable, &edgeless, &maximum_matching, UpperBound(Constant), "", SrcTodo)
-    // // .ref_noted_relation("D2YglK", Unknown, &create.intersection("QrYeIw", &treewidth, &maximum_degree, "treewidth+maxdegree"), &create.intersection("hljuu8", &clique_width, &maximum_degree, "cliquewidth+maxdegree"), UpperBound(Linear), "")
-    // // .ref_noted_relation("JJTNMl", Unknown, &create.intersection("nP3xBv", &clique_width, &maximum_degree, "cliquewidth+maxdegree"), &create.intersection("iPgGur", &treewidth, &maximum_degree, "treewidth+maxdegree"), UpperBound(Linear), "")
+    // // .ref_noted_relation("D2YglK", PageTodo, &create.intersection("QrYeIw", &treewidth, &maximum_degree, "treewidth+maxdegree"), &create.intersection("hljuu8", &clique_width, &maximum_degree, "cliquewidth+maxdegree"), UpperBound(Linear), "")
+    // // .ref_noted_relation("JJTNMl", PageTodo, &create.intersection("nP3xBv", &clique_width, &maximum_degree, "cliquewidth+maxdegree"), &create.intersection("iPgGur", &treewidth, &maximum_degree, "treewidth+maxdegree"), UpperBound(Linear), "")
     // // clique-width = fusing width (operation to merge a color class to a single vertex)
     // .ref_noted_relation("tiEYdy", NotApplicable, &clique_width, &mim_width, UpperBound(Exists), "", SrcTodo)
     // .ref_noted_relation("5vq7po", NotApplicable, &mim_width, &sim_width, UpperBound(Exists), "", SrcTodo)
@@ -1195,11 +1205,11 @@ pub fn build_collection() -> RawData {
     // // let cutwidth_on_trees = create.intersection("peyWzt", &tree, &cutwidth, "tree+cutwidth").hide();
     //
     let chung1985 = source("DkY1Aq", "Chung1985", 1)
-        // .proved("YgJVvi", Unknown, &bandwidth_on_trees, &cutwidth_on_trees, UpperBound(Linear), "")
-        // .proved("pRjX8u", Unknown, &cutwidth_on_trees, &bandwidth_on_trees, UpperBound(Linear), "")
+        // .wrote( PageTodo, "", vec![( "YgJVvi", Original, relation(&bandwidth_on_trees, &cutwidth_on_trees, UpperBound(Linear)))])
+        // .wrote( PageTodo, "", vec![( "pRjX8u", relation(&cutwidth_on_trees, &bandwidth_on_trees, UpperBound(Linear)))])
         .todo_rest(&mut create);
     let chung1988 = source("ePpmZt", "chung1988", 1)
-        // .wrote(Unknown, "[ed. paraphrased from another source] Let $G$ be a graph. Then $\\bar{D} \\le \\alpha$, with equality holding if and only if $G$ is complete.", vec![("fccHmU", Original, (&maximum_independent_set, &average_distance, UpperBound(Linear)))])
+        // .wrote(PageTodo, "[ed. paraphrased from another source] Let $G$ be a graph. Then $\\bar{D} \\le \\alpha$, with equality holding if and only if $G$ is complete.", vec![("fccHmU", Original, (&maximum_independent_set, &average_distance, UpperBound(Linear)))])
         .todo_rest(&mut create);
     let robertson_seymour1986 = source("i56ihO", "RobertsonSymour1986", 8)
         .wrote(Pp(1), "A \\emph{tree-decomposition} of $G$ is a family $(X_i \\colon i\\in I)$ of subsets of $V(G)$, together with a tree $T$ with $V(T)=I$, with the following properties. (W1) $\\bigcup(X_i \\colon i \\in I)=V(G)$. (W2) Every edge of $G$ has both its ends in some $X_i$ ($i \\in I$). (W3) For $i,j,k \\in I$, if $j$ lies on the path of $T$ from $i$ to $k$ then $X_i \\cap X_k \\subseteq X_j$. The \\emph{width} of the tree-decomposition is $\\max(|X_i|-1 \\colon i \\in I)$. The tree-width of $G$ is the minimum $w \\ge 0$ such that $G$ has a tree-decomposition of width $\\le w$.", vec![("HHHQZT", Original, definition(&treewidth))])
@@ -1279,7 +1289,7 @@ pub fn build_collection() -> RawData {
         .done(&mut create);
     let johansson1998 = source("W2nwG4", "Johansson1998", 3) // according to Gurski2005
         // .wrote(
-        //     Unknown,
+        //     PageTodo,
         //     "",
         //     vec![(
         //         "DBXQMa",
@@ -1288,7 +1298,7 @@ pub fn build_collection() -> RawData {
         //     )],
         // )
         // .wrote(
-        //     Unknown,
+        //     PageTodo,
         //     "",
         //     vec![(
         //         "BjlRwP",
@@ -1297,7 +1307,7 @@ pub fn build_collection() -> RawData {
         //     )],
         // )
         // .wrote(
-        //     Unknown,
+        //     PageTodo,
         //     "",
         //     vec![(
         //         "qy5Ojn",
@@ -1306,7 +1316,7 @@ pub fn build_collection() -> RawData {
         //     )],
         // )
         // .wrote(
-        //     Unknown,
+        //     PageTodo,
         //     "",
         //     vec![(
         //         "hI8Txh",
@@ -1321,7 +1331,7 @@ pub fn build_collection() -> RawData {
         // .wrote(Pp(9), UpperBound(Linear), "Theorem 5.1 The domino treewidth of a tree is at most its maximum degree.", vec![("YXCJHm", Original, relation(&create.intersection(&tree, &maximum_degree), &domino_treewidth))])
         .done(&mut create);
     let courcelle_olariu_2000 = source("ZQrXS8", "courcelle2000", 5)
-        // .defined("OL0McK", Unknown, &clique_width, "")
+        // .defined("OL0McK", PageTodo, &clique_width, "")
         .wrote(
             Pp(18),
             "We will prove that for every undirected graph $G$, $cwd(G) \\le 2^{twd(G)+1}+1$ ...",
@@ -1337,9 +1347,9 @@ pub fn build_collection() -> RawData {
         // .proved("ZXhXax", Pp(12), &track_number, &acyclic_chromatic_number, UpperBound(Exponential), "Corollary 3. Acyclic chromatic number is bounded by track-number. In particular, every $(k,t)$-track graph $G$ has acyclic chromatic number $\\chi_a(G) \\le t \\cdot 4^{\\binom k2(t_1)}$.")
         .wrote(Pp(14), "Theorem 5. Acyclic chromatic number is bounded by stack-number (ed: a.k.a. book-thickness). In particular, every $k$-stack graph $G$ has acyclich chromatic number $\\chi_a(G) \\le 80^{k(2k-1)}$.", vec![("v1Ygyr", Original, relation(&book_thickness, &acyclic_chromatic_number, UpperBound(Exponential)))])
         .done(&mut create);
-    // let corneil2005 = source("HCGunF", "Corneil2005")
-    // .proved("sGBrPC", Unknown, &treewidth, &clique_width, Exactly(Exponential), "... the clique-width of $G$ is at most $3 \\cdot 2k - 1$ and, more importantly, that there is an exponential lower bound on this relationship. In particular, for any $k$, there is a graph $G$ with treewidth equal to $k$, where the clique-width of $G$ is at least $2\\lfloor k/2\\rfloor-1$.")
-    // .todo_rest(&mut create);
+    let corneil2005 = source("HCGunF", "Corneil2005", 2)
+        .wrote(PageTodo, "... the clique-width of $G$ is at most $3 \\cdot 2k - 1$ and, more importantly, that there is an exponential lower bound on this relationship. In particular, for any $k$, there is a graph $G$ with treewidth equal to $k$, where the clique-width of $G$ is at least $2\\lfloor k/2\\rfloor-1$.", vec![("sGBrPC", Original, relation(&treewidth, &clique_width, Exactly(Exponential)))])
+        .todo_rest(&mut create);
     let treespan2005 = source("mIg9Mh", "treespan2005", 4)
         .wrote(
             Pp(4),
@@ -1388,11 +1398,11 @@ pub fn build_collection() -> RawData {
         .done(&mut create);
     let delavina_waller2008 = source("C5cBsd", "spanningTreesManyLeaves2008", 2)
         // .wrote(Pp(5), "Theorem 9 (Main Theorem). Let $G$ be a graph. Then $\\bar{D} < \\frac b2 + \\frac 12$. ...", vec![("Pbg2ga", Original, relation(&bipartite_number, &average_distance, UpperBound(Linear)))])
-        // .proved("ZXINaY", Unknown, &maximum_leaf_num, &feedback_vertex_set, UpperBound(Linear), "")
+        // .proved("ZXINaY", PageTodo, &maximum_leaf_num, &feedback_vertex_set, UpperBound(Linear), "")
         .done(&mut create);
     let gradnesetril2008 = source("kXDDmb", "gradnesetril2008", 3)
         .wrote(
-            Unknown,
+            PageTodo,
             "",
             vec![(
                 "VLpzhW",
@@ -1401,7 +1411,7 @@ pub fn build_collection() -> RawData {
             )],
         ) // todo
         .wrote(
-            Unknown,
+            PageTodo,
             "",
             vec![(
                 "Q7qpEp",
@@ -1451,32 +1461,33 @@ pub fn build_collection() -> RawData {
     // .proved("Yelk6V", Pp(9), &dist_to_bipartite, &boxicity, Exclusion, "Theorem 2 For any $b \\in \\mathbb N^+$, there exists a chordal bipartite graph $G$ (ed: i.e. bipartite graph with no induced cycle on more than 4 vertices) with $\\mathrm{box}(G) > b$.")
     // .done(&mut create);
     // let bui_xuan2011 = source("cNjhWx", "BuiXuan2011", 4)
-    // .defined("L7aY6D", Unknown, &boolean_width, "\\textbf{Definition 1.} A decomposition tree of a graph $G$ is a pair $(T,\\delta)$ where $T$ is a tree having internal nodes of degree three and $\\delta$ a bijection between the leaf set of $T$ and the vertex set of $G$. Removing an edge from $T$ results in two subtrees, and in a cut $\\{A,\\overline{A}\\}$ of $G$ given by the two subsets of $V(G)$ in bijection $\\delta$ with the leaves of the two subtrees. Let $f\\colon w^V \\to \\mathbb{R}$ be a symmetric function that is also called a cut function: $f(A)=f(\\overline{A})$ for all $A\\subseteq V(G)$. The $f$-width of $(T,\\delta)$ is the maximum value of $f(A)$ over all cuts $\\{A,\\overline{A}\\}$ of $G$ given by the removal of an edge of $T$. ... \\textbf{Definition 2.} Let $G$ be a graph and $A \\subseteq V(G)$. Define the set of unions of neighborhoods of $A$ across the cut $\\{A,\\overline{A}\\}$ as $U(A) = \\{Y \\subseteq \\overline{A} \\mid \\exists X \\subseteq A \\land Y=N(X)\\cap \\overline{A}\\}$. The \\emph{bool-dim}$\\colon 2^{V(G)} \\to \\mathbb{R}$ function of a graph $G$ is defined as $\\mathrm{bool-dim}(A)=\\log_2 |U(A)|$. Using Definition 1 with $f=\\mathrm{bool-dim}$ we define the boolean-width of a decomposition tree, denoted by $boolw(T,\\delta)$, and the boolean-width of a graph, denoted by $boolw(G)$.")
-    // .proved("AdNkCy", Unknown, &boolean_width, &rank_width, UpperBound(Exponential), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $\\log_2 rw(G) \\le boolw(G)$ ...")
-    // .proved("cIWQDn", Unknown, &rank_width, &boolean_width, UpperBound(Polynomial), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $boolw(G) \\le \\frac 14 rw^2(G)+O(rw(G))$.")
+    // .defined("L7aY6D", PageTodo, &boolean_width, "\\textbf{Definition 1.} A decomposition tree of a graph $G$ is a pair $(T,\\delta)$ where $T$ is a tree having internal nodes of degree three and $\\delta$ a bijection between the leaf set of $T$ and the vertex set of $G$. Removing an edge from $T$ results in two subtrees, and in a cut $\\{A,\\overline{A}\\}$ of $G$ given by the two subsets of $V(G)$ in bijection $\\delta$ with the leaves of the two subtrees. Let $f\\colon w^V \\to \\mathbb{R}$ be a symmetric function that is also called a cut function: $f(A)=f(\\overline{A})$ for all $A\\subseteq V(G)$. The $f$-width of $(T,\\delta)$ is the maximum value of $f(A)$ over all cuts $\\{A,\\overline{A}\\}$ of $G$ given by the removal of an edge of $T$. ... \\textbf{Definition 2.} Let $G$ be a graph and $A \\subseteq V(G)$. Define the set of unions of neighborhoods of $A$ across the cut $\\{A,\\overline{A}\\}$ as $U(A) = \\{Y \\subseteq \\overline{A} \\mid \\exists X \\subseteq A \\land Y=N(X)\\cap \\overline{A}\\}$. The \\emph{bool-dim}$\\colon 2^{V(G)} \\to \\mathbb{R}$ function of a graph $G$ is defined as $\\mathrm{bool-dim}(A)=\\log_2 |U(A)|$. Using Definition 1 with $f=\\mathrm{bool-dim}$ we define the boolean-width of a decomposition tree, denoted by $boolw(T,\\delta)$, and the boolean-width of a graph, denoted by $boolw(G)$.")
+    // .proved("AdNkCy", PageTodo, &boolean_width, &rank_width, UpperBound(Exponential), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $\\log_2 rw(G) \\le boolw(G)$ ...")
+    // .proved("cIWQDn", PageTodo, &rank_width, &boolean_width, UpperBound(Polynomial), "\\textbf{Corollary 1.} For any graph $G$ and decomposition tree $(T,\\gamma)$ of $G$ it holds that ... $boolw(G) \\le \\frac 14 rw^2(G)+O(rw(G))$.")
     // .todo_rest(&mut create);
-    // let lampis2012 = source("0LYUEV", "lampis2012", 1)
-    // .defined("ljbw1n", NotApplicable, &neighborhood_diversity, "We will say that two vertices $v, v'$ of a graph $G(V, E)$ have the same *type* iff they have the same colors and $N(v) \\setminus \\{v\\}=N(v') \\setminus \\{v\\}$, where $N(v)$ denotes the set of neighbors of $v$. ... A colored graph $G(V, E)$ has neighborhood diversity at most $w$, if there exists a partition of $V$ into at most $w$ sets, such that all the vertices in each set have the same type.")
-    // .todo_rest(&mut create);
-    // let rankwidth_chibounded2012 = source("DbAWDM", "rankwidthChibounded2012", 4)
-    // .proved("Rf7Twn", Pp(2), &rank_width, &chi_bounded, UpperBound(Exists), "Theorem 1. For any $k$, the class of graphs with rank-width at most $k$ is $\\chi$-bounded.")
-    // .done(&mut create);
-    // let ganian_twin_cover2012 = source("7UoBR6", "GanianTwinCover2012", 4)
-    // .defined("k6ApS2", Pp(262), &twin_cover_num, "Definition 3.1. $X \\subseteq V(G)$ is a twin-cover of $G$ if for every edge $e=\\{a,b\\} \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are twins, i.e. all other vertices are either adjacent to both $a$ and $b$ or none. We then say that $G$ has twin-cover number $k$ if $k$ is the minimum possible size of a twin-cover of $G$.")
-    // .defined("pFk5uY", Pp(262), &twin_cover_num, "Definition 3.2. $X \\subseteq V(G)$ is a twin-cover of $G$ if there exists a subgraph $G'$ of $G$ such that 1. $X \\subseteq V(G')$ and $X$ is a vertex cover of $G'$. 2. $G$ can be obtained by iteratively adding twins to non-cover vertices in $G'$.")
-    // .proved("oxtaEE", Pp(263), &complete, &twin_cover_num, UpperBound(Constant), "We note that complete graphs indeed have a twin-cover of zero.")
-    // .proved("nkOAMh", Pp(263), &twin_cover_num, &vertex_cover, Exclusion, "The vertex cover of graphs of bounded twin-cover may be arbitrarily large.")
-    // .collective(Pp(263), "There exists graphs with arbitrarily large twin-cover and bounded tree-width and vice-versa.")
-    // .proved("gmsOd4", &twin_cover_num, &treewidth, Exclusion)
-    // .proved("iG3eGq", &treewidth, &twin_cover_num, Exclusion)
-    // .done()
-    // .proved("E8oHKm", Pp(263), &twin_cover_num, &clique_width, UpperBound(Linear), "The clique-width of graphs of twin-cover $k$ is at most $k+2$.")
-    // .proved("qB058E", Pp(263), &twin_cover_num, &rank_width, UpperBound(Linear), "The rank-width and linaer rank-width of graph of twin-cover $k$ are at most $k+1$.")
-    // .proved("WZcIOW", Pp(263), &twin_cover_num, &linear_rank_width, UpperBound(Linear), "The rank-width and linaer rank-width of graph of twin-cover $k$ are at most $k+1$.")
-    // // .tractable("XwMEnS", Pp(263), &twin_cover_num, &twin_cover_num, FPT, "Theorem 3.4. It is possible to find a twin-cover of size $k$ in time $O(|E||V|+k|V|+1.2738^k)$.")
-    // // .tractable("PxaiDG", Pp(267), &twin_cover_num, &boxicity, FPT, "Theorem 4.6. The Boxicity
-    // // problem can be solved in time $2^{O(2^kk^2)}|V|$ on graph of twin-cover at most $k$.")
-    // .done(&mut create);
+    let lampis2012 = source("0LYUEV", "lampis2012", 1)
+        .wrote(NotApplicable, "We will say that two vertices $v, v'$ of a graph $G(V, E)$ have the same *type* iff they have the same colors and $N(v) \\setminus \\{v\\}=N(v') \\setminus \\{v\\}$, where $N(v)$ denotes the set of neighbors of $v$. ... A colored graph $G(V, E)$ has neighborhood diversity at most $w$, if there exists a partition of $V$ into at most $w$ sets, such that all the vertices in each set have the same type.", vec![("ljbw1n", Original, definition(&neighborhood_diversity))])
+        .todo_rest(&mut create);
+    let rankwidth_chibounded2012 = source("DbAWDM", "rankwidthChibounded2012", 4)
+        // .wrote(Pp(2), "Theorem 1. For any $k$, the class of graphs with rank-width at most $k$ is $\\chi$-bounded.", vec![("Rf7Twn", Original, relation(&rank_width, &chi_bounded, UpperBound(Exists)))])
+        .done(&mut create);
+    let ganian_twin_cover2012 = source("7UoBR6", "GanianTwinCover2012", 4)
+        .wrote(Pp(262), "Definition 3.1. $X \\subseteq V(G)$ is a twin-cover of $G$ if for every edge $e=\\{a,b\\} \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are twins, i.e. all other vertices are either adjacent to both $a$ and $b$ or none. We then say that $G$ has twin-cover number $k$ if $k$ is the minimum possible size of a twin-cover of $G$.", vec![("k6ApS2", Original, definition(&twin_cover_num))])
+        .wrote(Pp(262), "Definition 3.2. $X \\subseteq V(G)$ is a twin-cover of $G$ if there exists a subgraph $G'$ of $G$ such that 1. $X \\subseteq V(G')$ and $X$ is a vertex cover of $G'$. 2. $G$ can be obtained by iteratively adding twins to non-cover vertices in $G'$.", vec![("pFk5uY", Original, definition(&twin_cover_num))])
+        // .proved("oxtaEE", Pp(263), &complete, &twin_cover_num, UpperBound(Constant), "We note that complete graphs indeed have a twin-cover of zero.")
+        // .proved("nkOAMh", Pp(263), &twin_cover_num, &vertex_cover, Exclusion, "The vertex cover of graphs of bounded twin-cover may be arbitrarily large.")
+        // .wrote(Pp(263), "There exists graphs with arbitrarily large twin-cover and bounded tree-width and vice-versa.",
+        //     vec![
+        //         ("gmsOd4", Original, relation(&twin_cover_num, &treewidth, Exclusion))
+        //             ("iG3eGq", Original, relation(&treewidth, &twin_cover_num, Exclusion))
+        //     ])
+        // .proved("E8oHKm", Pp(263), &twin_cover_num, &clique_width, UpperBound(Linear), "The clique-width of graphs of twin-cover $k$ is at most $k+2$.")
+        // .proved("qB058E", Pp(263), &twin_cover_num, &rank_width, UpperBound(Linear), "The rank-width and linaer rank-width of graph of twin-cover $k$ are at most $k+1$.")
+        // .proved("WZcIOW", Pp(263), &twin_cover_num, &linear_rank_width, UpperBound(Linear), "The rank-width and linaer rank-width of graph of twin-cover $k$ are at most $k+1$.")
+        // // .tractable("XwMEnS", Pp(263), &twin_cover_num, &twin_cover_num, FPT, "Theorem 3.4. It is possible to find a twin-cover of size $k$ in time $O(|E||V|+k|V|+1.2738^k)$.")
+        // // .tractable("PxaiDG", Pp(267), &twin_cover_num, &boxicity, FPT, "Theorem 4.6. The Boxicity
+        // // problem can be solved in time $2^{O(2^kk^2)}|V|$ on graph of twin-cover at most $k$.")
+        .done(&mut create);
     // let vatshelle2012 = source("nRO7AG", "Vatshelle2012", 3)
     // .defined("5sKQe5", Pp(33), &mm_width, "Definition 3.6.1 (MM-width). For $G$ a graph and $A \\subseteq V(G)$ let $mm \\colon 2^{V(G)} \\to \\mathbb N$ be a function where $mm(A)$ for $A \\subseteq V(G)$ is the size of a maximum matching in $G[A,\\bar A]$. Using Definition 3.1.3 with $f=mm$ we define $mmw(T,\\delta)$ as the $f$-width of a binary decomposition tree $(T,\\delta)$ and $mmw(G)$ as the $f$-width of $G$, also called the MM-width of $G$ or the maximum matching width.")
     // .defined("Usp3Ca", Pp(33), &mim_width, "Definition 3.7.1 (MIM-width). For $G$ a graph and $A \\subseteq V(G)$ let $mim \\colon 2^{V(G)} \\to \\mathbb N$ be a function where $mim(A)$ is the size of a maximum induced matching in $G[A,\\bar A]$. Using Definition 3.1.3 with $f=mim$ we define $mimw(T,\\delta)$ as the $f$-width of a binary decomposition tree $(T,\\delta)$ and $mimw(G)$ as the $f$-width of $G$, also called the MIM-width of $G$ or the maximum induced matching width.")
@@ -1489,11 +1500,11 @@ pub fn build_collection() -> RawData {
     // .proved("ppKqXp", Pp(8), &modular_width, &shrub_depth, Incomparable, "Theorem 4. There are classes of graphs with unbounded modular-width and bounded shrub-depth and vice versa.")
     // .todo_rest(&mut create);
     // let belmonte2013 = source("sJ476m", "Belmonte2013", 1)
-    // .proved("ZHXKjC", Unknown, &carving_width, &maximum_degree, UpperBound(Linear), "Observation 1. Let $G$ be a graph. Then $cw(G) \\ge \\Delta(G)$.")
+    // .proved("ZHXKjC", PageTodo, &carving_width, &maximum_degree, UpperBound(Linear), "Observation 1. Let $G$ be a graph. Then $cw(G) \\ge \\Delta(G)$.")
     // .todo_rest(&mut create);
     // let jansen2013 = source("FLOjic", "Jansen2013", 1)
     // .hasse("u6oAPX", Pp(46), copyvec(vec![&vertex_cover, &maximum_leaf_num, &dist_to_complete, &dist_to_linear_forest, &cutwidth, &bandwidth, &topological_bandwidth, &feedback_vertex_set, &dist_to_chordal, &dist_to_outerplanar, &pathwidth, &odd_cycle_transversal, &treewidth, &genus, &dist_to_perfect, &chromatic_number]))
-    // .defined("PV6tGG", Unknown, &topological_bandwidth, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all subdivisions of $G$")
+    // .defined("PV6tGG", PageTodo, &topological_bandwidth, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all subdivisions of $G$")
     // .todo_rest(&mut create);
     // let treecutwidth2015 = source("zbWWC6", "treecutwidth2015", 3)
     // .todo_rest(&mut create);
@@ -1525,9 +1536,9 @@ pub fn build_collection() -> RawData {
     // let froemmrich2018 = source("45xW87", "Froemmrich2018", 1)
     // .todo_rest(&mut create);
     // let ganian2019 = source("Scw7zm", "Ganian2019", 5)
-    // .proved("TUftFh", Unknown, &shrub_depth, &linear_clique_width, UpperBound(Linear), "Proposition 3.4. Let $\\mathcal G$ be a graph class and $d$ an integer. Then: ... b) If $\\mathcal G$ is of bounded shrub-depth, then $\\mathcal G$ is of bounded linear clique-width.")
-    // .proved("EG7vp6", Unknown, &neighborhood_diversity, &shrub_depth, UpperBound(Constant), "$\\mathcal{TM}_m(1)$ is exactly the class of graphs of neighborhood diversity at most $m$.")
-    // .proved("sq0brL", Unknown, &treedepth, &shrub_depth, UpperBound(Linear), "Proposition 3.2. If $G$ is of tree-depth $d$, then $G \\in \\mathcal{TM}_{2^d}(d)$. ...")
+    // .proved("TUftFh", PageTodo, &shrub_depth, &linear_clique_width, UpperBound(Linear), "Proposition 3.4. Let $\\mathcal G$ be a graph class and $d$ an integer. Then: ... b) If $\\mathcal G$ is of bounded shrub-depth, then $\\mathcal G$ is of bounded linear clique-width.")
+    // .proved("EG7vp6", PageTodo, &neighborhood_diversity, &shrub_depth, UpperBound(Constant), "$\\mathcal{TM}_m(1)$ is exactly the class of graphs of neighborhood diversity at most $m$.")
+    // .proved("sq0brL", PageTodo, &treedepth, &shrub_depth, UpperBound(Linear), "Proposition 3.2. If $G$ is of tree-depth $d$, then $G \\in \\mathcal{TM}_{2^d}(d)$. ...")
     // .todo_rest(&mut create);
     // let sorge2019 = source("VnTIL0", "Sorge2019", 7)
     // .hasse("Im1xnN", Pp(2), copyvec(vec![&dist_to_complete, &vertex_cover, &maximum_leaf_num, &bandwidth, &maximum_degree, &bisection_bandwidth, &genus, &feedback_edge_set, &treedepth, &pathwidth, &treewidth, &dist_to_outerplanar, &feedback_vertex_set, &dist_to_linear_forest, &dist_to_cluster, &dist_to_interval, &dist_to_chordal, &dist_to_co_cluster, &dist_to_cograph, &clique_cover_num, &maximum_independent_set, &domination_num, &diameter, &average_distance, &[>"BCwUeT",*/ &dist_to_perfect, &dist_to_bipartite, &clique_width, &chordality, &boxicity, &acyclic_chromatic_number, &degeneracy, &perfect, &chromatic_number, &average_degree, &minimum_degree, &domatic_num, /*"&ZL7BOP",<] &hindex]))
@@ -1559,8 +1570,8 @@ pub fn build_collection() -> RawData {
     // .todo_rest(&mut create);
     // let schroder_parameter_list = copyvec(vec![&dist_to_complete, &vertex_cover, &maximum_leaf_num, &clique_cover_num, &dist_to_co_cluster, &dist_to_cluster, &dist_to_linear_forest, &feedback_edge_set, &bandwidth, &maximum_independent_set, &dist_to_cograph, &dist_to_interval, &feedback_vertex_set, &treedepth, &maximum_degree, &domination_num, &dist_to_outerplanar, &pathwidth, &genus, &hindex, &diameter, &dist_to_planar, &treewidth, &average_distance, &dist_to_chordal, &acyclic_chromatic_number, &[>"BCwUeT",*/ &clique_width, &degeneracy, &dist_to_bipartite, &boxicity, &average_degree, &dist_to_perfect, &perfect, &minimum_degree, &chromatic_number, &chordality, &domatic_num, &/*"ZL7BOP",<] &bisection_bandwidth]);
     // let schroder_thesis = source("DYGiYb", "SchroderThesis", 7)
-    // // .cited("pJxHVS", Unknown, sorge2019, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
-    // // .cited("bybFgo", Unknown, froemmrich2018, "Based on the work by [Sa19] as well as [Fr8], we investigate unknown connections between graph parameters to continue the work on the graph parameter hierarchy")
+    // // .cited("pJxHVS", PageTodo, sorge2019, "Based on the work by [Sa19] as well as [Fr8], we investigate PageTodo connections between graph parameters to continue the work on the graph parameter hierarchy")
+    // // .cited("bybFgo", PageTodo, froemmrich2018, "Based on the work by [Sa19] as well as [Fr8], we investigate PageTodo connections between graph parameters to continue the work on the graph parameter hierarchy")
     // .hasse("DfHlFn", Pp(7), schroder_parameter_list.clone())
     // .table("ONqedT", Pp(8), schroder_parameter_list.clone())
     // .proved("R9eI61", Pp(11), &treedepth, &diameter, UpperBound(Exponential), "Proposition 3.1")
@@ -1620,7 +1631,7 @@ pub fn build_collection() -> RawData {
     // .defined("s5Ktq7", Pp(2), &twin_width, "... we consider a sequence of graphs $G_n,G_{n-1},\\dots,G_2,G_1$, where $G_n$ is the original graph $G$, $G_1$ is the one-vertex graph, $G_i$ has $i$ vertices, and $G_{i-1}$ is obtained from $G_i$ by performing a single contraction of two (non-necessarily adjacent) vertices. For every vertex $u \\in V(G_i)$, let us denote by $u(G)$ the vertices of $G$ which have been contracted to $u$ along the sequence $G_n,\\dots,G_i$. A pair of disjoint sets of vertices is \\emph{homogeneous} if, between these sets, there are either all possible edges or no edge at all. The red edges ... consist of all pairs $uv$ of vertices of $G_i$ such that $u(G)$ and $v(G)$ are not homogeneous in $G$. If the red degree of every $G_i$ is at most $d$, then $G_n,G_{n-1},\\dots,G_2,G_1$ is called a \\emph{sequence of $d$-contractions}, or \\emph{$d$-sequence}. The twin-width of $G$ is the minimum $d$ for which there exists a sequence of $d$-contractions.")
     // .proved("08lETp", Pp(14), &boolean_width, &twin_width, UpperBound(Exponential), "Theorem 3: Every graph with boolean-width $k$ has twin-width at most $2^{k+1}-1$.")
     // .proved("0RiLv2", Pp(15), &grid, &twin_width, UpperBound(Constant), "Theorem 4.3. For every positive integers $d$ and $n$, the $d$-dimensional $n$-grid has twin-width at most $3d$.")
-    // // .proved("7p2TWN", Unknown, &cograph, &reduced_edgeless, Equal, "") // todo
+    // // .proved("7p2TWN", PageTodo, &cograph, &reduced_edgeless, Equal, "") // todo
     // .todo_rest(&mut create);
     // // let reduced_star = &create.reduced(&star, 0);
     // // let twin_width_beyond_2022 = source("3B7Kvt", "twinWidthBeyond2022")
@@ -1685,11 +1696,11 @@ pub fn build_collection() -> RawData {
     // .proved("UN2Lbu", Pp(42), &degeneracy, &boxicity, Incomparable, "Proposition 7.1. Degeneracy is incomparable to Boxicity.")
     // .done(&mut create);
     // let torunczyk2023 = source("KpkMZB", "Torunczyk2023", 7)
-    // .defined("gxeVOT", Unknown, &r_flip_width, "The radius-$r$ flip-width of a graph $G$, denoted $fw_r(G)$, is the smallest number $k \\in \\mathbb{N}$ such that the cops have a winning strategy in the flipper game of radius $r$ and width $k$ on $G$")
-    // .proved("9DTyeJ", Unknown, &inf_flip_width, &rank_width, UpperBound(Linear), "For every graph $G$, we have $\\mathrm{rankwidth}(G) \\le 3 \\mathrm{fw}_\\infty(G)+1$ ...")
-    // .proved("zYQZyB", Unknown, &rank_width, &inf_flip_width, UpperBound(Exponential), "For every graph $G$, we have ... $3 \\mathrm{fw}_\\infty(G)+1 \\le O(2^{\\mathrm{rankwidth(G)}})$.")
-    // .proved("OdbuZP", Unknown, &twin_width, &r_flip_width, UpperBound(Exponential), "Theorem 7.1. Fix $r \\in \\mathbb N$. For every graph $G$ of twin-width $d$ we have: $\\mathrm{fw}_r(G) \\le 2^d \\cdot d^{O(r)}$.")
-    // .proved("gvSCeQ", Unknown, &inf_flip_width, &r_flip_width, UpperBound(Linear), by_definition)
+    // .defined("gxeVOT", PageTodo, &r_flip_width, "The radius-$r$ flip-width of a graph $G$, denoted $fw_r(G)$, is the smallest number $k \\in \\mathbb{N}$ such that the cops have a winning strategy in the flipper game of radius $r$ and width $k$ on $G$")
+    // .proved("9DTyeJ", PageTodo, &inf_flip_width, &rank_width, UpperBound(Linear), "For every graph $G$, we have $\\mathrm{rankwidth}(G) \\le 3 \\mathrm{fw}_\\infty(G)+1$ ...")
+    // .proved("zYQZyB", PageTodo, &rank_width, &inf_flip_width, UpperBound(Exponential), "For every graph $G$, we have ... $3 \\mathrm{fw}_\\infty(G)+1 \\le O(2^{\\mathrm{rankwidth(G)}})$.")
+    // .proved("OdbuZP", PageTodo, &twin_width, &r_flip_width, UpperBound(Exponential), "Theorem 7.1. Fix $r \\in \\mathbb N$. For every graph $G$ of twin-width $d$ we have: $\\mathrm{fw}_r(G) \\le 2^d \\cdot d^{O(r)}$.")
+    // .proved("gvSCeQ", PageTodo, &inf_flip_width, &r_flip_width, UpperBound(Linear), by_definition)
     // .todo_rest(&mut create);
     // let slim_tcw2024 = source("7g1aTu", "SlimTCW2024", 5)
     // .hasse("hROdkf", Pp(2716), copyvec(vec![&tree_cut_width, &slim_tree_cut_width, &degree_treewidth, &feedback_edge_set])) // also tcw0, tcw1, tcw2, edge-cut width

@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::data::data::Parameter;
 use crate::data::digraph::{DiGraph, Edge, Vertex};
@@ -173,7 +173,7 @@ impl DotGraph {
         dot
     }
 
-    pub fn save_to_file(&self, target_dir: &PathBuf) -> anyhow::Result<PathBuf> {
+    pub fn save_to_file(&self, target_dir: &Path) -> anyhow::Result<PathBuf> {
         let dot_str = self.to_dot();
         let dot_target_file = target_dir.join(format!("{}.dot", self.info.name));
         file::write_file_content(&dot_target_file, &dot_str)?;
@@ -200,7 +200,7 @@ fn main() {
     data.insert(DotVertexAttribute::Color(Color::Gray));
     data.insert(DotVertexAttribute::Url("./dS6OgO".to_string()));
     data.insert(DotVertexAttribute::Shape(NodeShape::Box));
-    let nodes = vec![DotVertex {
+    let nodes = [DotVertex {
         id: "dS6OgO".to_string(),
         data,
     }];

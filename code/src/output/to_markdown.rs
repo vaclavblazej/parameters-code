@@ -15,7 +15,7 @@ impl ToMarkdown for Page {
         match self {
             Self::Pp(num) => Some(format!("page {}", num)),
             Self::NotApplicable => None,
-            Self::Unknown => None,
+            Self::PageTodo => None,
         }
     }
 }

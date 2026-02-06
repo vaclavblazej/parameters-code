@@ -4,6 +4,10 @@ pub struct WorkRelation {
     pub superset: PreviewParameterId,
 }
 
+pub struct PartialResultsBuilder {
+    pub arr: Vec<PartialResult>,
+}
+
 // todo, remove clone?
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PartialResult {

@@ -8,6 +8,7 @@ use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::link::{Link, Linkable};
 use crate::input::build::CollectionBuilder;
+use crate::input::builder::Builder;
 use crate::input::raw_enums::*;
 use crate::input::source::{RawFact, RawSource, RawWrote};
 use crate::{named_impl, tagged_impl, tie_raw_to_previewid};
@@ -16,8 +17,11 @@ pub trait Defines<S> {
     fn defines(&self) -> S;
 }
 
-pub trait Concrete<N, S> {
-    fn concretize(&self, value: N) -> S;
+pub trait Concrete<FromId>
+where
+    Self: Sized,
+{
+    fn concretize(id: &str, a: &FromId, value: Value, name: &str, score: u32) -> Builder<Self>;
 }
 
 pub trait RawDataAddable {
@@ -108,9 +112,21 @@ tagged_impl!(RawParametricParameter, PreviewTagId);
 named_impl!(RawParametricParameter);
 raw_data_addable!(RawParametricParameter, parametric_parameters);
 
-impl Concrete<Value, PreviewGraphClassPropertyId> for RawParametricParameter {
-    fn concretize(&self, value: Value) -> PreviewGraphClassPropertyId {
-        todo!()
+impl Concrete<PreviewParametricParameterId> for RawParameter {
+    fn concretize(
+        id: &str,
+        a: &PreviewParametricParameterId,
+        value: Value,
+        name: &str,
+        score: u32,
+    ) -> Builder<RawParameter> {
+        Builder::new(RawParameter {
+            id: ParameterId::new(id),
+            score,
+            name_core: NameCore::new(name),
+            definition: RawParameterDefinition::FromParametricParameter(a.clone()),
+            tags: Vec::new(),
+        })
     }
 }
 
@@ -131,12 +147,6 @@ raw_data_addable!(RawParametricGraphClass, parametric_graph_class);
 
 impl Defines<PreviewGraphClassId> for RawParametricGraphClass {
     fn defines(&self) -> PreviewGraphClassId {
-        todo!()
-    }
-}
-
-impl Concrete<Value, PreviewGraphClassPropertyId> for RawParametricGraphClass {
-    fn concretize(&self, value: Value) -> PreviewGraphClassPropertyId {
         todo!()
     }
 }

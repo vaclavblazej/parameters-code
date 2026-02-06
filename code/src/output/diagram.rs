@@ -11,7 +11,7 @@ use crate::data::enums::*;
 use crate::data::id::{HasPreviewId, PreviewParameterId};
 use crate::data::preview::{HasPreview, PreviewParameter};
 use crate::data::score::has_better_score_than;
-use crate::file;
+use crate::general::file;
 use crate::input::source::Cpx;
 use crate::output::color::{Color, interpolate_colors};
 use crate::output::dot::{DotEdge, DotEdgeAttribute, DotGraph, SetColorCallback};

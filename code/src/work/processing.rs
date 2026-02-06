@@ -203,27 +203,6 @@ impl RawSource {
     }
 }
 
-// pub struct PartialResultsBuilder {
-//     pub arr: Vec<PartialResult>,
-// }
-
-// impl Relation {
-//     pub fn new(
-//         subset: PreviewParameter,
-//         superset: PreviewParameter,
-//         cpx: SourcedCpxInfo,
-//         handle: usize,
-//     ) -> Self {
-//         Self {
-//             id: RelationId::new(&subset.id, &superset.id),
-//             handle,
-//             cpx,
-//             subset,
-//             superset,
-//         }
-//     }
-// }
-
 pub fn extract_tags<T>(item: T) -> Vec<(Link, PreviewTagId)>
 where
     T: Linkable + Tagged<PreviewTagId>,
@@ -280,9 +259,33 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         }
     }
     let mut arc_parameter_parameter = Vec::new();
+    let mut arc_lf_lf = Vec::new();
+    let mut arc_op_op = Vec::new();
+    let mut arc_graph_graph = Vec::new();
+    let mut arc_gc_gc = Vec::new();
+    let mut arc_graph_gc = Vec::new();
+    let mut arc_pargc_pargc = Vec::new();
+    let mut arc_gcprop_gcprop = Vec::new();
+    let mut arc_gc_gcprop = Vec::new();
+    let mut arc_parameter_gcprop = Vec::new();
+    let mut arc_problem_problem = Vec::new();
+    let mut arc_problem_gcprop = Vec::new();
+    let mut arc_problem_parameter = Vec::new();
     for x in relations_map.get(&RelKind::ParPar).unwrap_or(&vec![]) {
-        if let Rel::ParPar(f, t, cpx) = x {
-            arc_parameter_parameter.push((f.clone(), t.clone(), cpx.clone()));
+        match x {
+            Rel::LfLf(f, t, d) => arc_lf_lf.push((f.clone(), t.clone(), d.clone())),
+            Rel::OpOp(f, t, d) => arc_op_op.push((f.clone(), t.clone(), d.clone())),
+            Rel::GrGr(f, t, d) => arc_graph_graph.push((f.clone(), t.clone(), d.clone())),
+            Rel::GcGc(f, t, d) => arc_gc_gc.push((f.clone(), t.clone(), d.clone())),
+            Rel::GrGc(f, t, d) => arc_graph_gc.push((f.clone(), t.clone(), d.clone())),
+            Rel::PgcPgc(f, t, d) => arc_pargc_pargc.push((f.clone(), t.clone(), d.clone())),
+            Rel::ParPar(f, t, d) => arc_parameter_parameter.push((f.clone(), t.clone(), d.clone())),
+            Rel::PropProp(f, t, d) => arc_gcprop_gcprop.push((f.clone(), t.clone(), d.clone())),
+            Rel::GcProp(f, t, d) => arc_gc_gcprop.push((f.clone(), t.clone(), d.clone())),
+            Rel::ParProp(f, t, d) => arc_parameter_gcprop.push((f.clone(), t.clone(), d.clone())),
+            Rel::ProbProb(f, t, d) => arc_problem_problem.push((f.clone(), t.clone(), d.clone())),
+            Rel::ProbProp(f, t, d) => arc_problem_gcprop.push((f.clone(), t.clone(), d.clone())),
+            Rel::ProbPar(f, t, d) => arc_problem_parameter.push((f.clone(), t.clone(), d.clone())),
         }
     }
     // let mut provider_names = HashMap::new();
@@ -393,5 +396,17 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         drawings: HashMap::new(),
         graph_class_properties: vec![],
         arc_parameter_parameter,
+        arc_lf_lf,
+        arc_op_op,
+        arc_graph_graph,
+        arc_gc_gc,
+        arc_graph_gc,
+        arc_pargc_pargc,
+        arc_gcprop_gcprop,
+        arc_gc_gcprop,
+        arc_parameter_gcprop,
+        arc_problem_problem,
+        arc_problem_gcprop,
+        arc_problem_parameter,
     })
 }

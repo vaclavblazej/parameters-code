@@ -12,6 +12,8 @@ pub enum RawParameterDefinition {
     GraphClassText(String),
     BoundsAll(PreviewParametricParameterId),
     DistanceTo(PreviewParameterId),
+    Intersection(Vec<PreviewParameterId>),
+    FromParametricParameter(PreviewParametricParameterId),
 }
 
 #[derive(Debug)]

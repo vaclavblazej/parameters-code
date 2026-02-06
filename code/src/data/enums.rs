@@ -20,7 +20,7 @@ pub enum Value {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Page {
     Pp(u32),
-    Unknown,
+    PageTodo,
     NotApplicable,
 }
 

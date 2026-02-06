@@ -241,6 +241,9 @@ pub enum ParameterDefinition {
     Graph(String),
     GraphClass(String),
     BoundsAll(PreviewParametricParameter), // higher order parameter
+    DistanceTo(PreviewParameter),
+    Intersection(Vec<PreviewParameter>),
+    FromParametricParameter(PreviewParametricParameter),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -495,6 +498,58 @@ pub struct Data {
     pub factoids: HashMap<PreviewSourceId, Fact>,
     pub drawings: HashMap<PreviewSourceId, Drawing>,
     pub arc_parameter_parameter: Vec<(PreviewParameterId, PreviewParameterId, Cpx)>,
+    pub arc_lf_lf: Vec<(
+        PreviewLogicFragmentId,
+        PreviewLogicFragmentId,
+        ImplicationRelation,
+    )>,
+    pub arc_op_op: Vec<(PreviewOperationId, PreviewOperationId, ImplicationRelation)>,
+    pub arc_graph_graph: Vec<(
+        PreviewGraphId,
+        PreviewGraphId,
+        InclusionRelationUnderGraphRelation,
+    )>,
+    pub arc_gc_gc: Vec<(
+        PreviewGraphClassId,
+        PreviewGraphClassId,
+        InclusionRelationUnderGraphRelation,
+    )>,
+    pub arc_graph_gc: Vec<(
+        PreviewGraphId,
+        PreviewGraphClassId,
+        InclusionRelationUnderGraphRelation,
+    )>,
+    pub arc_pargc_pargc: Vec<(
+        PreviewParametricGraphClassId,
+        PreviewParametricGraphClassId,
+        ImplicationRelation,
+    )>,
+    pub arc_gcprop_gcprop: Vec<(
+        PreviewGraphClassPropertyId,
+        PreviewGraphClassPropertyId,
+        ImplicationRelation,
+    )>,
+    pub arc_gc_gcprop: Vec<(
+        PreviewGraphClassId,
+        PreviewGraphClassPropertyId,
+        EquivalenceRelation,
+    )>,
+    pub arc_parameter_gcprop: Vec<(
+        PreviewParameterId,
+        PreviewGraphClassPropertyId,
+        EquivalenceRelation,
+    )>,
+    pub arc_problem_problem: Vec<(PreviewProblemId, PreviewProblemId, ImplicationRelation)>,
+    pub arc_problem_gcprop: Vec<(
+        PreviewProblemId,
+        PreviewGraphClassPropertyId,
+        ClassicalSolvability,
+    )>,
+    pub arc_problem_parameter: Vec<(
+        PreviewProblemId,
+        PreviewParameterId,
+        ParameterizedSolvability,
+    )>,
     // pub relations: Vec<Relation>,
     // pub partial_results: Vec<PartialResult>,
     // #[serde(skip)]
@@ -532,6 +587,58 @@ pub struct DataFields {
     pub drawings: HashMap<PreviewSourceId, Drawing>,
     pub graph_class_properties: Vec<GraphClassProperty>,
     pub arc_parameter_parameter: Vec<(PreviewParameterId, PreviewParameterId, Cpx)>,
+    pub arc_lf_lf: Vec<(
+        PreviewLogicFragmentId,
+        PreviewLogicFragmentId,
+        ImplicationRelation,
+    )>,
+    pub arc_op_op: Vec<(PreviewOperationId, PreviewOperationId, ImplicationRelation)>,
+    pub arc_graph_graph: Vec<(
+        PreviewGraphId,
+        PreviewGraphId,
+        InclusionRelationUnderGraphRelation,
+    )>,
+    pub arc_gc_gc: Vec<(
+        PreviewGraphClassId,
+        PreviewGraphClassId,
+        InclusionRelationUnderGraphRelation,
+    )>,
+    pub arc_graph_gc: Vec<(
+        PreviewGraphId,
+        PreviewGraphClassId,
+        InclusionRelationUnderGraphRelation,
+    )>,
+    pub arc_pargc_pargc: Vec<(
+        PreviewParametricGraphClassId,
+        PreviewParametricGraphClassId,
+        ImplicationRelation,
+    )>,
+    pub arc_gcprop_gcprop: Vec<(
+        PreviewGraphClassPropertyId,
+        PreviewGraphClassPropertyId,
+        ImplicationRelation,
+    )>,
+    pub arc_gc_gcprop: Vec<(
+        PreviewGraphClassId,
+        PreviewGraphClassPropertyId,
+        EquivalenceRelation,
+    )>,
+    pub arc_parameter_gcprop: Vec<(
+        PreviewParameterId,
+        PreviewGraphClassPropertyId,
+        EquivalenceRelation,
+    )>,
+    pub arc_problem_problem: Vec<(PreviewProblemId, PreviewProblemId, ImplicationRelation)>,
+    pub arc_problem_gcprop: Vec<(
+        PreviewProblemId,
+        PreviewGraphClassPropertyId,
+        ClassicalSolvability,
+    )>,
+    pub arc_problem_parameter: Vec<(
+        PreviewProblemId,
+        PreviewParameterId,
+        ParameterizedSolvability,
+    )>,
 }
 
 impl Data {
@@ -554,6 +661,18 @@ impl Data {
             drawings: fields.drawings,
             graph_class_properties: convert_to_id_map(fields.graph_class_properties),
             arc_parameter_parameter: fields.arc_parameter_parameter,
+            arc_lf_lf: fields.arc_lf_lf,
+            arc_op_op: fields.arc_op_op,
+            arc_graph_graph: fields.arc_graph_graph,
+            arc_gc_gc: fields.arc_gc_gc,
+            arc_graph_gc: fields.arc_graph_gc,
+            arc_pargc_pargc: fields.arc_pargc_pargc,
+            arc_gcprop_gcprop: fields.arc_gcprop_gcprop,
+            arc_gc_gcprop: fields.arc_gc_gcprop,
+            arc_parameter_gcprop: fields.arc_parameter_gcprop,
+            arc_problem_problem: fields.arc_problem_problem,
+            arc_problem_gcprop: fields.arc_problem_gcprop,
+            arc_problem_parameter: fields.arc_problem_parameter,
         }
     }
 }

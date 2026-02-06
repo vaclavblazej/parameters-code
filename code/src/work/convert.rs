@@ -4,6 +4,7 @@ use biblatex::Entry;
 use log::error;
 
 use crate::data::link::Link;
+use crate::data::preview;
 use crate::input::raw_enums::*;
 
 use crate::data::data::*;
@@ -28,7 +29,34 @@ impl ParameterDefinition {
             }
             RawParameterDefinition::GraphText(text) => Self::Graph(text),
             RawParameterDefinition::GraphClassText(text) => Self::GraphClass(text),
-            RawParameterDefinition::DistanceTo(parid) => todo!(),
+            RawParameterDefinition::DistanceTo(parid) => Self::DistanceTo(
+                preview_collection
+                    .parameters_previews
+                    .get(&parid)
+                    .unwrap()
+                    .clone(),
+            ),
+            RawParameterDefinition::Intersection(preview_ids) => Self::Intersection(
+                preview_ids
+                    .iter()
+                    .map(|x| {
+                        preview_collection
+                            .parameters_previews
+                            .get(&x)
+                            .unwrap()
+                            .clone()
+                    })
+                    .collect(),
+            ),
+            RawParameterDefinition::FromParametricParameter(preview_id) => {
+                Self::FromParametricParameter(
+                    preview_collection
+                        .parametric_parameters_previews
+                        .get(&preview_id)
+                        .unwrap()
+                        .clone(),
+                )
+            }
         }
     }
 }

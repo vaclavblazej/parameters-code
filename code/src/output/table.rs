@@ -6,14 +6,15 @@ use std::process::Command;
 
 use log::{error, info};
 
+use crate::cli::paths::Paths;
 use crate::data::data::Data;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::link::Linkable;
 use crate::data::preview::PreviewParameter;
+use crate::general::file;
 use crate::general::worker::{Task, Worker};
 use crate::output::color::Color;
-use crate::{Paths, file};
 
 pub struct TableEntry {
     pub id: String,
@@ -110,7 +111,7 @@ fn table_format_link(ai: usize, bi: usize, status: &str, link: &str) -> String {
 
 pub fn generate_relation_table<T>(
     data: &Data,
-    draw_sets: &Vec<T>,
+    draw_sets: &[T],
     paths: &Paths,
     name: &str,
     worker: &Worker,

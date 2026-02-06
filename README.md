@@ -76,5 +76,5 @@ This project builds upon earlier work in the field:
 
 ## License
 
-[MIT License](LICENSE) - Copyright (c) 2023-2026 Vaclav Blazej & contributors
+[MIT License](LICENSE) - Copyright (c) 2023-2026 Václav Blažej & contributors
 

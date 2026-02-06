@@ -4,7 +4,6 @@ use std::collections::{HashMap, HashSet};
 
 use log::error;
 
-use crate::data::data::GraphClass;
 use crate::data::data::NameCore;
 use crate::data::data::Named;
 use crate::data::enums::*;
@@ -43,7 +42,7 @@ pub static ASSUMED_SOURCE_ID: &str = "9kg0oo";
 pub fn graph_class(id: &str, name: &str, score: u32, definition: &str) -> Builder<RawGraphClass> {
     assert!(score <= 9);
     Builder::new(RawGraphClass {
-        id: GraphClassId::new(id.into()),
+        id: GraphClassId::new(id),
         score,
         name_core: NameCore::new(name),
         definition: RawGraphClassDefinition::Text(definition.into()),
@@ -60,7 +59,7 @@ pub fn graph_property(
 ) -> Builder<RawGraphClass> {
     assert!(score <= 9);
     Builder::new(RawGraphClass {
-        id: GraphClassId::new(id.into()),
+        id: GraphClassId::new(id),
         score,
         name_core: NameCore::new(name),
         definition: RawGraphClassDefinition::Text(definition.into()),
@@ -79,7 +78,7 @@ pub fn parametric_graph_class(
 ) -> Builder<RawParametricGraphClass> {
     assert!(score <= 9);
     Builder::new(RawParametricGraphClass {
-        id: ParametricGraphClassId::new(id.into()),
+        id: ParametricGraphClassId::new(id),
         score,
         name_core: NameCore::new(name),
         closed_under,
@@ -97,7 +96,7 @@ pub fn parametric_graph_class(
 /// their definitions may be kept separate.
 pub fn parameter(id: &str, name: &str, score: u32, definition: &str) -> Builder<RawParameter> {
     Builder::new(RawParameter {
-        id: ParameterId::new(id.into()),
+        id: ParameterId::new(id),
         score,
         name_core: NameCore::new(name),
         definition: RawParameterDefinition::GraphText(definition.into()),
@@ -112,7 +111,7 @@ pub fn higher_order_parameter(
     bounds_all: PreviewParametricParameterId,
 ) -> Builder<RawParameter> {
     Builder::new(RawParameter {
-        id: ParameterId::new(id.into()),
+        id: ParameterId::new(id),
         score,
         name_core: NameCore::new(name),
         definition: RawParameterDefinition::BoundsAll(bounds_all),
@@ -127,7 +126,7 @@ pub fn parametric_parameter(
     definition: RawParametricParameterDefinition,
 ) -> Builder<RawParametricParameter> {
     Builder::new(RawParametricParameter {
-        id: ParametricParameterId::new(id.into()),
+        id: ParametricParameterId::new(id),
         score,
         name_core: NameCore::new(name),
         definition,
@@ -144,7 +143,7 @@ pub fn graph_class_property(
 ) -> Builder<RawGraphClassProperty> {
     assert!(score <= 9);
     Builder::new(RawGraphClassProperty {
-        id: GraphClassPropertyId::new(id.into()),
+        id: GraphClassPropertyId::new(id),
         score,
         name_core: NameCore::new(name),
         definition,
@@ -173,7 +172,7 @@ pub fn provider(
     format_url: Box<dyn Fn(&str) -> String>,
 ) -> RawDataProvider {
     let provider = RawProvider {
-        id: ProviderId::new(id.into()),
+        id: ProviderId::new(id),
         name_core: NameCore::new(name),
         url: url.into(),
     };
@@ -273,7 +272,7 @@ impl CollectionBuilder {
         description: Option<&str>,
     ) -> PreviewLogicFragmentId {
         let res = RawLogicFragment {
-            id: LogicFragmentId::new(id.into()),
+            id: LogicFragmentId::new(id),
             name_core: NameCore::new(name),
             description: description.map(String::from),
         };
@@ -282,7 +281,7 @@ impl CollectionBuilder {
 
     pub fn graph_operation(&self, id: &str, name: &str, definition: &str) -> PreviewOperationId {
         let res = RawOperation {
-            id: OperationId::new(id.into()),
+            id: OperationId::new(id),
             name_core: NameCore::new(name),
             definition: RawOperationDefinition::GraphOperation(definition.into()),
         };
@@ -295,7 +294,7 @@ impl CollectionBuilder {
         name: &str,
         definition: RawProblemDefinition,
     ) -> PreviewProblemId {
-        let id = ProblemId::new(id.into());
+        let id = ProblemId::new(id);
         id.preview()
     }
 
@@ -306,7 +305,7 @@ impl CollectionBuilder {
         operation: RawOperationDefinition,
     ) -> PreviewOperationId {
         let res = RawOperation {
-            id: OperationId::new(id.into()),
+            id: OperationId::new(id),
             name_core: NameCore::new(name),
             definition: operation,
         };
@@ -320,7 +319,7 @@ impl CollectionBuilder {
         definition: RawGraphClassRelationDefinition,
     ) -> PreviewGraphClassRelationId {
         let res = RawGraphClassRelation {
-            id: GraphClassRelationId::new(id.into()),
+            id: GraphClassRelationId::new(id),
             name_core: NameCore::new(name),
             definition,
         };
@@ -334,7 +333,7 @@ impl CollectionBuilder {
         displayed_definition: RawGraphRelationDefinition,
     ) -> PreviewGraphRelationId {
         let res = RawGraphRelation {
-            id: GraphRelationId::new(id.into()),
+            id: GraphRelationId::new(id),
             name_core: NameCore::new(name),
             displayed_definition,
         };
@@ -351,7 +350,7 @@ impl CollectionBuilder {
     // ) -> Builder<RawParameter> {
     //     let set = self.data.parameters.get(set_id).unwrap();
     //     let res = RawParameter {
-    //         id: ParameterId::new(id.into()),
+    //         id: ParameterId::new(id),
     //         score,
     //         name_core: NameCore::new(&format!("distance to {}", set.name)),
     //         definition: RawParameterDefinition::DistanceTo(set_id.clone()),
@@ -402,18 +401,32 @@ impl CollectionBuilder {
     /// Create a new set that represents intersection of sets.
     /// From a view point of classical parameterized complexity
     /// we may understand the intersection as a sum of parameters.
-    pub fn intersection<IdB, TypeA>(
+    pub fn intersection<IdB, IdA, ResType>(
         &self,
         id: &str,
-        set_a: &TypeA::PreviewId,
+        set_a: &IdA,
         set_b: &IdB,
         name: &str,
         score: u32,
-    ) -> Builder<TypeA>
+    ) -> Builder<ResType>
     where
-        TypeA: Intersectable<IdB> + HasPreviewId,
+        ResType: Intersectable<IdA, IdB>,
     {
-        TypeA::intersect(id, set_a, set_b, name, score)
+        ResType::intersect(id, set_a, set_b, name, score)
+    }
+
+    pub fn concretize<IdA, ResType>(
+        &self,
+        what: &IdA,
+        id: &str,
+        name: &str,
+        value: Value,
+        score: u32,
+    ) -> Builder<ResType>
+    where
+        ResType: Concrete<IdA>,
+    {
+        ResType::concretize(id, what, value, name, score)
     }
 
     pub fn assumed_source(&mut self) -> &mut RawSourceData {
@@ -427,7 +440,7 @@ impl CollectionBuilder {
     pub fn web_source(&mut self, id: &str, url: &str) -> RawSourceData {
         let rawsourcekey = RawSourceKey::Online { url: url.into() };
         let mut res = RawSource {
-            id: SourceId::new(id.into()),
+            id: SourceId::new(id),
             rawsourcekey,
             score: 0,
         };

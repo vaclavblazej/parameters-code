@@ -1,21 +1,17 @@
+use crate::data::data::ParameterDefinition;
 use crate::data::{data::NameCore, id::*};
 use crate::input::raw::RawParameter;
+use crate::input::raw_enums::{RawGraphClassDefinition, RawParameterDefinition};
 use crate::input::{builder::Builder, raw::RawGraphClass};
 
-pub trait Intersectable<WithId>
+pub trait Intersectable<FirstId, SecondId>
 where
-    Self: HasPreviewId + Sized,
+    Self: Sized,
 {
-    fn intersect(
-        id: &str,
-        a: &Self::PreviewId,
-        b: &WithId,
-        name: &str,
-        score: u32,
-    ) -> Builder<Self>;
+    fn intersect(id: &str, a: &FirstId, b: &SecondId, name: &str, score: u32) -> Builder<Self>;
 }
 
-impl Intersectable<PreviewGraphClassId> for RawGraphClass {
+impl Intersectable<PreviewGraphClassId, PreviewGraphClassId> for RawGraphClass {
     fn intersect(
         id: &str,
         a: &PreviewGraphClassId,
@@ -24,7 +20,7 @@ impl Intersectable<PreviewGraphClassId> for RawGraphClass {
         score: u32,
     ) -> Builder<Self> {
         Builder::new(RawGraphClass {
-            id: GraphClassId::new(id.into()),
+            id: GraphClassId::new(id),
             score,
             name_core: NameCore::new(name),
             definition: crate::input::raw_enums::RawGraphClassDefinition::Intersection(vec![
@@ -52,38 +48,56 @@ impl Intersectable<PreviewGraphClassId> for RawGraphClass {
     }
 }
 
-impl Intersectable<PreviewGraphClassPropertyId> for RawGraphClass {
-    fn intersect(
-        id: &str,
-        a: &PreviewGraphClassId,
-        b: &PreviewGraphClassPropertyId,
-        name: &str,
-        score: u32,
-    ) -> Builder<Self> {
-        Builder::new(RawGraphClass {
-            id: GraphClassId::new(id.into()),
-            score,
-            name_core: NameCore::new(name),
-            definition: todo!(),
-            variant: crate::input::raw_enums::RawGraphClassVariant::GraphClass, // todo
-            tags: Vec::new(),
-        })
-    }
-}
+// impl Intersectable<PreviewGraphClassId, PreviewGraphClassPropertyId> for RawGraphClass {
+//     fn intersect(
+//         id: &str,
+//         a: &PreviewGraphClassId,
+//         b: &PreviewGraphClassPropertyId,
+//         name: &str,
+//         score: u32,
+//     ) -> Builder<Self> {
+//         Builder::new(RawGraphClass {
+//             id: GraphClassId::new(id),
+//             score,
+//             name_core: NameCore::new(name),
+//             definition: RawGraphClassDefinition::Intersection(vec![a.clone(), b.clone()]),
+//             variant: crate::input::raw_enums::RawGraphClassVariant::GraphClass,
+//             tags: Vec::new(),
+//         })
+//     }
+// }
 
-impl Intersectable<PreviewGraphClassId> for RawParameter {
+// impl Intersectable<PreviewParameterId, PreviewGraphClassId> for RawParameter {
+//     fn intersect(
+//         id: &str,
+//         a: &PreviewParameterId,
+//         b: &PreviewGraphClassId,
+//         name: &str,
+//         score: u32,
+//     ) -> Builder<Self> {
+//         Builder::new(RawParameter {
+//             id: ParameterId::new(id),
+//             score,
+//             name_core: NameCore::new(name),
+//             definition: RawParameterDefinition::Intersection(vec![a.clone(), b.clone()]),
+//             tags: Vec::new(),
+//         })
+//     }
+// }
+
+impl Intersectable<PreviewParameterId, PreviewParameterId> for RawParameter {
     fn intersect(
         id: &str,
         a: &PreviewParameterId,
-        b: &PreviewGraphClassId,
+        b: &PreviewParameterId,
         name: &str,
         score: u32,
     ) -> Builder<Self> {
         Builder::new(RawParameter {
-            id: ParameterId::new(id.into()),
+            id: ParameterId::new(id),
             score,
             name_core: NameCore::new(name),
-            definition: todo!(),
+            definition: RawParameterDefinition::Intersection(vec![a.clone(), b.clone()]),
             tags: Vec::new(),
         })
     }
