@@ -474,6 +474,135 @@ impl GeneratedPage for GraphClassProperty {
     }
 }
 
+impl GeneratedPage for Graph {
+    fn get_page(&self, _builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
+        if !self.definition.is_empty() {
+            res += &format!("**Definition:** {}\n\n", self.definition.join("\n\n"));
+        }
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
+impl GeneratedPage for LogicFragment {
+    fn get_page(&self, _builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
+        if let Some(description) = &self.description {
+            res += &format!("{}\n\n", description);
+        }
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
+impl GeneratedPage for Operation {
+    fn get_page(&self, _builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
+        if !self.description.is_empty() {
+            res += &format!("**Definition:** {}\n\n", self.description.join("\n\n"));
+        }
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
+impl GeneratedPage for ParametricParameter {
+    fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
+        if !self.tags.is_empty() {
+            let tag_strings: Vec<String> = self
+                .tags
+                .iter()
+                .map(|x| builder.linkto(&x.get_link()))
+                .collect();
+            res += &format!("tags: {}\n\n", tag_strings.join(", "));
+        }
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
+impl GeneratedPage for ParametricGraphClass {
+    fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
+        if !self.tags.is_empty() {
+            let tag_strings: Vec<String> = self
+                .tags
+                .iter()
+                .map(|x| builder.linkto(&x.get_link()))
+                .collect();
+            res += &format!("tags: {}\n\n", tag_strings.join(", "));
+        }
+        res += &format!("**Closed under:** {}\n\n", self.closed_under.name.name);
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
+impl GeneratedPage for Provider {
+    fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
+        res += &format!("URL: [{}]({})\n\n", self.url, self.url);
+        if !self.links.is_empty() {
+            res += "**Provides:**\n\n";
+            for link in &self.links {
+                res += &format!("* {}\n", builder.linkto(&link.set));
+            }
+            res += "\n";
+        }
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
+impl GeneratedPage for GraphRelation {
+    fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
+        let def_string = match &self.displayed_definition {
+            GraphRelationDefinition::Text(text) => text.clone(),
+            GraphRelationDefinition::IsomorphicAfterOperations(ops) => {
+                let op_strings: Vec<String> = ops
+                    .iter()
+                    .map(|op| op.name.name.clone())
+                    .collect();
+                format!("Isomorphic after operations: {}", op_strings.join(", "))
+            }
+        };
+        res += &format!("**Definition:** {}\n\n", def_string);
+        res += "[[handcrafted]]\n\n";
+        res += "\n";
+        res
+    }
+}
+
 impl GeneratedPage for Tag {
     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();

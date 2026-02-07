@@ -91,35 +91,49 @@ impl ParameterDefinition {
     }
 }
 
-// impl From<&RawOwn> for Own {
-//     fn from(raw: &RawOwn) -> Own {
-//         match raw {
-//             RawOwn::Has => Own::Has,
-//             RawOwn::Is => Own::Is,
-//         }
-//     }
-// }
+impl Own {
+    pub fn from(raw: RawOwn) -> Own {
+        match raw {
+            RawOwn::Has => Own::Has,
+            RawOwn::Is => Own::Is,
+        }
+    }
+}
 
-// impl Provider {
-//     pub fn from(raw: RawProvider, links: Vec<ProviderLink>) -> Provider {
-//         Provider {
-//             id: raw.id,
-//             name: raw.name,
-//             url: raw.url,
-//             links,
-//         }
-//     }
-// }
+impl Provider {
+    pub fn from(raw: RawProvider, links: Vec<ProviderLink>) -> Provider {
+        Provider {
+            id: raw.id,
+            name_core: raw.name_core,
+            url: raw.url,
+            links,
+        }
+    }
+}
 
-// impl ProviderLink {
-//     pub fn from(item: RawProviderLink, provider_id: PreviewProviderId) -> Self {
-//         ProviderLink {
-//             provider: provider_id,
-//             set: item.set_id,
-//             url: item.url,
-//         }
-//     }
-// }
+impl ProviderLink {
+    pub fn from(item: RawProviderLink) -> Self {
+        ProviderLink {
+            provider: item.provider,
+            set: item.link,
+        }
+    }
+}
+
+impl GraphRelationDefinition {
+    pub fn from(item: RawGraphRelationDefinition, preview_collection: &PreviewCollection) -> Self {
+        match item {
+            RawGraphRelationDefinition::Text(text) => Self::Text(text),
+            RawGraphRelationDefinition::IsomorphicAfterOperations(ids) => {
+                let previews = ids
+                    .iter()
+                    .filter_map(|id| preview_collection.operations_previews.get(id).cloned())
+                    .collect();
+                Self::IsomorphicAfterOperations(previews)
+            }
+        }
+    }
+}
 
 impl Tag {
     pub fn from(raw: RawTag, sets: Vec<Link>) -> Self {
@@ -172,6 +186,35 @@ impl GraphClassDefinition {
                     .unwrap()
                     .clone();
                 Self::Parameter(preview)
+            }
+        }
+    }
+}
+
+impl GraphClassPropertyDefinition {
+    pub fn from(
+        item: RawGraphClassPropertyDefinition,
+        preview_collection: &PreviewCollection,
+    ) -> Self {
+        match item {
+            RawGraphClassPropertyDefinition::Text(text) => GraphClassPropertyDefinition::Text(text),
+            RawGraphClassPropertyDefinition::FromGraphClass(id) => {
+                GraphClassPropertyDefinition::FromGraphClass(
+                    preview_collection
+                        .graph_classes_previews
+                        .get(&id)
+                        .unwrap()
+                        .clone(),
+                )
+            }
+            RawGraphClassPropertyDefinition::FromParameter(id) => {
+                GraphClassPropertyDefinition::FromParameter(
+                    preview_collection
+                        .parameters_previews
+                        .get(&id)
+                        .unwrap()
+                        .clone(),
+                )
             }
         }
     }

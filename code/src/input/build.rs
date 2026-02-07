@@ -311,7 +311,7 @@ impl CollectionBuilder {
     // }
 
     pub fn logic_fragment(
-        &self,
+        &mut self,
         id: &str,
         name: &str,
         description: Option<&str>,
@@ -321,30 +321,40 @@ impl CollectionBuilder {
             name_core: NameCore::new(name),
             description: description.map(String::from),
         };
-        res.id.preview()
+        let preview_id = res.id.preview();
+        self.data.logic_fragments.push(res);
+        preview_id
     }
 
-    pub fn graph_operation(&self, id: &str, name: &str, definition: &str) -> PreviewOperationId {
+    pub fn graph_operation(&mut self, id: &str, name: &str, definition: &str) -> PreviewOperationId {
         let res = RawOperation {
             id: OperationId::new(id),
             name_core: NameCore::new(name),
             definition: RawOperationDefinition::GraphOperation(definition.into()),
         };
-        res.id.preview()
+        let preview_id = res.id.preview();
+        self.data.operations.push(res);
+        preview_id
     }
 
     pub fn problem(
-        &self,
+        &mut self,
         id: &str,
         name: &str,
         definition: RawProblemDefinition,
     ) -> PreviewProblemId {
-        let id = ProblemId::new(id);
-        id.preview()
+        let res = RawProblem {
+            id: ProblemId::new(id),
+            name_core: NameCore::new(name),
+            definition,
+        };
+        let preview_id = res.id.preview();
+        self.data.problems.push(res);
+        preview_id
     }
 
     pub fn graph_class_operation(
-        &self,
+        &mut self,
         id: &str,
         name: &str,
         operation: RawOperationDefinition,
@@ -354,11 +364,13 @@ impl CollectionBuilder {
             name_core: NameCore::new(name),
             definition: operation,
         };
-        res.id.preview()
+        let preview_id = res.id.preview();
+        self.data.operations.push(res);
+        preview_id
     }
 
     pub fn graph_class_relation_type(
-        &self,
+        &mut self,
         id: &str,
         name: &str,
         definition: RawGraphClassRelationDefinition,
@@ -368,11 +380,13 @@ impl CollectionBuilder {
             name_core: NameCore::new(name),
             definition,
         };
-        res.id.preview()
+        let preview_id = res.id.preview();
+        self.data.graph_class_relations.push(res);
+        preview_id
     }
 
     pub fn graph_relation_type(
-        &self,
+        &mut self,
         id: &str,
         name: &str,
         displayed_definition: RawGraphRelationDefinition,
@@ -382,7 +396,9 @@ impl CollectionBuilder {
             name_core: NameCore::new(name),
             displayed_definition,
         };
-        res.id.preview()
+        let preview_id = res.id.preview();
+        self.data.graph_relations.push(res);
+        preview_id
     }
 
     pub fn assumed_source(&mut self) -> &mut RawSourceData {

@@ -176,7 +176,6 @@ impl Computation {
         let mut links: HashMap<String, Link> = HashMap::new();
         let mut generated_pages = HashMap::new();
         let Data {
-            graph_class_relations,
             graph_classes,
             graph_relations,
             graph_class_properties,
@@ -189,6 +188,7 @@ impl Computation {
             providers,
             tags,
             sources,
+            sorted_sources,
             factoids,
             drawings,
             arc_parameter_parameter,
@@ -217,6 +217,27 @@ impl Computation {
         for (id, val) in sources {
             links.insert(id.to_string(), val.get_link());
         }
+        for (id, val) in graphs {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in logic_fragments {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in operations {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in parametric_parameters {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in parametric_graph_class {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in providers {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in graph_relations {
+            links.insert(id.to_string(), val.get_link());
+        }
         for (id, val) in tags {
             links.insert(id.to_string(), val.get_link());
         }
@@ -238,6 +259,41 @@ impl Computation {
         );
         add_content(
             sources.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            graphs.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            logic_fragments.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            operations.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            parametric_parameters.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            parametric_graph_class.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            providers.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
+        add_content(
+            graph_relations.values(),
             &self.paths.final_dir,
             &mut generated_pages,
         );

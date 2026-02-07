@@ -18,6 +18,7 @@ pub struct PreviewCollection {
         HashMap<PreviewParametricParameterId, PreviewParametricParameter>,
     pub providers_previews: HashMap<PreviewProviderId, PreviewProvider>,
     pub tags_previews: HashMap<PreviewTagId, PreviewTag>,
+    pub graph_relations_previews: HashMap<PreviewGraphRelationId, PreviewGraphRelation>,
 }
 
 macro_rules! process_to_preview_map {
@@ -54,7 +55,7 @@ impl PreviewCollection {
         );
         process_to_preview_map!(providers_previews, providers, raw_data);
         process_to_preview_map!(tags_previews, tags, raw_data);
-        // pub graph_relations: Vec<RawGraphRelation>,
+        process_to_preview_map!(graph_relations_previews, graph_relations, raw_data);
 
         // todo
         // // previews ////////////////////////////////////////////////////////////////
@@ -111,6 +112,7 @@ impl PreviewCollection {
             parametric_parameters_previews,
             providers_previews,
             tags_previews,
+            graph_relations_previews,
         }
     }
 }

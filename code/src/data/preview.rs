@@ -143,12 +143,12 @@ define_preview_id_name!(
     PreviewGraphRelation,
     PreviewGraphRelationId
 );
-define_preview_id_name!(
-    GraphClassRelation,
-    RawGraphClassRelation,
-    PreviewGraphClassRelation,
-    PreviewGraphClassRelationId
-);
+// define_preview_id_name!(
+//     GraphClassRelation,
+//     RawGraphClassRelation,
+//     PreviewGraphClassRelation,
+//     PreviewGraphClassRelationId
+// );
 
 define_preview_id_name_score!(Graph, RawGraph, PreviewGraph, PreviewGraphId);
 define_preview_id_name_score!(

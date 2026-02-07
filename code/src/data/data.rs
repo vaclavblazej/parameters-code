@@ -273,8 +273,8 @@ pub enum Own {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum GraphClassPropertyDefinition {
     Text(String),
-    FromGraphClass(PreviewGraphClassId),
-    FromParameter(PreviewParameterId),
+    FromGraphClass(PreviewGraphClass),
+    FromParameter(PreviewParameter),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -347,19 +347,19 @@ pub enum GraphClassRelationDefinition {
     GraphRelation(GraphRelationDefinition),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GraphClassRelation {
-    pub id: GraphClassRelationId,
-    pub name_core: NameCore,
-    pub definition: GraphClassRelationDefinition,
-}
-named_impl!(GraphClassRelation);
-data_gettable!(
-    PreviewGraphClassRelationId,
-    GraphClassRelation,
-    graph_class_relations
-);
-tie_data_to_previewid!(GraphClassRelation, PreviewGraphClassRelationId);
+// #[derive(Debug, Serialize, Deserialize)]
+// pub struct GraphClassRelation {
+//     pub id: GraphClassRelationId,
+//     pub name_core: NameCore,
+//     pub definition: GraphClassRelationDefinition,
+// }
+// named_impl!(GraphClassRelation);
+// data_gettable!(
+//     PreviewGraphClassRelationId,
+//     GraphClassRelation,
+//     graph_class_relations
+// );
+// tie_data_to_previewid!(GraphClassRelation, PreviewGraphClassRelationId);
 
 pub enum KnowledgeState {
     // todo - check whether these are all the states
@@ -486,7 +486,6 @@ pub enum Fact {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Data {
-    pub graph_class_relations: HashMap<PreviewGraphClassRelationId, GraphClassRelation>,
     pub graph_classes: HashMap<PreviewGraphClassId, GraphClass>,
     pub graph_relations: HashMap<PreviewGraphRelationId, GraphRelation>,
     pub graph_class_properties: HashMap<PreviewGraphClassPropertyId, GraphClassProperty>,
@@ -499,6 +498,7 @@ pub struct Data {
     pub providers: HashMap<PreviewProviderId, Provider>,
     pub tags: HashMap<PreviewTagId, Tag>,
     pub sources: HashMap<PreviewSourceId, Source>,
+    pub sorted_sources: Vec<PreviewSourceId>,
     pub factoids: HashMap<PreviewSourceId, Fact>,
     pub drawings: HashMap<PreviewSourceId, Drawing>,
     pub arc_parameter_parameter: Vec<(PreviewParameterId, PreviewParameterId, Cpx)>,
@@ -575,7 +575,6 @@ where
 }
 
 pub struct DataFields {
-    pub graph_class_relations: Vec<GraphClassRelation>,
     pub tags: Vec<Tag>,
     pub providers: Vec<Provider>,
     pub parametric_parameters: Vec<ParametricParameter>,
@@ -649,7 +648,6 @@ impl Data {
     pub fn new(fields: DataFields) -> Self {
         trace!("new data");
         Self {
-            graph_class_relations: convert_to_id_map(fields.graph_class_relations),
             graph_classes: convert_to_id_map(fields.graph_classes),
             graph_relations: convert_to_id_map(fields.graph_relations),
             graphs: convert_to_id_map(fields.graphs),
@@ -660,6 +658,7 @@ impl Data {
             parametric_parameters: convert_to_id_map(fields.parametric_parameters),
             providers: convert_to_id_map(fields.providers),
             tags: convert_to_id_map(fields.tags),
+            sorted_sources: fields.sources.iter().map(|x| x.previewid()).collect(),
             sources: convert_to_id_map(fields.sources),
             factoids: fields.factoids,
             drawings: fields.drawings,
