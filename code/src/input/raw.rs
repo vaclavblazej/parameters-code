@@ -17,13 +17,6 @@ pub trait Defines<S> {
     fn defines(&self) -> S;
 }
 
-pub trait Concrete<FromId>
-where
-    Self: Sized,
-{
-    fn concretize(id: &str, a: &FromId, value: Value, name: &str, score: u32) -> Builder<Self>;
-}
-
 pub trait RawDataAddable {
     fn add(self, data: &mut RawData);
 }
@@ -111,24 +104,6 @@ tie_raw_to_previewid!(RawParametricParameter, PreviewParametricParameterId);
 tagged_impl!(RawParametricParameter, PreviewTagId);
 named_impl!(RawParametricParameter);
 raw_data_addable!(RawParametricParameter, parametric_parameters);
-
-impl Concrete<PreviewParametricParameterId> for RawParameter {
-    fn concretize(
-        id: &str,
-        a: &PreviewParametricParameterId,
-        value: Value,
-        name: &str,
-        score: u32,
-    ) -> Builder<RawParameter> {
-        Builder::new(RawParameter {
-            id: ParameterId::new(id),
-            score,
-            name_core: NameCore::new(name),
-            definition: RawParameterDefinition::FromParametricParameter(a.clone()),
-            tags: Vec::new(),
-        })
-    }
-}
 
 /// A map from natural numbers to graphs.
 #[derive(Debug)]

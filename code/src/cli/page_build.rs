@@ -10,7 +10,11 @@ use crate::output::pages::TargetPage;
 
 use super::paths::Paths;
 
-pub(crate) fn build_page(page: &TargetPage, markdown: &Markdown, paths: &Paths) -> anyhow::Result<()> {
+pub(crate) fn build_page(
+    page: &TargetPage,
+    markdown: &Markdown,
+    paths: &Paths,
+) -> anyhow::Result<()> {
     let content = match page.substitute {
         Some(substitute) => substitute.object.get_page(markdown, paths),
         None => "[[handcrafted]]".into(),

@@ -176,6 +176,7 @@ tie_data_to_previewid!(Graph, PreviewGraphId);
 pub enum GraphClassDefinition {
     Text(Vec<String>),
     Intersection(Vec<PreviewGraphClass>),
+    IntersectionGraphClassProperty(PreviewGraphClass, PreviewGraphClassProperty),
     ParametricGraphClass(PreviewParametricGraphClass),
     Parameter(PreviewParameter),
 }
@@ -241,8 +242,11 @@ pub enum ParameterDefinition {
     Graph(String),
     GraphClass(String),
     BoundsAll(PreviewParametricParameter), // higher order parameter
-    DistanceTo(PreviewParameter),
+    DistanceToParameter(PreviewParameter),
+    DistanceToGraphClass(PreviewGraphClass),
     Intersection(Vec<PreviewParameter>),
+    IntersectionParameterProperty(PreviewParameter, PreviewGraphClassProperty),
+    IntersectionParameterGraphClass(PreviewParameter, PreviewGraphClass),
     FromParametricParameter(PreviewParametricParameter),
 }
 

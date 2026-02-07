@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::{
     data::{Named, ProviderLink},
     enums::SourceKey,
-    id::HasId,
+    id::{HasId, PreviewId},
     preview::{
         PreviewGraphClass, PreviewParameter, PreviewParametricGraphClass, PreviewSource, PreviewTag,
     },
@@ -22,6 +22,13 @@ pub struct Link {
 pub trait Linkable {
     fn get_link(&self) -> Link;
 }
+
+// pub fn links<T>(vec: Vec<&PreviewId<T>>) -> Vec<PreviewId<T>>
+// where
+//     PreviewId<T>: Linkable,
+// {
+//     vec.iter().map(|&x| x.get_link()).collect()
+// }
 
 // impl Linkable for PreviewRelation {
 //     fn get_url(&self) -> String {

@@ -11,8 +11,11 @@ pub enum RawParameterDefinition {
     GraphText(String),
     GraphClassText(String),
     BoundsAll(PreviewParametricParameterId),
-    DistanceTo(PreviewParameterId),
-    Intersection(Vec<PreviewParameterId>),
+    DistanceToParameter(PreviewParameterId),
+    DistanceToGraphClass(PreviewGraphClassId),
+    IntersectionParameters(Vec<PreviewParameterId>),
+    IntersectionParameterProperty(PreviewParameterId, PreviewGraphClassPropertyId),
+    IntersectionParameterGraphClass(PreviewParameterId, PreviewGraphClassId),
     FromParametricParameter(PreviewParametricParameterId),
 }
 
@@ -50,7 +53,8 @@ pub enum RawGraphClassRelationDefinition {
 #[derive(Debug)]
 pub enum RawGraphClassDefinition {
     Text(String),
-    Intersection(Vec<PreviewGraphClassId>),
+    IntersectionGraphClasses(Vec<PreviewGraphClassId>),
+    IntersectionGraphClassProperty(PreviewGraphClassId, PreviewGraphClassPropertyId),
     ParametricGraphClass(PreviewParametricGraphClassId),
     Parameter(PreviewParameterId),
 }

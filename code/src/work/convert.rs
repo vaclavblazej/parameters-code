@@ -29,25 +29,55 @@ impl ParameterDefinition {
             }
             RawParameterDefinition::GraphText(text) => Self::Graph(text),
             RawParameterDefinition::GraphClassText(text) => Self::GraphClass(text),
-            RawParameterDefinition::DistanceTo(parid) => Self::DistanceTo(
+            RawParameterDefinition::DistanceToParameter(parid) => Self::DistanceToParameter(
                 preview_collection
                     .parameters_previews
                     .get(&parid)
                     .unwrap()
                     .clone(),
             ),
-            RawParameterDefinition::Intersection(preview_ids) => Self::Intersection(
-                preview_ids
-                    .iter()
-                    .map(|x| {
-                        preview_collection
-                            .parameters_previews
-                            .get(&x)
-                            .unwrap()
-                            .clone()
-                    })
-                    .collect(),
+            RawParameterDefinition::DistanceToGraphClass(gcid) => Self::DistanceToGraphClass(
+                preview_collection
+                    .graph_classes_previews
+                    .get(&gcid)
+                    .unwrap()
+                    .clone(),
             ),
+            RawParameterDefinition::IntersectionParameters(ids) => {
+                let previews = ids
+                    .iter()
+                    .filter_map(|id| preview_collection.parameters_previews.get(id).cloned())
+                    .collect();
+                Self::Intersection(previews)
+            }
+            RawParameterDefinition::IntersectionParameterProperty(par_id, prop_id) => {
+                Self::IntersectionParameterProperty(
+                    preview_collection
+                        .parameters_previews
+                        .get(&par_id)
+                        .unwrap()
+                        .clone(),
+                    preview_collection
+                        .graph_class_properties_previews
+                        .get(&prop_id)
+                        .unwrap()
+                        .clone(),
+                )
+            }
+            RawParameterDefinition::IntersectionParameterGraphClass(par_id, gc_id) => {
+                Self::IntersectionParameterGraphClass(
+                    preview_collection
+                        .parameters_previews
+                        .get(&par_id)
+                        .unwrap()
+                        .clone(),
+                    preview_collection
+                        .graph_classes_previews
+                        .get(&gc_id)
+                        .unwrap()
+                        .clone(),
+                )
+            }
             RawParameterDefinition::FromParametricParameter(preview_id) => {
                 Self::FromParametricParameter(
                     preview_collection
@@ -106,12 +136,26 @@ impl GraphClassDefinition {
     pub fn from(item: RawGraphClassDefinition, preview_collection: &PreviewCollection) -> Self {
         match item {
             RawGraphClassDefinition::Text(text) => Self::Text(vec![text]),
-            RawGraphClassDefinition::Intersection(ids) => {
+            RawGraphClassDefinition::IntersectionGraphClasses(ids) => {
                 let previews = ids
                     .iter()
                     .filter_map(|id| preview_collection.graph_classes_previews.get(id).cloned())
                     .collect();
                 Self::Intersection(previews)
+            }
+            RawGraphClassDefinition::IntersectionGraphClassProperty(gc_id, prop_id) => {
+                Self::IntersectionGraphClassProperty(
+                    preview_collection
+                        .graph_classes_previews
+                        .get(&gc_id)
+                        .unwrap()
+                        .clone(),
+                    preview_collection
+                        .graph_class_properties_previews
+                        .get(&prop_id)
+                        .unwrap()
+                        .clone(),
+                )
             }
             RawGraphClassDefinition::ParametricGraphClass(id) => {
                 let preview = preview_collection

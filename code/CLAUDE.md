@@ -50,9 +50,9 @@ All bacon jobs use `--target-dir /tmp/hops` for faster compilation.
 Data flows through 5 layers:
 
 ```
-INPUT (src/input/)           Raw data structures, builder API
-       ↓
 COLLECTION (src/collection.rs)  Database definitions (~166KB, defines all parameters)
+       ↓
+INPUT (src/input/)           Raw data structures, builder API
        ↓
 DATA (src/data/)             Core typed structures (Parameter, Relation, etc.)
        ↓

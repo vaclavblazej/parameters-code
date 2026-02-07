@@ -408,12 +408,12 @@ impl RawSourceData {
         }
     }
 
-    pub fn wrote(
-        mut self,
+    pub fn ref_wrote(
+        &mut self,
         page: Page,
         text: &str,
         facts: Vec<(&str, RawWroteStatus, RawFact)>,
-    ) -> Self {
+    ) -> &mut Self {
         self.factoids.push(RawWrote {
             text: text.into(),
             page,
@@ -422,6 +422,16 @@ impl RawSourceData {
                 .map(|(id, st, fact)| (ShowedId::new(id), st, fact))
                 .collect(),
         });
+        self
+    }
+
+    pub fn wrote(
+        mut self,
+        page: Page,
+        text: &str,
+        facts: Vec<(&str, RawWroteStatus, RawFact)>,
+    ) -> Self {
+        self.ref_wrote(page, text, facts);
         self
     }
 

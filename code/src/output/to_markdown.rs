@@ -1,12 +1,21 @@
 use std::fmt;
 
-use crate::data::data::Own;
+use crate::data::data::{NameCore, Own};
 use crate::data::enums::*;
 use crate::data::id::HasId;
 use crate::data::preview::{HasPreview, PreviewSource, PreviewSourceKey};
 
 pub trait ToMarkdown {
     fn to_markdown(&self) -> Option<String>;
+}
+
+impl<T> ToMarkdown for T
+where
+    T: HasId,
+{
+    fn to_markdown(&self) -> Option<String> {
+        Some(format!("[[{}]]", &self.id()))
+    }
 }
 
 impl ToMarkdown for Page {
@@ -34,12 +43,18 @@ impl ToMarkdown for CpxTime {
     }
 }
 
-impl<T> ToMarkdown for T
-where
-    T: HasId,
-{
+impl ToMarkdown for NameCore {
     fn to_markdown(&self) -> Option<String> {
-        Some(format!("[[{}]]", &self.id()))
+        let mut res = String::new();
+        res += &format!("---\ntitle: \"{}\"\n---", self.name);
+        res += &format!("# {}\n\n", self.name);
+        if let Some(abbr) = &self.abbr {
+            res += &format!("abbr: {}\n\n", abbr);
+        }
+        if !self.aka.is_empty() {
+            res += &format!("aka: {}\n\n", self.aka.join(", "));
+        }
+        Some(res)
     }
 }
 

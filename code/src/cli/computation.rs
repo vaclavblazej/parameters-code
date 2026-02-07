@@ -6,7 +6,7 @@ use biblatex::Bibliography;
 use log::{debug, error, info, warn};
 
 use crate::data::bibliography::load_bibliography;
-use crate::data::data::{Data, Parameter};
+use crate::data::data::{Data, GraphClass, Parameter};
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::link::{Link, Linkable};
@@ -120,9 +120,11 @@ impl Computation {
             .values()
             .filter(|x| x.score >= self.simplified_hide_irrelevant_parameters_below)
             .collect();
+        let graphs: Vec<&GraphClass> = data.graph_classes.values().collect();
         for (name, displayed_parameters) in [
             ("parameters", parameters),
             ("parameters_simplified", simplified_parameters),
+            // ("graphs", graphs), // todo
         ] {
             let mut digraph = DotGraph::new(name, None);
             for dp in &displayed_parameters {
@@ -209,12 +211,15 @@ impl Computation {
         for (id, val) in graph_classes {
             links.insert(id.to_string(), val.get_link());
         }
-        // for source in sources {
-        //     links.insert(source.id.to_string(), Box::new(source.preview()));
-        // }
-        // for tag in tags {
-        //     links.insert(tag.id.to_string(), Box::new(tag.preview()));
-        // }
+        for (id, val) in graph_class_properties {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in sources {
+            links.insert(id.to_string(), val.get_link());
+        }
+        for (id, val) in tags {
+            links.insert(id.to_string(), val.get_link());
+        }
         add_content(
             parameters.values(),
             &self.paths.final_dir,
@@ -226,6 +231,11 @@ impl Computation {
             &mut generated_pages,
         );
         add_content(tags.values(), &self.paths.final_dir, &mut generated_pages);
+        add_content(
+            graph_class_properties.values(),
+            &self.paths.final_dir,
+            &mut generated_pages,
+        );
         add_content(
             sources.values(),
             &self.paths.final_dir,

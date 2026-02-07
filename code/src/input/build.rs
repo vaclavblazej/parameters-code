@@ -9,6 +9,8 @@ use crate::data::data::Named;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::input::builder::Builder;
+use crate::input::distance_to::DistanceTo;
+use crate::input::concretizable::Concretizable;
 use crate::input::intersectable::Intersectable;
 use crate::input::provider::RawDataProvider;
 use crate::input::raw::*;
@@ -179,6 +181,49 @@ pub fn provider(
     RawDataProvider::new(provider, format_url)
 }
 
+/// Add a parameter defined as the number of vertices to be removed
+/// until the remaining graph falls in the given set.
+pub fn distance_to<TargetId>(
+    id: &str,
+    set_id: &TargetId,
+    name: &str,
+    score: u32,
+) -> Builder<RawParameter>
+where
+    RawParameter: DistanceTo<TargetId>,
+{
+    RawParameter::distance_to(id, set_id, name, score)
+}
+
+/// Create a new set that represents intersection of sets.
+/// From a view point of classical parameterized complexity
+/// we may understand the intersection as a sum of parameters.
+pub fn intersection<IdA, IdB>(
+    id: &str,
+    set_a: &IdA,
+    set_b: &IdB,
+    name: &str,
+    score: u32,
+) -> Builder<<IdA as Intersectable<IdB>>::Result>
+where
+    IdA: Intersectable<IdB>,
+{
+    IdA::intersect(id, set_a, set_b, name, score)
+}
+
+pub fn concretize<IdA>(
+    what: &IdA,
+    id: &str,
+    name: &str,
+    value: Value,
+    score: u32,
+) -> Builder<<IdA as Concretizable>::Result>
+where
+    IdA: Concretizable,
+{
+    IdA::concretize(id, what, value, name, score)
+}
+
 impl CollectionBuilder {
     pub fn new() -> CollectionBuilder {
         let unknown_source = RawSourceData::new(RawSource {
@@ -338,95 +383,6 @@ impl CollectionBuilder {
             displayed_definition,
         };
         res.id.preview()
-    }
-
-    // /// Add a parameter defined as the number of vertices to be removed
-    // /// until the remaining graph falls in the given set.
-    // pub fn distance_to(
-    //     &self,
-    //     id: &str,
-    //     set_id: &PreviewParameterId, // todo generalize?
-    //     score: u32,
-    // ) -> Builder<RawParameter> {
-    //     let set = self.data.parameters.get(set_id).unwrap();
-    //     let res = RawParameter {
-    //         id: ParameterId::new(id),
-    //         score,
-    //         name_core: NameCore::new(&format!("distance to {}", set.name)),
-    //         definition: RawParameterDefinition::DistanceTo(set_id.clone()),
-    //         tags: Vec::new(),
-    //     };
-    //     let set_type = set.typ.clone();
-    //     let set_id = set.id.preview();
-    //     Builder::new(res)
-    //     .displayed_definition(
-    //         "",
-    //         &format!(
-    //             "Minimum number of vertices removed to make the graph into [[{}]]",
-    //             set_id
-    //         ),
-    //     ) // todo move to later processing
-    //     .add_callback(Box::new( // todo fixme
-    //         move |builder: &mut CollectionBuilder, newset: &RawSet| {
-    //             let mut tmp_source = builder.assumed_source();
-    //             match set_type {
-    //                 RawType::Parameter => builder.assumed_source.ref_proved(
-    //                     &SourceId::get_tmp().to_string(),
-    //                     Page::NotApplicable,
-    //                     &set_id,
-    //                     &newset.id.preview(),
-    //                     UpperBound(Linear),
-    //                     "by definition",
-    //                 ),
-    //                 RawType::GraphClass | RawType::Property(_) => {
-    //                     builder.assumed_source.ref_proved(
-    //                         &SourceId::get_tmp().to_string(),
-    //                         Page::NotApplicable,
-    //                         &set_id,
-    //                         &newset.id.preview(),
-    //                         UpperBound(Constant),
-    //                         "by definition",
-    //                     )
-    //                 }
-    //             };
-    //             builder.transfers_bound_to(
-    //                 TransferGroup::DistanceTo,
-    //                 &set_id,
-    //                 &newset.id.preview(),
-    //             );
-    //         },
-    //     ))
-    // }
-
-    /// Create a new set that represents intersection of sets.
-    /// From a view point of classical parameterized complexity
-    /// we may understand the intersection as a sum of parameters.
-    pub fn intersection<IdB, IdA, ResType>(
-        &self,
-        id: &str,
-        set_a: &IdA,
-        set_b: &IdB,
-        name: &str,
-        score: u32,
-    ) -> Builder<ResType>
-    where
-        ResType: Intersectable<IdA, IdB>,
-    {
-        ResType::intersect(id, set_a, set_b, name, score)
-    }
-
-    pub fn concretize<IdA, ResType>(
-        &self,
-        what: &IdA,
-        id: &str,
-        name: &str,
-        value: Value,
-        score: u32,
-    ) -> Builder<ResType>
-    where
-        ResType: Concrete<IdA>,
-    {
-        ResType::concretize(id, what, value, name, score)
     }
 
     pub fn assumed_source(&mut self) -> &mut RawSourceData {

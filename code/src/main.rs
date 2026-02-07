@@ -16,6 +16,8 @@ mod general {
 mod input {
     pub mod build;
     pub mod builder;
+    pub mod concretizable;
+    pub mod distance_to;
     pub mod intersectable;
     pub mod provider;
     pub mod raw;

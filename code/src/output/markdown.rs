@@ -82,13 +82,8 @@ fn include_dot_file(drawing: anyhow::Result<PathBuf>, final_dir: &Path) -> Strin
 impl GeneratedPage for Parameter {
     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
-        res += &format!("---\ntitle: \"{}\"\n---", self.name_core.name);
-        res += &format!("# {}\n\n", self.name_core.name);
-        if let Some(abbr) = &self.name_core.abbr {
-            res += &format!("abbr: {}\n\n", abbr);
-        }
-        if !self.name_core.aka.is_empty() {
-            res += &format!("aka: {}\n\n", self.name_core.aka.join(", "));
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
         }
         if !self.tags.is_empty() {
             let tag_strings: Vec<String> = self
@@ -121,13 +116,17 @@ impl GeneratedPage for Parameter {
             ParameterDefinition::GraphClass(text) => text.clone(),
             ParameterDefinition::BoundsAll(preview_parametric_parameter) => {
                 format!(
-                    "Parameter is at most $k$ if value of every {} is at most $k$.",
-                    preview_parametric_parameter.name_core.name
+                    "Parameter is at most $k$ if value of every [[{}]] is at most $k$.",
+                    preview_parametric_parameter.id
                 )
             }
-            ParameterDefinition::DistanceTo(preview_parameter) => format!(
-                "Parameter is at most $k$ when we can remove $k$ vertices to end up with {}",
-                preview_parameter.name_core.name
+            ParameterDefinition::DistanceToParameter(preview_parameter) => format!(
+                "Minimum number of vertices removed to make the graph into [[{}]]",
+                preview_parameter.id
+            ),
+            ParameterDefinition::DistanceToGraphClass(preview_graph_class) => format!(
+                "Minimum number of vertices removed to make the graph into [[{}]]",
+                preview_graph_class.id
             ),
             ParameterDefinition::Intersection(preview_parameters) => {
                 format!(
@@ -139,6 +138,12 @@ impl GeneratedPage for Parameter {
                             .collect()
                     )
                 )
+            }
+            ParameterDefinition::IntersectionParameterProperty(param, prop) => {
+                format!("Intersection of [[{}]] and [[{}]]", param.id, prop.id)
+            }
+            ParameterDefinition::IntersectionParameterGraphClass(param, gc) => {
+                format!("Intersection of [[{}]] and [[{}]]", param.id, gc.id)
             }
             ParameterDefinition::FromParametricParameter(preview_parametric_parameter) => format!(
                 "concretization of {}",
@@ -415,13 +420,8 @@ fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
 impl GeneratedPage for GraphClass {
     fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        res += &format!("---\ntitle: \"{}\"\n---", self.name_core.name);
-        res += &format!("# {}\n\n", self.name_core.name);
-        if let Some(abbr) = &self.name_core.abbr {
-            res += &format!("abbr: {}\n\n", abbr);
-        }
-        if !self.name_core.aka.is_empty() {
-            res += &format!("aka: {}\n\n", self.name_core.aka.join(", "));
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
         }
         if !self.tags.is_empty() {
             let tag_strings: Vec<String> = self
@@ -440,6 +440,13 @@ impl GeneratedPage for GraphClass {
                     .collect();
                 format!("Intersection of: {}", class_links.join(", "))
             }
+            GraphClassDefinition::IntersectionGraphClassProperty(gc, prop) => {
+                format!(
+                    "Intersection of {} and {}",
+                    builder.linkto(&gc.get_link()),
+                    prop.name_core.name
+                )
+            }
             GraphClassDefinition::ParametricGraphClass(pgc) => {
                 format!("Instance of {}", builder.linkto(&pgc.get_link()))
             }
@@ -453,6 +460,16 @@ impl GeneratedPage for GraphClass {
         res += &format!("**Definition:** {}\n\n", definition_string);
         res += "[[handcrafted]]\n\n";
         res += "\n";
+        res
+    }
+}
+
+impl GeneratedPage for GraphClassProperty {
+    fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
+        let mut res = String::new();
+        if let Some(title) = self.name_core.to_markdown() {
+            res += &title;
+        }
         res
     }
 }
