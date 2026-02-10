@@ -30,31 +30,14 @@ use crate::input::source::{RawSource, RawSourceKey};
 use crate::work::hierarchy::Relation;
 use crate::work::preview_collection::PreviewCollection;
 
-fn resolve_tags<Id: Eq>(
-    entity_id: &Id,
-    tag_set: &[(PreviewTagId, Id)],
-    tag_map: &HashMap<PreviewTagId, PreviewTag>,
-) -> Vec<PreviewTag> {
-    tag_set
-        .iter()
-        .filter(|(_, id)| id == entity_id)
-        .filter_map(|(tag_id, _)| tag_map.get(tag_id).cloned())
-        .collect()
-}
-
-fn process_parameter(
-    parameter: RawParameter,
-    tag_set: &[(PreviewTagId, PreviewParameterId)],
-    tag_map: &HashMap<PreviewTagId, PreviewTag>,
-    preview_collection: &PreviewCollection,
-) -> Parameter {
+fn process_parameter(parameter: RawParameter, preview_collection: &PreviewCollection) -> Parameter {
     let preview = parameter.preview();
     let RawParameter {
         id,
         score,
         name_core,
         definition: raw_definition,
-        tags: raw_tags,
+        tags,
     } = parameter;
     // let mut timeline_map: HashMap<PreviewSourceId, Vec<PreviewWrote>> = HashMap::new(); // todo
     // for (source_id, showed) in &preview_collection.factoids {
@@ -113,28 +96,20 @@ fn process_parameter(
     //     vec![]
     // };
     // let transfers = HashMap::new(); // todo
-    let tags = resolve_tags(&id.preview(), tag_set, tag_map);
     Parameter {
         id,
         name_core,
         definition: ParameterDefinition::from(raw_definition, preview_collection),
         score,
-        tags,
-        // related_sets: RelatedSets::new(
-        //     help.get_eqsets(&preview),
-        //     prepare_extremes(supersets, help),
-        //     prepare_extremes(subsets, help),
-        //     prepare_extremes(super_exclusions, help),
-        //     prepare_extremes(sub_exclusions, help),
-        //     prepare_extremes(unknown, help),
-        // ),
+        tags: tags
+            .iter()
+            .map(|x| preview_collection.tags_previews.get(x).unwrap().clone())
+            .collect(),
     }
 }
 
 fn process_graph_class(
     graph_class: RawGraphClass,
-    tag_set: &[(PreviewTagId, PreviewGraphClassId)],
-    tag_map: &HashMap<PreviewTagId, PreviewTag>,
     preview_collection: &PreviewCollection,
 ) -> GraphClass {
     let RawGraphClass {
@@ -142,24 +117,24 @@ fn process_graph_class(
         score,
         name_core,
         definition,
-        tags: _,
+        tags,
         variant,
     } = graph_class;
-    let tags = resolve_tags(&id.preview(), tag_set, tag_map);
     GraphClass {
         id,
         score,
         name_core,
         definition: GraphClassDefinition::from(definition, preview_collection),
         variant: GraphClassVariant::from(variant),
-        tags,
+        tags: tags
+            .iter()
+            .map(|x| preview_collection.tags_previews.get(x).unwrap().clone())
+            .collect(),
     }
 }
 
 fn process_graph_class_property(
     gc_property: RawGraphClassProperty,
-    tag_set: &[(PreviewTagId, PreviewGraphClassPropertyId)],
-    tag_map: &HashMap<PreviewTagId, PreviewTag>,
     preview_collection: &PreviewCollection,
 ) -> GraphClassProperty {
     let RawGraphClassProperty {
@@ -168,29 +143,38 @@ fn process_graph_class_property(
         name_core,
         definition,
         own,
+        tags,
     } = gc_property;
-    let tags = resolve_tags(&id.preview(), tag_set, tag_map);
     GraphClassProperty {
         id,
         score,
         name_core,
         definition: GraphClassPropertyDefinition::from(definition, preview_collection),
         own: Own::from(own),
+        tags: tags
+            .iter()
+            .map(|x| preview_collection.tags_previews.get(x).unwrap().clone())
+            .collect(),
     }
 }
 
-fn process_graph(graph: RawGraph) -> Graph {
+fn process_graph(graph: RawGraph, preview_collection: &PreviewCollection) -> Graph {
     let RawGraph {
         id,
         score,
         name_core,
         definition,
+        tags,
     } = graph;
     Graph {
         id,
         score,
         name_core,
         definition,
+        tags: tags
+            .iter()
+            .map(|x| preview_collection.tags_previews.get(x).unwrap().clone())
+            .collect(),
     }
 }
 
@@ -226,29 +210,28 @@ fn process_operation(op: RawOperation) -> Operation {
 
 fn process_parametric_parameter(
     pp: RawParametricParameter,
-    tag_set: &[(PreviewTagId, PreviewParametricParameterId)],
-    tag_map: &HashMap<PreviewTagId, PreviewTag>,
+    preview_collection: &PreviewCollection,
 ) -> ParametricParameter {
     let RawParametricParameter {
         id,
         score,
         name_core,
-        definition: _,
-        tags: _,
+        definition,
+        tags,
     } = pp;
-    let tags = resolve_tags(&id.preview(), tag_set, tag_map);
     ParametricParameter {
         id,
         score,
         name_core,
-        tags,
+        tags: tags
+            .iter()
+            .map(|x| preview_collection.tags_previews.get(x).unwrap().clone())
+            .collect(),
     }
 }
 
 fn process_parametric_graph_class(
     pgc: RawParametricGraphClass,
-    tag_set: &[(PreviewTagId, PreviewParametricGraphClassId)],
-    tag_map: &HashMap<PreviewTagId, PreviewTag>,
     preview_collection: &PreviewCollection,
 ) -> ParametricGraphClass {
     let RawParametricGraphClass {
@@ -256,10 +239,9 @@ fn process_parametric_graph_class(
         score,
         name_core,
         closed_under,
-        tags: _,
-        definition: _,
+        tags,
+        definition,
     } = pgc;
-    let tags = resolve_tags(&id.preview(), tag_set, tag_map);
     let closed_under = preview_collection
         .graph_relations_previews
         .get(&closed_under)
@@ -270,7 +252,10 @@ fn process_parametric_graph_class(
         score,
         name_core,
         closed_under,
-        tags,
+        tags: tags
+            .iter()
+            .map(|x| preview_collection.tags_previews.get(x).unwrap().clone())
+            .collect(),
     }
 }
 
@@ -374,7 +359,6 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         problems: raw_problems,
     } = rawdata;
     let raw_parameters_map = convert_to_id_map(raw_parameters);
-    let tag_map = convert_to_id_map(raw_tags);
     let sources = convert_to_id_map(
         raw_sources
             .into_iter()
@@ -384,14 +368,16 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     let mut definitions_map: HashMap<DefKind, Vec<Def>> = HashMap::new();
     let mut relations_map: HashMap<RelKind, Vec<Rel>> = HashMap::new();
     for (source_id, raw_wrote) in raw_factoids {
-        let RawWrote { text, page, facts } = raw_wrote;
-        for (showed_id, wrote_status, fact) in facts {
-            match fact {
-                RawFact::Rel(r) => {
-                    relations_map.entry(r.kind()).or_default().push(r);
-                }
-                RawFact::Def(d) => {
-                    definitions_map.entry(d.kind()).or_default().push(d);
+        for wrote in raw_wrote {
+            let RawWrote { text, page, facts } = wrote;
+            for (showed_id, wrote_status, fact) in facts {
+                match fact {
+                    RawFact::Rel(r) => {
+                        relations_map.entry(r.kind()).or_default().push(r);
+                    }
+                    RawFact::Def(d) => {
+                        definitions_map.entry(d.kind()).or_default().push(d);
+                    }
                 }
             }
         }
@@ -406,24 +392,30 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     let mut arc_gcprop_gcprop = Vec::new();
     let mut arc_gc_gcprop = Vec::new();
     let mut arc_parameter_gcprop = Vec::new();
+    let mut arc_gc_par = Vec::new();
     let mut arc_problem_problem = Vec::new();
     let mut arc_problem_gcprop = Vec::new();
     let mut arc_problem_parameter = Vec::new();
-    for x in relations_map.get(&RelKind::ParPar).unwrap_or(&vec![]) {
-        match x {
-            Rel::LfLf(f, t, d) => arc_lf_lf.push((f.clone(), t.clone(), d.clone())),
-            Rel::OpOp(f, t, d) => arc_op_op.push((f.clone(), t.clone(), d.clone())),
-            Rel::GrGr(f, t, d) => arc_graph_graph.push((f.clone(), t.clone(), d.clone())),
-            Rel::GcGc(f, t, d) => arc_gc_gc.push((f.clone(), t.clone(), d.clone())),
-            Rel::GrGc(f, t, d) => arc_graph_gc.push((f.clone(), t.clone(), d.clone())),
-            Rel::PgcPgc(f, t, d) => arc_pargc_pargc.push((f.clone(), t.clone(), d.clone())),
-            Rel::ParPar(f, t, d) => arc_parameter_parameter.push((f.clone(), t.clone(), d.clone())),
-            Rel::PropProp(f, t, d) => arc_gcprop_gcprop.push((f.clone(), t.clone(), d.clone())),
-            Rel::GcProp(f, t, d) => arc_gc_gcprop.push((f.clone(), t.clone(), d.clone())),
-            Rel::ParProp(f, t, d) => arc_parameter_gcprop.push((f.clone(), t.clone(), d.clone())),
-            Rel::ProbProb(f, t, d) => arc_problem_problem.push((f.clone(), t.clone(), d.clone())),
-            Rel::ProbProp(f, t, d) => arc_problem_gcprop.push((f.clone(), t.clone(), d.clone())),
-            Rel::ProbPar(f, t, d) => arc_problem_parameter.push((f.clone(), t.clone(), d.clone())),
+    let mut arc_gcprop_parameter = Vec::new();
+    for (k, col) in relations_map {
+        for x in col {
+            match x {
+                Rel::LfLf(f, t, d) => arc_lf_lf.push((f.clone(), t.clone(), d.clone())),
+                Rel::OpOp(f, t, d) => arc_op_op.push((f.clone(), t.clone(), d.clone())),
+                Rel::GrGr(f, t, d) => arc_graph_graph.push((f.clone(), t.clone(), d.clone())),
+                Rel::GcGc(f, t, d) => arc_gc_gc.push((f.clone(), t.clone(), d.clone())),
+                Rel::GrGc(f, t, d) => arc_graph_gc.push((f.clone(), t.clone(), d.clone())),
+                Rel::PgcPgc(f, t, d) => arc_pargc_pargc.push((f.clone(), t.clone(), d.clone())),
+                Rel::ParPar(f, t, d) => arc_parameter_parameter.push((f.clone(), t.clone(), d.clone())),
+                Rel::PropProp(f, t, d) => arc_gcprop_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Rel::GcProp(f, t, d) => arc_gc_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Rel::GcPar(f, t, d) => arc_gc_par.push((f.clone(), t.clone(), d.clone())),
+                Rel::ParProp(f, t, d) => arc_parameter_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Rel::ProbProb(f, t, d) => arc_problem_problem.push((f.clone(), t.clone(), d.clone())),
+                Rel::ProbProp(f, t, d) => arc_problem_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Rel::ProbPar(f, t, d) => arc_problem_parameter.push((f.clone(), t.clone(), d.clone())),
+                Rel::PropPar(f, t, d) => arc_gcprop_parameter.push((f.clone(), t.clone(), d.clone())),
+            }
         }
     }
     let mut provider_links_map: HashMap<PreviewProviderId, Vec<ProviderLink>> = HashMap::new();
@@ -446,69 +438,52 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         .iter()
         .map(|(k, v)| (v.previewid(), v.get_link()))
         .collect();
-    let mut tag_set: Vec<(PreviewTagId, PreviewParameterId)> = Vec::new();
-    for (k, v) in &raw_parameters_map {
-        for preview_tag_id in &v.tags {
-            tag_set.push((preview_tag_id.clone(), k.clone()));
+    let tags: Vec<Tag> = raw_tags.into_iter().map(|t| Tag::from(t, vec![])).collect();
+    let mut tag_map: HashMap<PreviewTagId, Tag> = convert_to_id_map(tags);
+    fn add_tag_links<T>(items: &[T], tag_map: &mut HashMap<PreviewTagId, Tag>)
+    where
+        T: Linkable + Tagged<PreviewTagId>,
+    {
+        for item in items {
+            let link = item.get_link();
+            for tag_id in item.tag() {
+                if let Some(tag) = tag_map.get_mut(tag_id) {
+                    tag.sets.push(link.clone());
+                }
+            }
         }
     }
-    // for val in raw_parameters_map.values() {
-    //     for tagid in &val.tags {
-    //         let mut sets: &mut Vec<Link> = tag_set.entry(tagid.clone()).or_insert(Vec::new());
-    //         sets.push(
-    //             preview_collection
-    //                 .parameters_previews
-    //                 .get(&val.id.preview())
-    //                 .unwrap()
-    //                 .get_link(),
-    //         );
-    //     }
-    // }
-    // extract_tags(raw_parameters_map.values()); // todo use
-    let tags: Vec<Tag> = tag_map
-        .into_iter()
-        .map(|(tagid, tag)| {
-            // let tag = tag_map.remove(&tagid).unwrap();
-            Tag::from(tag, vec![]) // todo sets.get_link()
-        })
-        .collect();
-    let mut tag_preview_map: HashMap<PreviewTagId, PreviewTag> = HashMap::new();
-    for tag in &tags {
-        tag_preview_map.insert(tag.id.preview(), tag.preview());
+    for parameter in raw_parameters_map.values() {
+        let link = parameter.get_link();
+        for tag_id in &parameter.tags {
+            if let Some(tag) = tag_map.get_mut(tag_id) {
+                tag.sets.push(link.clone());
+            }
+        }
     }
+    add_tag_links(&raw_graph_classes, &mut tag_map);
+    add_tag_links(&raw_graph_class_properties, &mut tag_map);
+    add_tag_links(&raw_graphs, &mut tag_map);
+    add_tag_links(&raw_parametric_parameters, &mut tag_map);
+    add_tag_links(&raw_parametric_graph_class, &mut tag_map);
     // let (relations, partial_results) =
     //     process_relations(&composed_sets, &transfers, &sources, &preview_collection);
     let parameters = raw_parameters_map
         .into_values()
-        .map(|parameter| {
-            process_parameter(parameter, &tag_set, &tag_preview_map, &preview_collection)
-        })
+        .map(|parameter| process_parameter(parameter, &preview_collection))
         .collect();
-    let mut graph_class_tag_set: Vec<(PreviewTagId, PreviewGraphClassId)> = Vec::new();
-    for gc in &raw_graph_classes {
-        for preview_tag_id in &gc.tags {
-            graph_class_tag_set.push((preview_tag_id.clone(), gc.id.preview()));
-        }
-    }
     let graph_classes = raw_graph_classes
         .into_iter()
-        .map(|gc| {
-            process_graph_class(
-                gc,
-                &graph_class_tag_set,
-                &tag_preview_map,
-                &preview_collection,
-            )
-        })
+        .map(|gc| process_graph_class(gc, &preview_collection))
         .collect();
     let graph_class_properties = raw_graph_class_properties
         .into_iter()
-        .map(|prop| {
-            // todo fix tags
-            process_graph_class_property(prop, &[], &tag_preview_map, &preview_collection)
-        })
+        .map(|prop| process_graph_class_property(prop, &preview_collection))
         .collect();
-    let graphs: Vec<Graph> = raw_graphs.into_iter().map(process_graph).collect();
+    let graphs: Vec<Graph> = raw_graphs
+        .into_iter()
+        .map(|graph| process_graph(graph, &preview_collection))
+        .collect();
     let logic_fragments: Vec<LogicFragment> = raw_logic_fragments
         .into_iter()
         .map(process_logic_fragment)
@@ -518,35 +493,16 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         .into_iter()
         .map(|gr| process_graph_relation(gr, &preview_collection))
         .collect();
-    let mut pp_tag_set: Vec<(PreviewTagId, PreviewParametricParameterId)> = Vec::new();
-    for pp in &raw_parametric_parameters {
-        for preview_tag_id in &pp.tags {
-            pp_tag_set.push((preview_tag_id.clone(), pp.id.preview()));
-        }
-    }
     let parametric_parameters: Vec<ParametricParameter> = raw_parametric_parameters
         .into_iter()
-        .map(|pp| process_parametric_parameter(pp, &pp_tag_set, &tag_preview_map))
+        .map(|pp| process_parametric_parameter(pp, &preview_collection))
         .collect();
-    let mut pgc_tag_set: Vec<(PreviewTagId, PreviewParametricGraphClassId)> = Vec::new();
-    for pgc in &raw_parametric_graph_class {
-        for preview_tag_id in &pgc.tags {
-            pgc_tag_set.push((preview_tag_id.clone(), pgc.id.preview()));
-        }
-    }
     let parametric_graph_class: Vec<ParametricGraphClass> = raw_parametric_graph_class
         .into_iter()
-        .map(|pgc| {
-            process_parametric_graph_class(
-                pgc,
-                &pgc_tag_set,
-                &tag_preview_map,
-                &preview_collection,
-            )
-        })
+        .map(|pgc| process_parametric_graph_class(pgc, &preview_collection))
         .collect();
     Data::new(DataFields {
-        tags,
+        tags: tag_map.into_values().collect(),
         providers,
         parametric_parameters,
         parametric_graph_class,
@@ -557,8 +513,8 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         graph_relations,
         graph_classes,
         sources: sources.into_values().collect(),
-        factoids: HashMap::new(),
-        drawings: HashMap::new(),
+        factoids: HashMap::new(), // todo
+        drawings: HashMap::new(), // todo
         graph_class_properties,
         arc_parameter_parameter,
         arc_lf_lf,
@@ -569,9 +525,11 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         arc_pargc_pargc,
         arc_gcprop_gcprop,
         arc_gc_gcprop,
+        arc_gc_par,
         arc_parameter_gcprop,
         arc_problem_problem,
         arc_problem_gcprop,
         arc_problem_parameter,
+        arc_gcprop_parameter,
     })
 }

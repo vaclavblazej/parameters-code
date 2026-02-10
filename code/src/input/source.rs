@@ -147,91 +147,31 @@ macro_rules! relatable {
     };
 }
 
-definable!(PreviewLogicFragmentId, LogicFragment);
 definable!(PreviewGraphClassId, GraphClass);
 definable!(PreviewGraphClassPropertyId, Property);
 definable!(PreviewGraphId, Graph);
-definable!(PreviewOperationId, Operation);
 definable!(PreviewParameterId, Parameter);
 definable!(PreviewParametricGraphClassId, ParametricGraphClass);
 definable!(PreviewParametricParameterId, ParametricParameter);
 definable!(PreviewProblemId, Problem);
 
-relatable!(
-    PreviewLogicFragmentId,
-    PreviewLogicFragmentId,
-    ImplicationRelation,
-    LfLf
-);
-relatable!(
-    PreviewOperationId,
-    PreviewOperationId,
-    ImplicationRelation,
-    OpOp
-);
-relatable!(
-    PreviewGraphId,
-    PreviewGraphId,
-    InclusionRelationUnderGraphRelation,
-    GrGr
-);
-relatable!(
-    PreviewGraphClassId,
-    PreviewGraphClassId,
-    InclusionRelationUnderGraphRelation,
-    GcGc
-);
-relatable!(
-    PreviewGraphId,
-    PreviewGraphClassId,
-    InclusionRelationUnderGraphRelation,
-    GrGc
-);
-relatable!(
-    PreviewParametricGraphClassId,
-    PreviewParametricGraphClassId,
-    ImplicationRelation,
-    PgcPgc
-);
+relatable!(PreviewLogicFragmentId, PreviewLogicFragmentId, ImplicationRelation, LfLf);
+relatable!(PreviewOperationId, PreviewOperationId, ImplicationRelation, OpOp);
+relatable!(PreviewGraphId, PreviewGraphId, InclusionRelationUnderGraphRelation, GrGr);
+relatable!(PreviewGraphClassId, PreviewGraphClassId, InclusionRelationUnderGraphRelation, GcGc);
+relatable!(PreviewGraphId, PreviewGraphClassId, InclusionRelationUnderGraphRelation, GrGc);
+relatable!(PreviewParametricGraphClassId, PreviewParametricGraphClassId, ImplicationRelation, PgcPgc);
 relatable!(PreviewParameterId, PreviewParameterId, Cpx, ParPar);
-relatable!(
-    PreviewGraphClassPropertyId,
-    PreviewGraphClassPropertyId,
-    ImplicationRelation,
-    PropProp
-);
-relatable!(
-    PreviewGraphClassId,
-    PreviewGraphClassPropertyId,
-    EquivalenceRelation,
-    GcProp
-);
-relatable!(
-    PreviewParameterId,
-    PreviewGraphClassPropertyId,
-    EquivalenceRelation,
-    ParProp
-);
+relatable!(PreviewGraphClassPropertyId, PreviewGraphClassPropertyId, ImplicationRelation, PropProp);
+relatable!(PreviewGraphClassId, PreviewParameterId, ImplicationRelation, GcPar);
+relatable!(PreviewGraphClassPropertyId, PreviewParameterId, ImplicationRelation, PropPar);
+relatable!(PreviewGraphClassId, PreviewGraphClassPropertyId, EquivalenceRelation, GcProp);
+relatable!(PreviewParameterId, PreviewGraphClassPropertyId, EquivalenceRelation, ParProp);
 // relatable!(PreviewParametricGraphClassId, PreviewParameterId, EquivalenceRelation, ParProp); // todo as e.g. excluded minor
-relatable!(
-    PreviewProblemId,
-    PreviewProblemId,
-    ImplicationRelation,
-    ProbProb
-);
+relatable!(PreviewProblemId, PreviewProblemId, ImplicationRelation, ProbProb);
 // relatable!(PreviewProblemId, PreviewGraphClassId, ClassicalSolvability, ProbGc); // through the trivial property
-relatable!(
-    PreviewProblemId,
-    PreviewGraphClassPropertyId,
-    ClassicalSolvability,
-    ProbProp
-);
-relatable!(
-    PreviewProblemId,
-    PreviewParameterId,
-    ParameterizedSolvability,
-    ProbPar
-);
+relatable!(PreviewProblemId, PreviewGraphClassPropertyId, ClassicalSolvability, ProbProp);
+relatable!(PreviewProblemId, PreviewParameterId, ParameterizedSolvability, ProbPar);
 
 #[derive(Debug)]
 pub enum Def {
@@ -277,59 +217,21 @@ impl Def {
 
 #[derive(Debug)]
 pub enum Rel {
-    LfLf(
-        PreviewLogicFragmentId,
-        PreviewLogicFragmentId,
-        ImplicationRelation,
-    ),
+    LfLf(PreviewLogicFragmentId, PreviewLogicFragmentId, ImplicationRelation),
     OpOp(PreviewOperationId, PreviewOperationId, ImplicationRelation),
-    GrGr(
-        PreviewGraphId,
-        PreviewGraphId,
-        InclusionRelationUnderGraphRelation,
-    ),
-    GcGc(
-        PreviewGraphClassId,
-        PreviewGraphClassId,
-        InclusionRelationUnderGraphRelation,
-    ),
-    GrGc(
-        PreviewGraphId,
-        PreviewGraphClassId,
-        InclusionRelationUnderGraphRelation,
-    ),
-    PgcPgc(
-        PreviewParametricGraphClassId,
-        PreviewParametricGraphClassId,
-        ImplicationRelation,
-    ),
+    GrGr(PreviewGraphId, PreviewGraphId, InclusionRelationUnderGraphRelation),
+    GcGc(PreviewGraphClassId, PreviewGraphClassId, InclusionRelationUnderGraphRelation),
+    GrGc(PreviewGraphId, PreviewGraphClassId, InclusionRelationUnderGraphRelation),
+    PgcPgc(PreviewParametricGraphClassId, PreviewParametricGraphClassId, ImplicationRelation),
     ParPar(PreviewParameterId, PreviewParameterId, Cpx),
-    PropProp(
-        PreviewGraphClassPropertyId,
-        PreviewGraphClassPropertyId,
-        ImplicationRelation,
-    ),
-    GcProp(
-        PreviewGraphClassId,
-        PreviewGraphClassPropertyId,
-        EquivalenceRelation,
-    ),
-    ParProp(
-        PreviewParameterId,
-        PreviewGraphClassPropertyId,
-        EquivalenceRelation,
-    ),
+    PropProp(PreviewGraphClassPropertyId, PreviewGraphClassPropertyId, ImplicationRelation),
+    PropPar(PreviewGraphClassPropertyId, PreviewParameterId, ImplicationRelation),
+    GcProp(PreviewGraphClassId, PreviewGraphClassPropertyId, EquivalenceRelation),
+    GcPar(PreviewGraphClassId, PreviewParameterId, ImplicationRelation),
+    ParProp(PreviewParameterId, PreviewGraphClassPropertyId, EquivalenceRelation),
     ProbProb(PreviewProblemId, PreviewProblemId, ImplicationRelation),
-    ProbProp(
-        PreviewProblemId,
-        PreviewGraphClassPropertyId,
-        ClassicalSolvability,
-    ),
-    ProbPar(
-        PreviewProblemId,
-        PreviewParameterId,
-        ParameterizedSolvability,
-    ),
+    ProbProp(PreviewProblemId, PreviewGraphClassPropertyId, ClassicalSolvability),
+    ProbPar(PreviewProblemId, PreviewParameterId, ParameterizedSolvability),
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -342,7 +244,9 @@ pub enum RelKind {
     PgcPgc,
     ParPar,
     PropProp,
+    PropPar,
     GcProp,
+    GcPar,
     ParProp,
     ProbProb,
     ProbProp,
@@ -361,6 +265,8 @@ impl Rel {
             Rel::PgcPgc(..) => RelKind::PgcPgc,
             Rel::PropProp(..) => RelKind::PropProp,
             Rel::GcProp(..) => RelKind::GcProp,
+            Rel::GcPar(..) => RelKind::GcPar,
+            Rel::PropPar(..) => RelKind::PropPar,
             Rel::ParProp(..) => RelKind::ParProp,
             Rel::ProbProb(..) => RelKind::ProbProb,
             Rel::ProbProp(..) => RelKind::ProbProp,
@@ -393,6 +299,7 @@ pub enum RawNotedSource {
     SrcTodo,                 // waiting to be added to HOPS
 }
 
+#[derive(Debug)]
 pub struct RawSourceData {
     source: RawSource,
     factoids: Vec<RawWrote>,
@@ -468,10 +375,10 @@ impl RawSourceData {
             drawings,
         } = self;
         for factoid in factoids {
-            data.factoids.insert(source.id.preview(), factoid);
+            data.factoids.entry(source.id.preview()).or_default().push(factoid);
         }
         for drawing in drawings {
-            data.drawings.insert(source.id.preview(), drawing);
+            data.drawings.entry(source.id.preview()).or_default().push(drawing);
         }
         let res = source.id.preview();
         data.sources.push(source);

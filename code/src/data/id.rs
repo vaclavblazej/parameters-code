@@ -127,29 +127,13 @@ macro_rules! define_type {
 define_type!(TypeGraph, GraphId, PreviewGraphId);
 define_type!(TypeGraphClass, GraphClassId, PreviewGraphClassId);
 define_type!(TypeOperation, OperationId, PreviewOperationId);
-define_type!(
-    TypeGraphClassProperty,
-    GraphClassPropertyId,
-    PreviewGraphClassPropertyId
-);
-define_type!(
-    TypeGraphClassRelation,
-    GraphClassRelationId,
-    PreviewGraphClassRelationId
-);
+define_type!(TypeGraphClassProperty, GraphClassPropertyId, PreviewGraphClassPropertyId);
+define_type!(TypeGraphClassRelation, GraphClassRelationId, PreviewGraphClassRelationId);
 define_type!(TypeGraphRelation, GraphRelationId, PreviewGraphRelationId);
 define_type!(TypeLogicFragment, LogicFragmentId, PreviewLogicFragmentId);
 define_type!(TypeParameter, ParameterId, PreviewParameterId);
-define_type!(
-    TypeParametricGraphClass,
-    ParametricGraphClassId,
-    PreviewParametricGraphClassId
-);
-define_type!(
-    TypeParametricParameter,
-    ParametricParameterId,
-    PreviewParametricParameterId
-);
+define_type!(TypeParametricGraphClass, ParametricGraphClassId, PreviewParametricGraphClassId);
+define_type!(TypeParametricParameter, ParametricParameterId, PreviewParametricParameterId);
 define_type!(TypeProblem, ProblemId, PreviewProblemId);
 define_type!(TypeProvider, ProviderId, PreviewProviderId);
 define_type!(TypeShowed, ShowedId, PreviewShowedId);

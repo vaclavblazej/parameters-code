@@ -9,8 +9,8 @@ use crate::data::data::Named;
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::input::builder::Builder;
-use crate::input::distance_to::DistanceTo;
 use crate::input::concretizable::Concretizable;
+use crate::input::distance_to::DistanceTo;
 use crate::input::intersectable::Intersectable;
 use crate::input::provider::RawDataProvider;
 use crate::input::raw::*;
@@ -150,6 +150,7 @@ pub fn graph_class_property(
         name_core: NameCore::new(name),
         definition,
         own,
+        tags: Vec::new(),
     })
 }
 
@@ -259,8 +260,8 @@ impl CollectionBuilder {
             mut data,
             id_sanity_map: _,
             name_sanity_map: _,
-            mut unknown_source,
-            mut assumed_source,
+            unknown_source,
+            assumed_source,
         } = self;
         // for set in &data.sets { // todo reflexivity
         //     assumed_source = assumed_source.proved(
@@ -326,7 +327,12 @@ impl CollectionBuilder {
         preview_id
     }
 
-    pub fn graph_operation(&mut self, id: &str, name: &str, definition: &str) -> PreviewOperationId {
+    pub fn graph_operation(
+        &mut self,
+        id: &str,
+        name: &str,
+        definition: &str,
+    ) -> PreviewOperationId {
         let res = RawOperation {
             id: OperationId::new(id),
             name_core: NameCore::new(name),

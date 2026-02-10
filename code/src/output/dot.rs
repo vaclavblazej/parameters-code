@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::data::data::Parameter;
+use crate::data::data::Named;
 use crate::data::digraph::{DiGraph, Edge, Vertex};
+use crate::data::id::HasId;
 use crate::general::file;
 use crate::output::color::Color;
 
@@ -103,13 +104,18 @@ impl IntoDot for Edge<HashSet<DotEdgeAttribute>> {
     }
 }
 
-pub struct DotGraphInfo {
+type SetColorCallback<T> = dyn Fn(&T) -> Color;
+
+pub struct DotGraphInfo<T> {
     pub name: String,
-    pub color_fn: Option<Box<SetColorCallback>>,
+    pub color_fn: Option<Box<SetColorCallback<T>>>,
 }
 
-impl DotGraphInfo {
-    pub fn new(name: &str, color_fn: Option<Box<SetColorCallback>>) -> Self {
+impl<T> DotGraphInfo<T>
+where
+    T: Named + HasId,
+{
+    pub fn new(name: &str, color_fn: Option<Box<SetColorCallback<T>>>) -> Self {
         Self {
             name: String::from(name),
             color_fn,
@@ -117,24 +123,26 @@ impl DotGraphInfo {
     }
 }
 
-pub struct DotGraph {
-    pub info: DotGraphInfo,
+pub struct DotGraph<T> {
+    pub info: DotGraphInfo<T>,
     digraph: DiGraph<HashSet<DotVertexAttribute>, HashSet<DotEdgeAttribute>>,
 }
 
 pub type DotVertex = Vertex<HashSet<DotVertexAttribute>>;
 pub type DotEdge = Edge<HashSet<DotEdgeAttribute>>;
-pub type SetColorCallback = dyn Fn(&Parameter) -> Color;
 
-impl DotGraph {
-    pub fn new(name: &str, color_fn: Option<Box<SetColorCallback>>) -> Self {
+impl<T> DotGraph<T>
+where
+    T: Named + HasId,
+{
+    pub fn new(name: &str, color_fn: Option<Box<SetColorCallback<T>>>) -> Self {
         Self {
             info: DotGraphInfo::new(name, color_fn),
             digraph: DiGraph::new(),
         }
     }
 
-    pub fn add_vertex(&mut self, set: &Parameter) {
+    pub fn add_vertex(&mut self, set: &T) {
         let mut vertex: DotVertex = DotVertex::from(set);
         if let Some(f) = &self.info.color_fn {
             vertex.data.insert(DotVertexAttribute::Color(f(set)));
@@ -181,14 +189,17 @@ impl DotGraph {
     }
 }
 
-impl From<&Parameter> for DotVertex {
-    fn from(set: &Parameter) -> DotVertex {
+impl<T> From<&T> for DotVertex
+where
+    T: Named + HasId,
+{
+    fn from(set: &T) -> DotVertex {
         let mut data = HashSet::new();
-        data.insert(DotVertexAttribute::Label(set.name_core.name.clone()));
+        data.insert(DotVertexAttribute::Label(set.name_core().name.clone()));
         data.insert(DotVertexAttribute::Color(Color::Gray));
         data.insert(DotVertexAttribute::Shape(NodeShape::Box));
         DotVertex {
-            id: set.id.to_string(),
+            id: set.id().to_string(),
             data,
         }
     }

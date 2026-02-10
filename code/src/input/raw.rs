@@ -40,6 +40,7 @@ pub struct RawTag {
 tie_raw_to_previewid!(RawTag, PreviewTagId);
 raw_data_addable!(RawTag, tags);
 
+#[derive(Debug)]
 pub struct RawLogicFragment {
     pub id: LogicFragmentId,
     pub name_core: NameCore,
@@ -63,8 +64,11 @@ pub struct RawGraph {
     pub score: u32,
     pub name_core: NameCore,
     pub definition: Vec<String>,
+    pub tags: Vec<PreviewTagId>,
 }
 named_impl!(RawGraph);
+tie_raw_to_previewid!(RawGraph, PreviewGraphId);
+tagged_impl!(RawGraph, PreviewTagId);
 raw_data_addable!(RawGraph, graphs);
 
 /// A class of undirected graphs $\mathcal C = \{G_1,G_2,\dots\}$.
@@ -149,8 +153,10 @@ pub struct RawGraphClassProperty {
     pub name_core: NameCore,
     pub definition: RawGraphClassPropertyDefinition,
     pub own: RawOwn,
+    pub tags: Vec<PreviewTagId>,
 }
 tie_raw_to_previewid!(RawGraphClassProperty, PreviewGraphClassPropertyId);
+tagged_impl!(RawGraphClassProperty, PreviewTagId);
 named_impl!(RawGraphClassProperty);
 raw_data_addable!(RawGraphClassProperty, graph_class_properties);
 
@@ -163,7 +169,7 @@ pub struct RawProvider {
 tie_raw_to_previewid!(RawProvider, PreviewProviderId);
 raw_data_addable!(RawProvider, providers);
 
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct RawProviderLink {
     pub provider: PreviewProviderId,
     pub link: Link,
@@ -194,6 +200,7 @@ pub struct RawProblem {
 raw_data_addable!(RawProblem, problems);
 
 /// Raw immutable datapoints
+#[derive(Debug)]
 pub struct RawData {
     pub graph_class_relations: Vec<RawGraphClassRelation>,
     pub graph_classes: Vec<RawGraphClass>,
@@ -210,8 +217,8 @@ pub struct RawData {
     pub tags: Vec<RawTag>,
     pub sources: Vec<RawSource>,
     pub problems: Vec<RawProblem>,
-    pub factoids: HashMap<PreviewSourceId, RawWrote>,
-    pub drawings: HashMap<PreviewSourceId, Drawing>,
+    pub factoids: HashMap<PreviewSourceId, Vec<RawWrote>>,
+    pub drawings: HashMap<PreviewSourceId, Vec<Drawing>>,
 }
 
 impl RawData {
