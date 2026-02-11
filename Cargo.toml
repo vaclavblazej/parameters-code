@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "hops",
+    "hops-macros",
+]
+resolver = "3"

@@ -130,7 +130,6 @@ fn inclusion_edge_style(mx: &CpxTime) -> HashSet<DotEdgeAttribute> {
 //     score_visibility.insert(9, 4);
 //     let preview_sets_to_draw: Vec<PreviewParameter> = set_distances
 //         .iter()
-//         .filter(|(x, y)| x.typ == set.typ)
 //         .filter(|(x, y)| {
 //             let mut visibility = *score_visibility.get(&x.score).unwrap();
 //             if set.related_sets.subsets.all.contains(x)

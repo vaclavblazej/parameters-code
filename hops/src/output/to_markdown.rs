@@ -3,7 +3,7 @@ use std::fmt;
 use crate::data::data::{NameCore, Own};
 use crate::data::enums::*;
 use crate::data::id::HasId;
-use crate::data::preview::{HasPreview, PreviewSource, PreviewSourceKey};
+use crate::data::preview::{HasPreview, PreviewSource, PreviewSourceKey, PreviewTag};
 
 pub trait ToMarkdown {
     fn to_markdown(&self) -> Option<String>;

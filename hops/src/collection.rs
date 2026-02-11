@@ -273,6 +273,7 @@ pub fn build_collection() -> RawData {
     let d_path_free = parameter("s4EiWI", "d-path-free", 2, "Minimum $k$ such that the graph contains no path on $k$ vertices.")
         .done(&mut create); // todo - H-free classes and parameters
     let treewidth = parameter("5Q7fuR", "treewidth", 9, "see [[i56ihO]]")
+        .abbr("tw")
         .tag(&tag_tree_decomposition)
         .done(&mut create);
     let mm_width = parameter("d7vRYU", "mm-width", 4, "see [[nRO7AG]]").done(&mut create);
