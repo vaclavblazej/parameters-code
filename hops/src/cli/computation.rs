@@ -16,6 +16,7 @@ use crate::general::cache::Cache;
 use crate::general::file;
 use crate::general::timer::Timer;
 use crate::general::worker::Worker;
+use crate::input::raw::RawData;
 use crate::output::api;
 use crate::output::dot::{DotEdge, DotGraph};
 use crate::output::markdown::{GeneratedPage, Markdown};
@@ -77,7 +78,7 @@ impl Computation {
         file::clear_folder(&self.paths.hugo_public_dir);
     }
 
-    pub(crate) fn retrieve_and_process_data(&mut self) {
+    pub(crate) fn retrieve_and_process_data(&mut self, collection_fn: Box<dyn Fn() -> RawData>) {
         self.bibliography = match load_bibliography(&self.paths.bibliography_file) {
             Ok(x) => Some(x),
             Err(err) => {
@@ -94,7 +95,7 @@ impl Computation {
             return;
         }
         self.time.print("retrieving data collection");
-        let mut rawdata = crate::collection::build_collection();
+        let mut rawdata = collection_fn();
         self.time.print("processing data");
         let res = process_raw_data(rawdata, &self.bibliography);
         match data_cache.save(&res) {
@@ -124,7 +125,7 @@ impl Computation {
         let param_edges: Vec<(String, String)> = data
             .arc_parameter_parameter
             .iter()
-            .map(|(f, t, _)| (f.to_string(), t.to_string()))
+            .map(|(f, t, _)| (f.id.to_string(), t.id.to_string()))
             .collect();
         self.make_single_dot("parameters", &parameters, &param_edges);
         self.make_single_dot(
@@ -135,7 +136,7 @@ impl Computation {
         let gc_edges: Vec<(String, String)> = data
             .arc_gc_gc
             .iter()
-            .map(|(f, t, _)| (f.to_string(), t.to_string()))
+            .map(|(f, t, _)| (f.id.to_string(), t.id.to_string()))
             .collect();
         self.make_single_dot("graphs", &graphs, &gc_edges);
     }
@@ -201,8 +202,6 @@ impl Computation {
             tags,
             sources,
             sorted_sources,
-            factoids,
-            drawings,
             arc_parameter_parameter,
             arc_lf_lf,
             arc_op_op,

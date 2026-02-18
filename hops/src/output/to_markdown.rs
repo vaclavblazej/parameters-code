@@ -1,8 +1,8 @@
 use std::fmt;
 
-use crate::data::data::{NameCore, Own};
+use crate::data::data::{Fact, NameCore, Own, Wrote, WroteStatus};
 use crate::data::enums::*;
-use crate::data::id::HasId;
+use crate::data::id::{HasId, PreviewShowedId};
 use crate::data::preview::{HasPreview, PreviewSource, PreviewSourceKey, PreviewTag};
 
 pub trait ToMarkdown {
@@ -281,66 +281,58 @@ impl Own {
 //     }
 // }
 
-// impl ToMarkdown for PreviewSource {
-//     fn to_markdown(&self) -> Option<String> {
-//         match &self.sourcekey {
-//             SourceKey::Bibtex {
-//                 key,
-//                 name,
-//                 entry: _,
-//                 score: _,
-//             } => Some(name.clone().unwrap_or(key.clone())),
-//             SourceKey::Online { url } => Some(url.clone()),
-//             SourceKey::Other {
-//                 name,
-//                 description: _,
-//             } => Some(name.clone()),
-//         }
-//     }
-// }
+impl ToMarkdown for PreviewSource {
+    fn to_markdown(&self) -> Option<String> {
+        match &self.sourcekey {
+            SourceKey::Bibtex { entry_key, name, entry_content } => {
+                Some(name.clone().unwrap_or(entry_key.clone()))
+            },
+            SourceKey::Online { url } => Some(url.clone()),
+            SourceKey::Other { name, description } => Some(name.clone()),
+        }
+    }
+}
 
-// impl ToMarkdown for ShowedFact {
-//     fn to_markdown(&self) -> Option<String> {
-//         let mut res = String::new();
-//         match self {
-//             Self::Relation(status, relation) => {
-//                 if let Some(val) = relation.long_description() {
-//                     res += &val;
-//                 }
-//             }
-//             Self::Definition(status, preview_set) => {
-//                 let set = builder.data.get_set_by_id(preview_set); // todo builder was removed
-//                 from parameters
-//                 if let Some(val) = set.preview().to_markdown() {
-//                     res += &val;
-//                 }
-//             } // Self::Citation(citation) => {
-//               // if let Some(val) = citation.to_markdown() {
-//               // res += &val;
-//               // }
-//               // }
-//         }
-//         Some(res)
-//     }
-// }
-//
-// impl ToMarkdown for Showed {
-//     fn to_markdown(&self) -> Option<String> {
-//         let mut res = String::new();
-//         if let Some(val) = self.page.to_markdown() {
-//             res += &format!("{} : ", val);
-//         }
-//         if let Some(val) = self.fact.to_markdown() {
-//             res += &val;
-//         }
-//         if !res.is_empty() && !self.text.is_empty() {
-//             res += " -- ";
-//         }
-//         res += &self.text;
-//         Some(res)
-//     }
-// }
-//
+impl ToMarkdown for Wrote {
+    fn to_markdown(&self) -> Option<String> {
+        let mut res = String::new();
+        if let Some(page) = self.page.to_markdown(){ 
+            res += &format!("{} : ", page);
+        }
+        res += &self.text;
+        for fact in &self.facts {
+            if let Some(facttext) = fact.to_markdown() {
+                res += &facttext;
+            }
+        }
+        Some(res)
+    }
+}
+
+impl ToMarkdown for (PreviewShowedId, WroteStatus, Fact) {
+    fn to_markdown(&self) -> Option<String> {
+        let mut res = String::new();
+        let (showedid, status, fact) = self;
+        res += match fact {
+            Fact::Definition(definition) => "definition",
+            Fact::Relation(relation) => "relation",
+        };
+        // Fact::Relation(status, relation) => {
+        //     if let Some(val) = relation.long_description() {
+        //         res += &val;
+        //     }
+        // }
+        // Fact::Definition(status, preview_set) => {
+        //     let set = builder.data.get_set_by_id(preview_set); // todo builder was removed
+        //     from parameters
+        //     if let Some(val) = set.preview().to_markdown() {
+        //         res += &val;
+        //     }
+        // }
+        Some(res)
+    }
+}
+
 // impl ToMarkdown for SourceSubset {
 //     fn to_markdown(&self) -> Option<String> {
 //         let mut res = String::new();

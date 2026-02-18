@@ -50,6 +50,7 @@ mod output {
     pub mod color;
     pub mod diagram;
     pub mod dot;
+    pub mod html;
     pub mod markdown;
     pub mod pages;
     pub mod table;
@@ -58,10 +59,15 @@ mod output {
 mod cli;
 mod collection;
 
+#[cfg(test)]
+#[path = "tests/main.rs"]
+mod main;
+
 fn main() {
     let mut computation = cli::computation::Computation::new();
     computation.clear();
-    computation.retrieve_and_process_data();
+    let collection_fn = Box::new(crate::collection::build_collection);
+    computation.retrieve_and_process_data(collection_fn);
     computation.make_dots();
     computation.make_relation_table();
     computation.make_api();

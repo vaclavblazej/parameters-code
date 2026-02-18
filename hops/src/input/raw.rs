@@ -3,15 +3,18 @@
 
 use std::collections::HashMap;
 
+use hops_macros::{tagged, named, scored};
+
 use crate::data::data::{NameCore, Named, Tagged};
 use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::link::{Link, Linkable};
+use crate::data::score::Score;
 use crate::input::build::CollectionBuilder;
 use crate::input::builder::Builder;
 use crate::input::raw_enums::*;
 use crate::input::source::{RawFact, RawSource, RawWrote};
-use crate::{named_impl, tagged_impl, tie_raw_to_previewid};
+use crate::tie_raw_to_previewid;
 
 pub trait Defines<S> {
     fn defines(&self) -> S;
@@ -31,60 +34,56 @@ macro_rules! raw_data_addable {
     };
 }
 
+#[named]
 #[derive(Debug)]
 pub struct RawTag {
     pub id: TagId,
-    pub name_core: NameCore,
     pub description: String,
 }
 tie_raw_to_previewid!(RawTag, PreviewTagId);
 raw_data_addable!(RawTag, tags);
 
+#[named]
 #[derive(Debug)]
 pub struct RawLogicFragment {
     pub id: LogicFragmentId,
-    pub name_core: NameCore,
     pub description: Option<String>,
 }
 tie_raw_to_previewid!(RawLogicFragment, PreviewLogicFragmentId);
 raw_data_addable!(RawLogicFragment, logic_fragments);
 
+#[named]
 #[derive(Debug)]
 pub struct RawOperation {
     pub id: OperationId,
-    pub name_core: NameCore,
     pub definition: RawOperationDefinition,
 }
 raw_data_addable!(RawOperation, operations);
 
 /// An undirected graph $G = (V,E)$.
+#[named]
+#[scored]
+#[tagged(PreviewTagId)]
 #[derive(Debug)]
 pub struct RawGraph {
     pub id: GraphId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: Vec<String>,
-    pub tags: Vec<PreviewTagId>,
 }
-named_impl!(RawGraph);
 tie_raw_to_previewid!(RawGraph, PreviewGraphId);
-tagged_impl!(RawGraph, PreviewTagId);
 raw_data_addable!(RawGraph, graphs);
 
 /// A class of undirected graphs $\mathcal C = \{G_1,G_2,\dots\}$.
 /// Each graph class is equivalent to a graph property via containment.
+#[named]
+#[scored]
+#[tagged(PreviewTagId)]
 #[derive(Debug)]
 pub struct RawGraphClass {
     pub id: GraphClassId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: RawGraphClassDefinition,
-    pub tags: Vec<PreviewTagId>,
     pub variant: RawGraphClassVariant,
 }
 tie_raw_to_previewid!(RawGraphClass, PreviewGraphClassId);
-tagged_impl!(RawGraphClass, PreviewTagId);
-named_impl!(RawGraphClass);
 raw_data_addable!(RawGraphClass, graph_classes);
 
 /// A graph property implies a graph class property
@@ -96,32 +95,28 @@ impl Defines<PreviewGraphClassPropertyId> for RawGraphClass {
 }
 
 /// A map from natural numbers to parameters.
+#[named]
+#[scored]
+#[tagged(PreviewTagId)]
 #[derive(Debug)]
 pub struct RawParametricParameter {
     pub id: ParametricParameterId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: RawParametricParameterDefinition,
-    pub tags: Vec<PreviewTagId>,
 }
 tie_raw_to_previewid!(RawParametricParameter, PreviewParametricParameterId);
-tagged_impl!(RawParametricParameter, PreviewTagId);
-named_impl!(RawParametricParameter);
 raw_data_addable!(RawParametricParameter, parametric_parameters);
 
 /// A map from natural numbers to graphs.
+#[named]
+#[scored]
+#[tagged(PreviewTagId)]
 #[derive(Debug)]
 pub struct RawParametricGraphClass {
     pub id: ParametricGraphClassId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub closed_under: PreviewGraphRelationId,
-    pub tags: Vec<PreviewTagId>,
     pub definition: String,
 }
 tie_raw_to_previewid!(RawParametricGraphClass, PreviewParametricGraphClassId);
-tagged_impl!(RawParametricGraphClass, PreviewTagId);
-named_impl!(RawParametricGraphClass);
 raw_data_addable!(RawParametricGraphClass, parametric_graph_class);
 
 impl Defines<PreviewGraphClassId> for RawParametricGraphClass {
@@ -131,39 +126,35 @@ impl Defines<PreviewGraphClassId> for RawParametricGraphClass {
 }
 
 /// Parameter over a graph class. Definable also as a parameter of a graph.
+#[named]
+#[scored]
+#[tagged(PreviewTagId)]
 #[derive(Debug)]
 pub struct RawParameter {
     pub id: ParameterId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: RawParameterDefinition,
-    pub tags: Vec<PreviewTagId>,
 }
 tie_raw_to_previewid!(RawParameter, PreviewParameterId);
-tagged_impl!(RawParameter, PreviewTagId);
-named_impl!(RawParameter);
 raw_data_addable!(RawParameter, parameters);
 
 /// Property of a graph class, i.e. a map from graph classes to boolean.
 /// Note that RawGraphProperty is equivalent to GraphClass and so was omitted.
+#[named]
+#[scored]
+#[tagged(PreviewTagId)]
 #[derive(Debug)]
 pub struct RawGraphClassProperty {
     pub id: GraphClassPropertyId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: RawGraphClassPropertyDefinition,
     pub own: RawOwn,
-    pub tags: Vec<PreviewTagId>,
 }
 tie_raw_to_previewid!(RawGraphClassProperty, PreviewGraphClassPropertyId);
-tagged_impl!(RawGraphClassProperty, PreviewTagId);
-named_impl!(RawGraphClassProperty);
 raw_data_addable!(RawGraphClassProperty, graph_class_properties);
 
+#[named]
 #[derive(Debug)]
 pub struct RawProvider {
     pub id: ProviderId,
-    pub name_core: NameCore,
     pub url: String,
 }
 tie_raw_to_previewid!(RawProvider, PreviewProviderId);
@@ -175,26 +166,26 @@ pub struct RawProviderLink {
     pub link: Link,
 }
 
+#[named]
 #[derive(Debug)]
 pub struct RawGraphRelation {
     pub id: GraphRelationId,
-    pub name_core: NameCore,
     pub displayed_definition: RawGraphRelationDefinition,
 }
 raw_data_addable!(RawGraphRelation, graph_relations);
 
+#[named]
 #[derive(Debug)]
 pub struct RawGraphClassRelation {
     pub id: GraphClassRelationId,
-    pub name_core: NameCore,
     pub definition: RawGraphClassRelationDefinition,
 }
 raw_data_addable!(RawGraphClassRelation, graph_class_relations);
 
+#[named]
 #[derive(Debug)]
 pub struct RawProblem {
     pub id: ProblemId,
-    pub name_core: NameCore,
     pub definition: RawProblemDefinition,
 }
 raw_data_addable!(RawProblem, problems);
@@ -217,8 +208,8 @@ pub struct RawData {
     pub tags: Vec<RawTag>,
     pub sources: Vec<RawSource>,
     pub problems: Vec<RawProblem>,
-    pub factoids: HashMap<PreviewSourceId, Vec<RawWrote>>,
-    pub drawings: HashMap<PreviewSourceId, Vec<Drawing>>,
+    pub factoids: Vec<(PreviewSourceId, Vec<RawWrote>)>,
+    pub drawings: Vec<(PreviewSourceId, Vec<Drawing>)>,
 }
 
 impl RawData {
@@ -237,8 +228,8 @@ impl RawData {
             providers: Vec::new(),
             tags: Vec::new(),
             sources: Vec::new(),
-            factoids: HashMap::new(),
-            drawings: HashMap::new(),
+            factoids: Vec::new(),
+            drawings: Vec::new(),
             problems: Vec::new(),
             provider_links: Vec::new(),
         }

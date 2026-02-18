@@ -336,7 +336,8 @@ pub fn build_collection() -> RawData {
         .done(&mut create);
     let inf_admissibility = concretize(&d_admissibility, "UjWcOA", "inf-admissibility", Infinity, 3).done(&mut create);
     let admissibility = higher_order_parameter("v4sLfO", "admissibility", 5, d_admissibility).done(&mut create);
-    let merge_width = parameter("UWmTKl", "merge-width", 5, "see [[9exguJ]]").done(&mut create);
+    let r_merge_width = parametric_parameter("etmyMV", "r-merge-width", 4, RawParametricParameterDefinition::GraphParameter("see [[9exguJ]]".into())).done(&mut create);
+    let merge_width = higher_order_parameter("UWmTKl", "merge-width", 5, r_merge_width).done(&mut create);
     let book_thickness = parameter("doijTS", "book thickness", 4, "Minimum $k$ such that for some order of vertices $\\prec$ there is a $k$-partition of edges so that no two edges $ab$ and $cd$ cross, i.e., $a \\prec c \\prec b \\prec d$.")
         .aka("stacknumber")
         .aka("pagenumber")
@@ -605,7 +606,7 @@ pub fn build_collection() -> RawData {
         .ref_wrote(NotApplicable, by_definition, vec![
             // ("gNeaGx", TodoStatus, relation(&strong_d_coloring_number, &d_admissibility, UpperBound(Linear))),
             ("NVfs8a", TodoStatus, relation( &weak_coloring_number, &strong_coloring_number, UpperBound(Linear))),
-            // ("3Pff25", TodoStatus, relation(&bounded_expansion, &nowhere_dense, UpperBound(Constant))),
+            // ("3Pff25", TodoStatus, relation(&bounded_expansion, &nowhere_dense, ImplicationRelation::Implies)),
         ])
         .ref_wrote(NotApplicable, "todo", vec![
                 // ("gNeaGx", TodoStatus, relation(&strong_d_coloring_number, &d_admissibility, UpperBound(Linear))),
@@ -618,21 +619,21 @@ pub fn build_collection() -> RawData {
                 // ("EhPEVZ", TodoStatus, relation(&bounded_expansion, &weak_coloring_number, Equivalent(Exists, Exists))),
                 // ("KtfFkP", TodoStatus, relation(&bounded_expansion, &strong_coloring_number, Equivalent(Exists, Exists))),
                 // ("rFt35p", TodoStatus, relation(&bounded_expansion, &admissibility, Equivalent(Exists, Exists))),
-                // ("VLbSmM", TodoStatus, relation(&excluded_top_minor, &bounded_expansion, UpperBound(Constant))),
-                // ("3e5jLj", TodoStatus, relation(&degeneracy, &weakly_sparse, UpperBound(Constant))),
-                // ("ssMLQE", TodoStatus, relation(&nowhere_dense, &weakly_sparse, UpperBound(Constant))),
-                // ("45mNcy", TodoStatus, relation(&nowhere_dense, &vc_dimension, UpperBound(Constant))),
-                // ("Ie3w0s", TodoStatus, relation(&clique_width, &vc_dimension, UpperBound(Constant))),
-                // ("cF8esN", TodoStatus, relation(&outerplanar, &excluded_planar_minor, UpperBound(Constant))),
-                // ("opjGKG", TodoStatus, relation(&excluded_minor, &excluded_top_minor, UpperBound(Constant))),
-                // ("I8lPXq", TodoStatus, relation(&excluded_planar_minor, &excluded_minor, UpperBound(Constant))),
-                // ("8l33Gi", TodoStatus, relation(&maximum_degree, &excluded_top_minor, UpperBound(Constant))),
-                // ("l230dC", TodoStatus, relation(&treewidth, &excluded_top_minor, UpperBound(Constant))),
-                // ("5qgR1y", TodoStatus, relation(&planar, &excluded_minor, UpperBound(Constant))),
+                // ("VLbSmM", TodoStatus, relation(&excluded_top_minor, &bounded_expansion, ImplicationRelation::Implies)),
+                // ("3e5jLj", TodoStatus, relation(&degeneracy, &weakly_sparse, ImplicationRelation::Implies)),
+                // ("ssMLQE", TodoStatus, relation(&nowhere_dense, &weakly_sparse, ImplicationRelation::Implies)),
+                // ("45mNcy", TodoStatus, relation(&nowhere_dense, &vc_dimension, ImplicationRelation::Implies)),
+                // ("Ie3w0s", TodoStatus, relation(&clique_width, &vc_dimension, ImplicationRelation::Implies)),
+                // ("cF8esN", TodoStatus, relation(&outerplanar, &excluded_planar_minor, ImplicationRelation::Implies)),
+                // ("opjGKG", TodoStatus, relation(&excluded_minor, &excluded_top_minor, ImplicationRelation::Implies)),
+                // ("I8lPXq", TodoStatus, relation(&excluded_planar_minor, &excluded_minor, ImplicationRelation::Implies)),
+                // ("8l33Gi", TodoStatus, relation(&maximum_degree, &excluded_top_minor, ImplicationRelation::Implies)),
+                // ("l230dC", TodoStatus, relation(&treewidth, &excluded_top_minor, ImplicationRelation::Implies)),
+                // ("5qgR1y", TodoStatus, relation(&planar, &excluded_minor, ImplicationRelation::Implies)),
                 // ("", TodoStatus, relation()),
             ],
         )
-        // .ref_noted_relation("nvlJEd", NotApplicable, &bounded_expansion, &degeneracy, UpperBound(Constant), "$wcol_1-1 = col_1-1=adm_1=degeneracy$", SrcTodo) // constant due to be being a property?
+        // .ref_noted_relation("nvlJEd", NotApplicable, &bounded_expansion, &degeneracy, ImplicationRelation::Implies, "$wcol_1-1 = col_1-1=adm_1=degeneracy$", SrcTodo) // constant due to be being a property?
         // .ref_noted_relation("LRdQPE", NotApplicable, &d_admissibility, &strong_d_coloring_number, UpperBound(Tower), "$col_d \\le 1+(adm_d)^d$", SrcTodo)
         // .ref_noted_relation("4sBB4p", NotApplicable, &strong_d_coloring_number, &weak_d_coloring_number, UpperBound(Tower), "$wcol_d \\le \\sum_{i=0}^d(col_d-1)^i$", SrcTodo)
         ;
@@ -711,52 +712,52 @@ pub fn build_collection() -> RawData {
         // ])
         .ref_wrote(NotApplicable, "", vec![("H1gQ6m", TodoStatus, relation(&feedback_vertex_set, &dist_to_forest, Equal))])
         .ref_wrote(NotApplicable, "", vec![("hDNUsi", TodoStatus, relation(&vertex_cover, &dist_to_edgeless, Equal))])
-        // .ref_wrote(NotApplicable, cliques_make_it_unbounded, vec![("Jyi5e3", TodoStatus, relation(&complete, &maximum_clique, Exclusion))])
-        // .ref_wrote(NotApplicable, cliques_make_it_unbounded, vec![("t9mJyF", TodoStatus, relation(&complete, &domatic_num, Exclusion))])
-        // .ref_wrote(NotApplicable, cliques_make_it_unbounded, vec![("KnGxdS", TodoStatus, relation(&complete, &edge_connectivity, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("fQjK7z", TodoStatus, relation(&co_cluster, &dist_to_chordal, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("cOXKlo", TodoStatus, relation(&cluster, &twin_cover_num, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("jIxF3A", TodoStatus, relation(&cluster, &domination_num, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("OjWb8I", TodoStatus, relation(&bipartite, &girth, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("d1qoN7", TodoStatus, relation(&bipartite, &edge_connectivity, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("Z335lf", TodoStatus, relation(&forest, &feedback_edge_set, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("5pJxbA", TodoStatus, relation(&forest, &girth, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("k18Pyk", TodoStatus, relation(&forest, &dist_to_interval, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("2QZo3T", TodoStatus, relation(&edgeless, &vertex_cover, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("cq2q83", TodoStatus, relation(&edgeless, &domination_num, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("TOJxXi", TodoStatus, relation(&grid, &dist_to_chordal, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("MRucBP", TodoStatus, relation(&grid, &average_distance, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("MYM6Ye", TodoStatus, relation(&grid, &bisection_bandwidth, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("VJwjbX", TodoStatus, relation(&outerplanar, &bisection_bandwidth, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("fQjK7z", TodoStatus, relation(&grid, &maximum_degree, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("OjWb8I", TodoStatus, relation(&interval, &average_distance, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("967lJ2", TodoStatus, relation(&path, &treedepth, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("ne07p3", TodoStatus, relation(&linear_forest, &average_distance, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("kkMeCO", TodoStatus, relation(&planar, &genus, UpperBound(Constant)))]) // folklore, by definition
-        // .ref_wrote(NotApplicable, "", vec![("EZdonY", TodoStatus, relation(&planar, &girth, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("cIAr80", TodoStatus, relation(&planar, &maximum_degree, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("DxmXhS", TodoStatus, relation(&planar, &dist_to_perfect, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("VAAXVv", TodoStatus, relation(&vertex_integrity, &neighborhood_diversity, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("CoBOm0", TodoStatus, relation(&stars, &hindex, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("Ei8B1H", TodoStatus, relation(&stars, &vertex_integrity, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("ORlCs0", TodoStatus, relation(&cycles, &dist_to_perfect, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("tZrOta", TodoStatus, relation(&cycle, &maximum_leaf_num, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("cYF2KU", TodoStatus, relation(&cycle, &girth, Exclusion))])
+        .ref_wrote(NotApplicable, cliques_make_it_unbounded, vec![("Jyi5e3", TodoStatus, relation(&complete, &maximum_clique, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, cliques_make_it_unbounded, vec![("t9mJyF", TodoStatus, relation(&complete, &domatic_num, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, cliques_make_it_unbounded, vec![("KnGxdS", TodoStatus, relation(&complete, &edge_connectivity, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("fQjK7z", TodoStatus, relation(&co_cluster, &dist_to_chordal, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("cOXKlo", TodoStatus, relation(&cluster, &twin_cover_num, ImplicationRelation::Implies))])
+        .ref_wrote(NotApplicable, "", vec![("jIxF3A", TodoStatus, relation(&cluster, &domination_num, ImplicationRelation::Excludes))])
+        // .ref_wrote(NotApplicable, "", vec![("OjWb8I", TodoStatus, relation(&bipartite, &girth, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("d1qoN7", TodoStatus, relation(&bipartite, &edge_connectivity, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("Z335lf", TodoStatus, relation(&forest, &feedback_edge_set, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("5pJxbA", TodoStatus, relation(&forest, &girth, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("k18Pyk", TodoStatus, relation(&forest, &dist_to_interval, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("2QZo3T", TodoStatus, relation(&edgeless, &vertex_cover, ImplicationRelation::Implies))])
+        .ref_wrote(NotApplicable, "", vec![("cq2q83", TodoStatus, relation(&edgeless, &domination_num, ImplicationRelation::Excludes))])
+        // .ref_wrote(NotApplicable, "", vec![("TOJxXi", TodoStatus, relation(&grid, &dist_to_chordal, ImplicationRelation::Excludes))])
+        // .ref_wrote(NotApplicable, "", vec![("MRucBP", TodoStatus, relation(&grid, &average_distance, ImplicationRelation::Excludes))])
+        // .ref_wrote(NotApplicable, "", vec![("MYM6Ye", TodoStatus, relation(&grid, &bisection_bandwidth, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("VJwjbX", TodoStatus, relation(&outerplanar, &bisection_bandwidth, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("fQjK7z", TodoStatus, relation(&grid, &maximum_degree, ImplicationRelation::Implies))])
+        .ref_wrote(NotApplicable, "", vec![("OjWb8I", TodoStatus, relation(&interval, &average_distance, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("967lJ2", TodoStatus, relation(&path, &treedepth, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("ne07p3", TodoStatus, relation(&linear_forest, &average_distance, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("kkMeCO", TodoStatus, relation(&planar, &genus, ImplicationRelation::Implies))]) // folklore, by definition
+        // .ref_wrote(NotApplicable, "", vec![("EZdonY", TodoStatus, relation(&planar, &girth, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("cIAr80", TodoStatus, relation(&planar, &maximum_degree, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("DxmXhS", TodoStatus, relation(&planar, &dist_to_perfect, ImplicationRelation::Excludes))])
+        // .ref_wrote(NotApplicable, "", vec![("VAAXVv", TodoStatus, relation(&vertex_integrity, &neighborhood_diversity, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("CoBOm0", TodoStatus, relation(&stars, &hindex, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("Ei8B1H", TodoStatus, relation(&stars, &vertex_integrity, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("ORlCs0", TodoStatus, relation(&cycles, &dist_to_perfect, ImplicationRelation::Excludes))])
+        .ref_wrote(NotApplicable, "", vec![("tZrOta", TodoStatus, relation(&cycle, &maximum_leaf_num, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("cYF2KU", TodoStatus, relation(&cycle, &girth, ImplicationRelation::Excludes))])
         .ref_wrote(NotApplicable, "M. Bentert (personal communication)", vec![("CkDe7e", TodoStatus, relation(&maximum_leaf_num, &feedback_edge_set, UpperBound(Polynomial)))]) // todo not PageTodo
         // .ref_wrote(NotApplicable, "By greedily placing one component after another.", vec![("QeiwSR", TodoStatus, relation(&component_size, &cutwidth, UpperBound(Polynomial)))])
         // .ref_wrote(NotApplicable, "By a disjoint union of small components with distance to perfect at least 1.", vec![("EjGaM8", TodoStatus, relation(&component_size, &dist_to_perfect, Exclusion))])
         // .ref_wrote(NotApplicable, "By a disjoint union of many $K_5$ graphs.", vec![("bQLN2O", TodoStatus, relation(&component_size, &dist_to_planar, Exclusion))])
-        // .ref_wrote(NotApplicable, "trivially", vec![("MQ0K6A", TodoStatus, relation(&star, &vertex_cover, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "trivially", vec![("btFVbS", TodoStatus, relation(&star, &hindex, UpperBound(Constant)))])
+        // .ref_wrote(NotApplicable, "trivially", vec![("MQ0K6A", TodoStatus, relation(&star, &vertex_cover, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "trivially", vec![("btFVbS", TodoStatus, relation(&star, &hindex, ImplicationRelation::Implies))])
         // .ref_wrote(NotApplicable, "trivially", vec![("A2vYf3", TodoStatus, relation(&tree, &hindex, Exclusion))])
         // .ref_wrote(NotApplicable, "trivially", vec![("vPk1LG", TodoStatus, relation(&path, &dist_to_cluster, Exclusion))])
         // .ref_wrote(NotApplicable, "trivially", vec![("dy8lvH", TodoStatus, relation(&path, &diameter, Exclusion))])
-        // .ref_wrote(NotApplicable, "trivially", vec![("DsZGLl", TodoStatus, relation(&cycles, &pathwidth, UpperBound(Constant)))])
+        // .ref_wrote(NotApplicable, "trivially", vec![("DsZGLl", TodoStatus, relation(&cycles, &pathwidth, ImplicationRelation::Implies))])
         // .ref_wrote(NotApplicable, "trivially", vec![("K9z178", TodoStatus, relation(&star, &maximum_degree, Exclusion))])
         // .ref_wrote(NotApplicable, "", vec![("f1nTaY", TodoStatus, relation(&complete, &maximum_matching, Exclusion))])
         // .ref_wrote(NotApplicable, "", vec![("8io8sJ", TodoStatus, relation(&path, &maximum_matching, Exclusion))])
-        // .ref_wrote(NotApplicable, "", vec![("GiDjOm", TodoStatus, relation(&star, &maximum_matching, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("rmHBsY", TodoStatus, relation(&edgeless, &maximum_matching, UpperBound(Constant)))])
+        // .ref_wrote(NotApplicable, "", vec![("GiDjOm", TodoStatus, relation(&star, &maximum_matching, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("rmHBsY", TodoStatus, relation(&edgeless, &maximum_matching, ImplicationRelation::Implies))])
         // .ref_wrote(PageTodo, "", vec![("D2YglK", TodoStatus, relation(&create.intersection("QrYeIw", &treewidth, &maximum_degree, "treewidth+maxdegree"), &create.intersection("hljuu8", &clique_width, &maximum_degree, "cliquewidth+maxdegree"), UpperBound(Linear)))])
         // .ref_wrote(PageTodo, "", vec![("JJTNMl", TodoStatus, relation(&create.intersection("nP3xBv", &clique_width, &maximum_degree, "cliquewidth+maxdegree"), &create.intersection("iPgGur", &treewidth, &maximum_degree, "treewidth+maxdegree"), UpperBound(Linear)))])
         // clique-width = fusing width (operation to merge a color class to a single vertex)
@@ -791,14 +792,14 @@ pub fn build_collection() -> RawData {
         // .ref_wrote(NotApplicable, "", vec![("", TodoStatus, relation(&overlap_treewidth, &dipole_number, UpperBound(Exists)))])
         .ref_wrote(NotApplicable, "", vec![("F9TWg2", TodoStatus, relation(&treewidth, &sparse_twin_width, UpperBound(Exists)))])
         // .ref_wrote(NotApplicable, "", vec![("JCI2An", TodoStatus, relation(&sparse_twin_width, &bounded_expansion, UpperBound(Exists)))])
-        // .ref_wrote(NotApplicable, "", vec![("Go6gbV", TodoStatus, relation(&nowhere_dense, &monadically_stable, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("MNJN0n", TodoStatus, relation(&monadically_stable, &monadically_dependent, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("uK0Bkd", TodoStatus, relation(&twin_width, &monadically_dependent, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("Lx2PDS", TodoStatus, relation(&genus, &excluded_minor, UpperBound(Constant)))])
+        // .ref_wrote(NotApplicable, "", vec![("Go6gbV", TodoStatus, relation(&nowhere_dense, &monadically_stable, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("MNJN0n", TodoStatus, relation(&monadically_stable, &monadically_dependent, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("uK0Bkd", TodoStatus, relation(&twin_width, &monadically_dependent, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("Lx2PDS", TodoStatus, relation(&genus, &excluded_minor, ImplicationRelation::Implies))])
         .ref_wrote(NotApplicable, "", vec![("BpYOJt", TodoStatus, relation(&sparse_twin_width, &twin_width, UpperBound(Exists)))])
-        // .ref_wrote(NotApplicable, "", vec![("D7mRIW", TodoStatus, relation(&perfect, &chi_bounded, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("jTiJAO", TodoStatus, relation(&clique_width, &chi_bounded, UpperBound(Constant)))])
-        // .ref_wrote(NotApplicable, "", vec![("RliMGK", TodoStatus, relation(&series_parallel, &chi_bounded, UpperBound(Constant)))])
+        // .ref_wrote(NotApplicable, "", vec![("D7mRIW", TodoStatus, relation(&perfect, &chi_bounded, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("jTiJAO", TodoStatus, relation(&clique_width, &chi_bounded, ImplicationRelation::Implies))])
+        // .ref_wrote(NotApplicable, "", vec![("RliMGK", TodoStatus, relation(&series_parallel, &chi_bounded, ImplicationRelation::Implies))])
         .ref_wrote(NotApplicable, "Put the modulator to every bag of the natural chodal graph tree decomposition which contains a clique in every bag. The biggest independent set can contain the modulator and no more than a single vertex of the clique.", vec![("KjnuD1", TodoStatus, relation(&dist_to_chordal, &tree_independence, UpperBound(Linear)))])
         .ref_wrote(NotApplicable, "", vec![("E9szyw", TodoStatus, relation(&treewidth, &modular_treewidth, UpperBound(Linear)))])
         .ref_wrote(NotApplicable, "", vec![("hreVoq", TodoStatus, relation(&modular_treewidth, &clique_width, UpperBound(Exponential)))])
@@ -900,7 +901,7 @@ pub fn build_collection() -> RawData {
         .done(&mut create);
     // ATTRIBUTIONS WIP ////////////////////////////////////////////////////////////
     let robertson_seymour1986_5 = source("A82svt", "RobertsonSymour1986V", 3)
-        // .wrote(Pp(2), "(1.5) For every planar graph $H$, there is a number $w$ such that every planar graph with no minor isomorphic to $H$ has tree-wdtih $\\le w$", vec![("u4wtjE", Original, relation(&excluded_planar_minor, &treewidth, UpperBound(Constant)))])
+        // .wrote(Pp(2), "(1.5) For every planar graph $H$, there is a number $w$ such that every planar graph with no minor isomorphic to $H$ has tree-wdtih $\\le w$", vec![("u4wtjE", Original, relation(&excluded_planar_minor, &treewidth, ImplicationRelation::Implies))])
         .todo_rest(&mut create);
     let robertson_seymour1991 = source("1hPzXs", "RobertsonSymour1991", 7)
         .wrote(Pp(12), "A \\emph{branch-width} of a hypergraph $G$ is a pair $(T,\\tau)$, where $T$ is a ternary tree and $\\tau$ is a bijection from the set of leaves of $T$ to $E(G)$. The \\emph{order} of an edge $e$ of $T$ is the number of vertices $v$ of $G$ such that there are leaves $t_1,t_2$ of $T$ in different components of $T \\setminus e$, with $\\tau(t_1),\\tau(t_2)$ both incident with $v$. The \\emph{width} of $(T,\\tau)$ is the maximum order of the edges of $T$, and the \\emph{branch-width} $\\beta(G)$ of $G$ is the minimum width of all branch-decompositions of $G$ (or 0 if $|E(G)| \\le 1$, when $G$ has no branch-decompositions).", vec![("gMAL5e", Original, definition(&branch_width))])
@@ -920,7 +921,7 @@ pub fn build_collection() -> RawData {
     let wanke1994 = source("SQjcYg", "Wanke1994", 3)
         // .wrote(Pp(3), "Definition 2.1. Let $k \\in \\mathbb N$ be a positive integer. A \\emph{$k$-node label controlled (NLC) graph} is a $k$-NL graph defined as follows: ...", vec![("ENvDZb", Original, definition(&nlc_width))])
         // .wrote("yNzt7o", Pp(4), &nlct_width, "Definition 2.2. Let $k \\in \\mathbb N$ be a positive integer. A \\emph{$k$-node label controlled (NLC) tree} is a $k$-NL graph defined as follows: ...")
-        // .wrote(Pp(5), "Fact 2.3. $G$ is a $1$-NLC graph if and only if $unlab(G)$ is a co-graph.", vec![("jBcoBD", Original, relation(&cograph, &nlc_width, UpperBound(Constant)))])
+        // .wrote(Pp(5), "Fact 2.3. $G$ is a $1$-NLC graph if and only if $unlab(G)$ is a co-graph.", vec![("jBcoBD", Original, relation(&cograph, &nlc_width, ImplicationRelation::Implies))])
         // .wrote(Pp(6), "Theorem 2.5. For each partial $k$-tree $G$ there is a $(2^{k+1}-1)$-NLC tree $J$ with $G=unlab(J)$.", vec![("cXI1DK", Original, relation(&treewidth, &nlc_width, UpperBound(Exponential)))])
         .done(&mut create);
     let seymour_thomas1994 = source("mRz7Lq", "SeymourThomas1994", 3)
@@ -943,7 +944,7 @@ pub fn build_collection() -> RawData {
         .wrote(Pp(23), "Theorem 45. For every graph $G$, the pathwidth of $G$ is at most the topological band-width of $G$.", vec![("RQriva", Original, relation(&topological_bandwidth, &pathwidth, UpperBound(Linear)))])
         .wrote(Pp(24), "Theorem 47. For every graph $G$, the pathwidth of $G$ is at most the cutwidth of $G$.", vec![("iiE5jo", Original, relation(&cutwidth, &pathwidth, UpperBound(Linear)))])
         // .wrote(Pp(24), "Theorem 49.", vec![("RgLQ2P", Original, relation(&degree_pathwidth, &cutwidth, Equivalent(Linear, Linear)))])
-        // .wrote(Pp(34), "Lemma 78. Every outerplanar graph $G=(V,E)$ has treewidth at most 2.", vec![("VdNTHZ", Original, relation(&outerplanar, &treewidth, UpperBound(Constant)))]) // check whether dist_to_outerplanar bounding treewidth infered from this?
+        // .wrote(Pp(34), "Lemma 78. Every outerplanar graph $G=(V,E)$ has treewidth at most 2.", vec![("VdNTHZ", Original, relation(&outerplanar, &treewidth, ImplicationRelation::Implies))]) // check whether dist_to_outerplanar bounding treewidth infered from this?
         // .wrote(Pp(37), "Lemma 88. The treewidth of an $n \\times n$ grid graph ... is at least $n$.", vec![("oFitZo", Original, relation(&grid, &treewidth, Exclusion))])
         // .wrote(Pp(38), "Lemma 90 (Scheffler [94]). Every graph of treewidth at most $k$ contains a vertex of degree at most $k$.", vec![("KoFslx", Noted(RawNotedSource::Source("Schemer, Die Baumweite von Graphen als ein Maß für die Kompliziertheit algorithmischer Probleme, Ph.D. Thesis, Akademie der Wissenschafien der DDR, Berlin, 1989.")), relation(&treewidth, &minimum_degree, UpperBound(Linear)))])
         .done(&mut create);
@@ -984,24 +985,26 @@ pub fn build_collection() -> RawData {
         .wrote(Pp(8), "", vec![("pY3u9l", Original, relation(&clique_tree_width, &clique_width, UpperBound(Linear)))])
         .wrote(Pp(8), "", vec![("hxsxob", Original, relation(&clique_tree_width, &nlct_width, UpperBound(Linear)))])
         .wrote(Pp(8), "", vec![("JXeEwu", Original, relation(&nlct_width, &clique_tree_width, UpperBound(Linear)))])
-        // .wrote(Pp(8),  "The results of [23] imply that each graph class of bounded path-width has bounded linear NLC-width and that each graph class of bounded tree-width has bounded NLCT-width.", vec![
-        //     ("mwTHcM", Original, relation(&pathwidth, &linear_nlc_width, UpperBound(Exists))),
-        //     ("BELFKR", Original, relation(&treewidth, &nlct_width, UpperBound(Exists)))
-        // ])
-        // .proved("3udN1G", Pp(8), &treewidth, &nlct_width, UpperBound(Linear), "")
+        .wrote(Pp(8),  "The results of [23] imply that each graph class of bounded path-width has bounded linear NLC-width and that each graph class of bounded tree-width has bounded NLCT-width.", vec![
+            ("mwTHcM", Original, relation(&pathwidth, &linear_nlc_width, UpperBound(Exists))),
+            ("BELFKR", Original, relation(&treewidth, &nlct_width, UpperBound(Exists)))
+        ])
+        .wrote( Pp(8), "", vec![("3udN1G", Original, relation(&treewidth, &nlct_width, UpperBound(Linear)))])
         .done(&mut create);
     let oum2006 = source("1ZTWBd", "Oum2006", 4)
-        // .wrote(Pp(9), "... and the \\emph{rank-width} $\\mathrm{rwd}(G)$ of $G$ is the branch-width of $\\mathrm{cutrk}_G$.", vec![("SGJJ1Y", Original, definition(&rank_width))])
-        // .wrote(Pp(9), "Proposition 6.3", vec![("yLdAHe", Original, relation(&rank_width, &clique_width, Exactly(Exponential)))])
-        // .wrote(Pp(9), "Proposition 6.3", vec![("uEUXMq", Original, relation(&clique_width, &rank_width, UpperBound(Linear)))])
+        .wrote(Pp(9), "... and the \\emph{rank-width} $\\mathrm{rwd}(G)$ of $G$ is the branch-width of $\\mathrm{cutrk}_G$.", vec![("SGJJ1Y", Original, definition(&rank_width))])
+        .wrote(Pp(9), "Proposition 6.3", vec![
+            ("yLdAHe", Original, relation(&rank_width, &clique_width, Exactly(Exponential))),
+            ("uEUXMq", Original, relation(&clique_width, &rank_width, UpperBound(Linear))),
+        ])
         .done(&mut create);
     let geometric_thickness2007 = source("2q7m9E", "GeometricThickness2007", 4)
-        // .defined("3p2P4E", Pp(3), &thickness, "The thickness of a graph $G$, ..., is the minimum number of planar subgraphs that partition (ed: edges of) $G$.") // defined by Tutte 1963
-        // .defined("j9NrW9", Pp(3), &outerthickness, "The outerthickness of a graph $G$, ..., is the minimum number of outerplanar subgraphs that partition (ed: edges of) $G$.")
-        // .proved("0B1cGr", Pp(4), &treewidth, &thickness, UpperBound(Linear), "Proposition 1. The maximum thickness of a graph in $\\mathcal T_k$ (ed: $k$-tree) is $\\lceil k/2 \\rceil$; ...")
+        .wrote(Pp(3), "The thickness of a graph $G$, ..., is the minimum number of planar subgraphs that partition (ed: edges of) $G$.", vec![("3p2P4E", Derivative, definition(&thickness))]) // defined by Tutte 1963
+        .wrote(Pp(3), "The outerthickness of a graph $G$, ..., is the minimum number of outerplanar subgraphs that partition (ed: edges of) $G$.", vec![("j9NrW9", Original, definition(&outerthickness))])
+        .wrote(Pp(4), "Proposition 1. The maximum thickness of a graph in $\\mathcal T_k$ (ed: $k$-tree) is $\\lceil k/2 \\rceil$; ...", vec![("0B1cGr", Original, relation(&treewidth, &thickness, UpperBound(Linear)))])
         .wrote(Pp(5), "Proposition 2. The maximum arboricity of a graph in $\\mathcal T_k$ (ed: $k$-tree) is $k$; ...", vec![("3zMwH9", Original, relation(&treewidth, &arboricity, UpperBound(Linear)))])
-        // .proved("hXbdpU", Pp(5), &treewidth, &outerthickness, UpperBound(Linear), "Proposition 3. The maximum outerthickness of a graph in $\\mathcal T_k$ (ed: $k$-tree) is $k$; ...")
-        // .proved("EKKZPJ", Pp(6), &treewidth, &star_arboricity, UpperBound(Linear), "Proposition 4. The maximum star-arboricity of a graph in $\\mathcal T_k$ (ed: $k$-tree) is $k+1$; ...")
+        .wrote(Pp(5), "Proposition 3. The maximum outerthickness of a graph in $\\mathcal T_k$ (ed: $k$-tree) is $k$; ...", vec![("hXbdpU", Original, relation(&treewidth, &outerthickness, UpperBound(Linear)))])
+        .wrote(Pp(6), "Proposition 4. The maximum star-arboricity of a graph in $\\mathcal T_k$ (ed: $k$-tree) is $k+1$; ...", vec![("EKKZPJ", Original, relation(&treewidth, &star_arboricity, UpperBound(Linear)))])
         .wrote(Pp(7), "A geometric drawing in which the vertices are in convex position is called a book embedding. The book thickness of a graph $G$, ..., is the minimum $k \\in \\mathbb N$ such that there is book embedding of $G$ with thickness $k$.", vec![("IxPMGS", Original, definition(&book_thickness))])
         .wrote(Pp(8), "The maximum book thickness ... of a graph $\\mathcal T_k$ (ed: $k$-tree) satisfy ... $=k$ for $k \\le 2$, $=k+1$ for $k \\ge 3$.", vec![("FY0U1r", Original, relation(&treewidth, &book_thickness, UpperBound(Linear)))])
         .todo_rest(&mut create);
@@ -1010,12 +1013,12 @@ pub fn build_collection() -> RawData {
         .wrote(Pp(10), "$cc(G) \\ge \\Delta(G) - 1$", vec![("F0p61H", Original, relation(&contraction_complexity, &maximum_degree, UpperBound(Linear)))])
         .wrote(Pp(11), "Proposition 4.2. ... $cc(G)=tw(G^*)$ ... Lemma 4.4. $(tw(G) - 1)/2 \\le tw(G^*) \\le \\Delta(G)(tw(G) + 1) - 1.$", vec![
             ("YhbKPB", Original, relation(&contraction_complexity, &treewidth, UpperBound(Linear))),
-            // ("YvvmJE", Original, relation(&degree_treewidth, &contraction_complexity, UpperBound(Polynomial))),
+            ("YvvmJE", Original, relation(&degree_treewidth, &contraction_complexity, UpperBound(Polynomial))),
         ])
         .done(&mut create);
     let delavina_waller2008 = source("C5cBsd", "spanningTreesManyLeaves2008", 2)
         .wrote(Pp(5), "Theorem 9 (Main Theorem). Let $G$ be a graph. Then $\\bar{D} < \\frac b2 + \\frac 12$. ...", vec![("Pbg2ga", Original, relation(&bipartite_number, &average_distance, UpperBound(Linear)))])
-        // .proved("ZXINaY", PageTodo, &maximum_leaf_num, &feedback_vertex_set, UpperBound(Linear), "")
+        .wrote(PageTodo, "", vec![("ZXINaY", Original, relation(&maximum_leaf_num, &feedback_vertex_set, UpperBound(Linear)))])
         .done(&mut create);
     let gradnesetril2008 = source("kXDDmb", "gradnesetril2008", 3)
         .wrote(PageTodo, "", vec![("VLpzhW", Original, relation(&d_path_free, &treedepth, UpperBound(Polynomial)))]) // todo
@@ -1044,7 +1047,7 @@ pub fn build_collection() -> RawData {
         // .proved("BwIc79", Pp(28), &cutwidth, &maximum_degree, UpperBound(Linear), "Lemma 2.18. For any graph $G$ and any vertex $v \\in V(G), cutw(g) \\ge \\lceil \\frac{deg(v)}2 \\rceil$.")
         // .proved("h49cUu", Pp(30), &carving_width, &maximum_degree, UpperBound(Linear), "Lemma 2.20 Carving-width of a graph $G$ is at least $\\Delta(G)$ where $\\Delta(G)$ is the maximum degree of a graph $G$.")
         // .proved("2Wk4AF", Pp(30), &star, &carving_width, Exclusion, "Corollary 2.21 Carving-width of a star is $n-1$.")
-        // .proved("6Ln8ux", Pp(30), &path, &carving_width, UpperBound(Constant), "... path with carving-width 2.")
+        // .proved("6Ln8ux", Pp(30), &path, &carving_width, ImplicationRelation::Implies, "... path with carving-width 2.")
         // // .cited("7jmzab", Pp(32), &gradnesetril2008, "Theorem 2.23 [13] Let $l$ be the length of the longest path in a graph $G$. Then the tree-depth of $G$ is bounded as follows: $\\lceil \\log_2(l+2)\\rceil \\le td(G) \\le \\binom{l+3}2-1$ ...")
         // .proved("MboUFT", Pp(32), &grid, &treedepth, Exclusion, "Corollary 2.24 Tree-depth of a grid is at least $\\lceil \\log_2(n+1)\\rceil$.")
         // .proved("WiiQn4", Pp(38), &cutwidth, &carving_width, UpperBound(Linear), "Theorem 4.3 (carw $\\prec$ cutw) Carving-width is bounded by cut-width.")
@@ -1067,7 +1070,7 @@ pub fn build_collection() -> RawData {
     let ganian_twin_cover2012 = source("7UoBR6", "GanianTwinCover2012", 4)
         .wrote(Pp(262), "Definition 3.1. $X \\subseteq V(G)$ is a twin-cover of $G$ if for every edge $e=\\{a,b\\} \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are twins, i.e. all other vertices are either adjacent to both $a$ and $b$ or none. We then say that $G$ has twin-cover number $k$ if $k$ is the minimum possible size of a twin-cover of $G$.", vec![("k6ApS2", Original, definition(&twin_cover_num))])
         .wrote(Pp(262), "Definition 3.2. $X \\subseteq V(G)$ is a twin-cover of $G$ if there exists a subgraph $G'$ of $G$ such that 1. $X \\subseteq V(G')$ and $X$ is a vertex cover of $G'$. 2. $G$ can be obtained by iteratively adding twins to non-cover vertices in $G'$.", vec![("pFk5uY", Original, definition(&twin_cover_num))])
-        // .proved("oxtaEE", Pp(263), &complete, &twin_cover_num, UpperBound(Constant), "We note that complete graphs indeed have a twin-cover of zero.")
+        // .proved("oxtaEE", Pp(263), &complete, &twin_cover_num, ImplicationRelation::Implies, "We note that complete graphs indeed have a twin-cover of zero.")
         // .proved("nkOAMh", Pp(263), &twin_cover_num, &vertex_cover, Exclusion, "The vertex cover of graphs of bounded twin-cover may be arbitrarily large.")
         // .wrote(Pp(263), "There exists graphs with arbitrarily large twin-cover and bounded tree-width and vice-versa.",
         //     vec![
@@ -1088,28 +1091,30 @@ pub fn build_collection() -> RawData {
         // .proved("77zJ2z", Pp(42), &boolean_width, &mim_width, UpperBound(Linear), "Theorem 4.2.10. Let $G$ be a graph, then $mimw(G) \\le boolw(G) \\le mimw(G) \\log_2(n)$")
         .todo_rest(&mut create);
     let modularwidth2013 = source("OH3sI3", "modularwidth2013", 3)
-        // .proved("NeMJtU", Pp(6), &neighborhood_diversity, &modular_width, StrictUpperBound(Linear), "Theorem 3. Let $G$ be a graph. Then $\\mathrm{mw}(G) \\le \\mathrm{nd}(G)$ and $\\mathrm{mw}(G) \\le 2\\mathrm{tc}(G) + \\mathrm{tc}(G)$. Furthermore, both inequalities are strict, ...")
-        // .proved("8rtBjc", Pp(6), &twin_cover_num, &modular_width, StrictUpperBound(Exponential), "Theorem 3. Let $G$ be a graph. Then $\\mathrm{mw}(G) \\le \\mathrm{nd}(G)$ and $\\mathrm{mw}(G) \\le 2\\mathrm{tc}(G) + \\mathrm{tc}(G)$. Furthermore, both inequalities are strict, ...")
-        // .proved("ppKqXp", Pp(8), &modular_width, &shrub_depth, Incomparable, "Theorem 4. There are classes of graphs with unbounded modular-width and bounded shrub-depth and vice versa.")
+        .wrote(Pp(6), "Theorem 3. Let $G$ be a graph. Then $\\mathrm{mw}(G) \\le \\mathrm{nd}(G)$ and $\\mathrm{mw}(G) \\le 2\\mathrm{tc}(G) + \\mathrm{tc}(G)$. Furthermore, both inequalities are strict, ...", vec![
+            ("NeMJtU", Original, relation(&neighborhood_diversity, &modular_width, StrictUpperBound(Linear))),
+            ("8rtBjc", Original, relation(&twin_cover_num, &modular_width, StrictUpperBound(Exponential))),
+        ])
+        .wrote(Pp(8), "Theorem 4. There are classes of graphs with unbounded modular-width and bounded shrub-depth and vice versa.", vec![("ppKqXp", Original, relation(&modular_width, &shrub_depth, Incomparable))])
         .todo_rest(&mut create);
     let belmonte2013 = source("sJ476m", "Belmonte2013", 1)
-        // .proved("ZHXKjC", PageTodo, &carving_width, &maximum_degree, UpperBound(Linear), "Observation 1. Let $G$ be a graph. Then $cw(G) \\ge \\Delta(G)$.")
+        .wrote(PageTodo, "Observation 1. Let $G$ be a graph. Then $cw(G) \\ge \\Delta(G)$.", vec![("ZHXKjC", Original, relation(&carving_width, &maximum_degree, UpperBound(Linear)))])
         .todo_rest(&mut create);
     let jansen2013 = source("FLOjic", "Jansen2013", 1)
         // .hasse("u6oAPX", Pp(46), copyvec(vec![&vertex_cover, &maximum_leaf_num, &dist_to_complete, &dist_to_linear_forest, &cutwidth, &bandwidth, &topological_bandwidth, &feedback_vertex_set, &dist_to_chordal, &dist_to_outerplanar, &pathwidth, &odd_cycle_transversal, &treewidth, &genus, &dist_to_perfect, &chromatic_number]))
-        // .defined("PV6tGG", PageTodo, &topological_bandwidth, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all subdivisions of $G$")
+        .wrote(PageTodo, "The \\emph{topological bandwidth} of a graph $G$ is the minimum [bandwidth](../aP5a38) over all subdivisions of $G$", vec![("PV6tGG", Original, definition(&topological_bandwidth))])
         .todo_rest(&mut create);
     let treecutwidth2015 = source("zbWWC6", "treecutwidth2015", 3).todo_rest(&mut create);
     let adler2015 = source("rhj9my", "Adler2015", 2)
-        // .collective(Pp(1),  "Linear rank-width is equivalent to linear clique-width in the sense that any graph class has bounded linear clique-width if and only if it has bounded linear rank-width.")
-        // .proved("3yUfrd", &linear_rank_width, &linear_clique_width, UpperBound(Exists))
-        // .proved("2dN9wh", &linear_clique_width, &linear_rank_width, UpperBound(Exists))
-        // .done()
-        // .proved("dvqfqQ", Pp(3), &pathwidth, &linear_rank_width, UpperBound(Linear), "Lemma 5. Any graph $G$ satisfies $\\mathrm{lrw}(G) \\le \\mathrm{pw}(G)$.")
+        .wrote(Pp(1),  "Linear rank-width is equivalent to linear clique-width in the sense that any graph class has bounded linear clique-width if and only if it has bounded linear rank-width.", vec![
+            ("3yUfrd", Original, relation(&linear_rank_width, &linear_clique_width, UpperBound(Exists))),
+            ("2dN9wh", Original, relation(&linear_clique_width, &linear_rank_width, UpperBound(Exists))),
+        ])
+        .wrote(Pp(3), "Lemma 5. Any graph $G$ satisfies $\\mathrm{lrw}(G) \\le \\mathrm{pw}(G)$.", vec![("dvqfqQ", Original, relation(&pathwidth, &linear_rank_width, UpperBound(Linear)))])
         .todo_rest(&mut create);
     let twin_cover_2015 = source("VQLE2i", "ganianTwinCover2015", 4)
-        // .defined("J1sHj8", Pp(5), &twin_cover_num, "Definition 3 A set of vertices $X \\subseteq V(G)$ is a twin-cover of $G$ if for every edge $e = ab \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are true twins. We then say that $G$ has twin-cover $k$ if the size of a minimum twin-cover of $G$ is $k$.")
-        // .proved("OoSnHu", Pp(20), &twin_cover_num, &shrub_depth, UpperBound(Constant), "Let $\\mathcal H_k$ be the class of graphs of twin-cover $k$. Then $\\mathcal H_k \\subseteq \\mathcal{TM}_{2^k+k}(2)$ and a tree-model of any $G \\in \\mathcal H_k$ may be constructed in single-exponential FPT time.")
+        .wrote(Pp(5), "Definition 3 A set of vertices $X \\subseteq V(G)$ is a twin-cover of $G$ if for every edge $e = ab \\in E(G)$ either 1. $a \\in X$ or $b \\in X$, or 2. $a$ and $b$ are true twins. We then say that $G$ has twin-cover $k$ if the size of a minimum twin-cover of $G$ is $k$.", vec![("J1sHj8", Original, definition(&twin_cover_num))])
+        .wrote(Pp(20), "Let $\\mathcal H_k$ be the class of graphs of twin-cover $k$. Then $\\mathcal H_k \\subseteq \\mathcal{TM}_{2^k+k}(2)$ and a tree-model of any $G \\in \\mathcal H_k$ may be constructed in single-exponential FPT time.", vec![("OoSnHu", Original, relation(&twin_cover_num, &shrub_depth, UpperBound(Constant)))])
         .todo_rest(&mut create);
     let parameterized_algorithms2015 = source("Xlsyce", "ParameterizedAlgorithms2015", 9)
         // .defined("96BXHn", NotApplicable, &treewidth, "Very roughly, treewidth captures how similar a graph is to a tree. There are many ways to define ``tree-likeness'' of a graph; ... it appears that the approach most useful from algorithmic and graph theoretical perspectives, is to view tree-likeness of a graph $G$ as the existence of a structural decomposition of $G$ into pieces of bounded size that are connected in a tree-like fashion. This intuitive concept is formalized via the notions of a *tree decomposition* and the *treewidth* of a graph; the latter is a quantitative measure of how good a tree decomposition we can possibly obtain.")
@@ -1128,7 +1133,7 @@ pub fn build_collection() -> RawData {
     let froemmrich2018 = source("45xW87", "Froemmrich2018", 1).todo_rest(&mut create);
     let ganian2019 = source("Scw7zm", "Ganian2019", 5)
         // .proved("TUftFh", PageTodo, &shrub_depth, &linear_clique_width, UpperBound(Linear), "Proposition 3.4. Let $\\mathcal G$ be a graph class and $d$ an integer. Then: ... b) If $\\mathcal G$ is of bounded shrub-depth, then $\\mathcal G$ is of bounded linear clique-width.")
-        // .proved("EG7vp6", PageTodo, &neighborhood_diversity, &shrub_depth, UpperBound(Constant), "$\\mathcal{TM}_m(1)$ is exactly the class of graphs of neighborhood diversity at most $m$.")
+        // .proved("EG7vp6", PageTodo, &neighborhood_diversity, &shrub_depth, ImplicationRelation::Implies, "$\\mathcal{TM}_m(1)$ is exactly the class of graphs of neighborhood diversity at most $m$.")
         // .proved("sq0brL", PageTodo, &treedepth, &shrub_depth, UpperBound(Linear), "Proposition 3.2. If $G$ is of tree-depth $d$, then $G \\in \\mathcal{TM}_{2^d}(d)$. ...")
         .todo_rest(&mut create);
     let sorge2019 = source("VnTIL0", "Sorge2019", 7)
@@ -1258,12 +1263,12 @@ pub fn build_collection() -> RawData {
     let twin_width_1_2021 = source("nyaOye", "twinWidthI2021", 6)
         // .defined("s5Ktq7", Pp(2), &twin_width, "... we consider a sequence of graphs $G_n,G_{n-1},\\dots,G_2,G_1$, where $G_n$ is the original graph $G$, $G_1$ is the one-vertex graph, $G_i$ has $i$ vertices, and $G_{i-1}$ is obtained from $G_i$ by performing a single contraction of two (non-necessarily adjacent) vertices. For every vertex $u \\in V(G_i)$, let us denote by $u(G)$ the vertices of $G$ which have been contracted to $u$ along the sequence $G_n,\\dots,G_i$. A pair of disjoint sets of vertices is \\emph{homogeneous} if, between these sets, there are either all possible edges or no edge at all. The red edges ... consist of all pairs $uv$ of vertices of $G_i$ such that $u(G)$ and $v(G)$ are not homogeneous in $G$. If the red degree of every $G_i$ is at most $d$, then $G_n,G_{n-1},\\dots,G_2,G_1$ is called a \\emph{sequence of $d$-contractions}, or \\emph{$d$-sequence}. The twin-width of $G$ is the minimum $d$ for which there exists a sequence of $d$-contractions.")
         // .proved("08lETp", Pp(14), &boolean_width, &twin_width, UpperBound(Exponential), "Theorem 3: Every graph with boolean-width $k$ has twin-width at most $2^{k+1}-1$.")
-        // .proved("0RiLv2", Pp(15), &grid, &twin_width, UpperBound(Constant), "Theorem 4.3. For every positive integers $d$ and $n$, the $d$-dimensional $n$-grid has twin-width at most $3d$.")
+        // .proved("0RiLv2", Pp(15), &grid, &twin_width, ImplicationRelation::Implies, "Theorem 4.3. For every positive integers $d$ and $n$, the $d$-dimensional $n$-grid has twin-width at most $3d$.")
         // // .proved("7p2TWN", PageTodo, &cograph, &reduced_edgeless, Equal, "") // todo
         .todo_rest(&mut create);
     // // let reduced_star = &create.reduced(&star, 0);
     let twin_width_beyond_2022 = source("3B7Kvt", "twinWidthBeyond2022", 5)
-        // .proved("AwGkfi", Pp(3), &all_graphs, &reduced_star, UpperBound(Constant), "Every graph has a reduction sequence in which every red graph is a star ...")
+        // .proved("AwGkfi", Pp(3), &all_graphs, &reduced_star, ImplicationRelation::Implies, "Every graph has a reduction sequence in which every red graph is a star ...")
         // // .defined("M6H2kI", , &reduced_bandwidth, "")
         .todo_rest(&mut create);
     // let edgecutwidth2022 = source("xhGnnq", "edgecutwidth2022", 4)
@@ -1278,7 +1283,7 @@ pub fn build_collection() -> RawData {
         // .redefined("gZtk6B", Pp(16), &chordality, "The chordality of a graph $G$ is the minimum amount of chordal graphs required, such that their intersection (ed: fixed typo) results in $G$.")
         // .proved("L0BALz", Pp(18), &vertex_cover, &twin_cover_num, UpperBound(Linear), by_definition)
         // .proved("kcsO0r", Pp(18), &complete, &vertex_cover, Exclusion, "Note that a clique of size $n$ has ... a vertex cover number of $n-1$")
-        // .proved("RUjcaV", Pp(18), &complete, &twin_cover_num, UpperBound(Constant), "Note that a clique of size $n$ has a twin cover number of 0 ...")
+        // .proved("RUjcaV", Pp(18), &complete, &twin_cover_num, ImplicationRelation::Implies, "Note that a clique of size $n$ has a twin cover number of 0 ...")
         // .proved("am05hY", Pp(18), &twin_cover_num, &dist_to_cluster, UpperBound(Linear), "... graph $H$ with a twin cover of size $k$ has a distance to cluster of at most $k$.")
         // .proved("tNZjb1", Pp(18), &dist_to_cluster, &twin_cover_num, Exclusion, "We show that twin cover number is not upper bounded by distance to cluster.")
         // .proved("ikkDSL", Pp(18), &twin_cover_num, &dist_to_complete, Incomparable, "Observation 3.3. Twin Cover Number is incomparable to Distance to Clique.")
@@ -1469,4 +1474,3 @@ pub fn build_collection() -> RawData {
 // NsdqoF
 // OceQyn
 // BOhiyO
-// etmyMV

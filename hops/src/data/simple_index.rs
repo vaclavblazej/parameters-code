@@ -106,3 +106,7 @@ where
             .contains(&(a.clone(), b.clone()))
     }
 }
+
+#[cfg(test)]
+#[path = "tests/simple_index.rs"]
+mod tests;

@@ -34,6 +34,8 @@ This page contains lists for:
 
 [[list parameters]]
 
+[[list parametric_parameters]]
+
 ---
 
 ## Graph classes and Properties
@@ -50,7 +52,11 @@ Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](h
 
 [[zoomdot graphs.dot]]
 
+[[list graph_classes]]
+
 [[list graphs]]
+
+[[list parametric_graph_class]]
 
 [[list properties]]
 
@@ -64,7 +70,12 @@ Please, see [Information System on Graph Classes and their Inclusions (ISGCI)](h
 
 ---
 
-## Tags
+## Other Structures
 
 [[list tags]]
 
+[[list logic_fragments]]
+
+[[list operations]]
+
+[[list providers]]

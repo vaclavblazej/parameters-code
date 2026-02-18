@@ -124,63 +124,19 @@ macro_rules! define_preview_id_name_score {
 }
 
 define_preview_id_name!(Tag, RawTag, PreviewTag, PreviewTagId);
-define_preview_id_name!(
-    LogicFragment,
-    RawLogicFragment,
-    PreviewLogicFragment,
-    PreviewLogicFragmentId
-);
-define_preview_id_name!(
-    Operation,
-    RawOperation,
-    PreviewOperation,
-    PreviewOperationId
-);
+define_preview_id_name!(LogicFragment, RawLogicFragment, PreviewLogicFragment, PreviewLogicFragmentId);
+define_preview_id_name!(Operation, RawOperation, PreviewOperation, PreviewOperationId);
 define_preview_id_name!(Provider, RawProvider, PreviewProvider, PreviewProviderId);
-define_preview_id_name!(
-    GraphRelation,
-    RawGraphRelation,
-    PreviewGraphRelation,
-    PreviewGraphRelationId
-);
-// define_preview_id_name!(
-//     GraphClassRelation,
-//     RawGraphClassRelation,
-//     PreviewGraphClassRelation,
-//     PreviewGraphClassRelationId
-// );
+define_preview_id_name!(GraphRelation, RawGraphRelation, PreviewGraphRelation, PreviewGraphRelationId);
+define_preview_id_name!(Problem, RawProblem, PreviewProblem, PreviewProblemId);
+// define_preview_id_name!(GraphClassRelation, RawGraphClassRelation, PreviewGraphClassRelation, PreviewGraphClassRelationId);
 
 define_preview_id_name_score!(Graph, RawGraph, PreviewGraph, PreviewGraphId);
-define_preview_id_name_score!(
-    GraphClass,
-    RawGraphClass,
-    PreviewGraphClass,
-    PreviewGraphClassId
-);
-define_preview_id_name_score!(
-    ParametricParameter,
-    RawParametricParameter,
-    PreviewParametricParameter,
-    PreviewParametricParameterId
-);
-define_preview_id_name_score!(
-    ParametricGraphClass,
-    RawParametricGraphClass,
-    PreviewParametricGraphClass,
-    PreviewParametricGraphClassId
-);
-define_preview_id_name_score!(
-    Parameter,
-    RawParameter,
-    PreviewParameter,
-    PreviewParameterId
-);
-define_preview_id_name_score!(
-    GraphClassProperty,
-    RawGraphClassProperty,
-    PreviewGraphClassProperty,
-    PreviewGraphClassPropertyId
-);
+define_preview_id_name_score!(GraphClass, RawGraphClass, PreviewGraphClass, PreviewGraphClassId);
+define_preview_id_name_score!(ParametricParameter, RawParametricParameter, PreviewParametricParameter, PreviewParametricParameterId);
+define_preview_id_name_score!(ParametricGraphClass, RawParametricGraphClass, PreviewParametricGraphClass, PreviewParametricGraphClassId);
+define_preview_id_name_score!(Parameter, RawParameter, PreviewParameter, PreviewParameterId);
+define_preview_id_name_score!(GraphClassProperty, RawGraphClassProperty, PreviewGraphClassProperty, PreviewGraphClassPropertyId);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PreviewSourceKey {
@@ -217,21 +173,6 @@ impl HasPreview<PreviewWrote> for Wrote {
         PreviewWrote {
             text: self.text.clone(),
             page: self.page.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub struct PreviewProblem {
-    pub id: PreviewProblemId,
-    pub name_core: NameCore,
-}
-
-impl HasPreview<PreviewProblem> for Problem {
-    fn preview(&self) -> PreviewProblem {
-        PreviewProblem {
-            id: self.id.preview(),
-            name_core: self.name_core.clone(),
         }
     }
 }

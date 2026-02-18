@@ -212,3 +212,7 @@ pub trait IsPreviewIdOf {
 pub trait IsIdOfPreview {
     type PreviewStructure;
 }
+
+#[cfg(test)]
+#[path = "tests/id.rs"]
+mod tests;

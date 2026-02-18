@@ -173,7 +173,7 @@ relatable!(PreviewProblemId, PreviewProblemId, ImplicationRelation, ProbProb);
 relatable!(PreviewProblemId, PreviewGraphClassPropertyId, ClassicalSolvability, ProbProp);
 relatable!(PreviewProblemId, PreviewParameterId, ParameterizedSolvability, ProbPar);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Def {
     LogicFragment(PreviewLogicFragmentId),
     Parameter(PreviewParameterId),
@@ -186,7 +186,7 @@ pub enum Def {
     Property(PreviewGraphClassPropertyId),
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub enum DefKind {
     LogicFragment,
     Parameter,
@@ -215,7 +215,7 @@ impl Def {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Rel {
     LfLf(PreviewLogicFragmentId, PreviewLogicFragmentId, ImplicationRelation),
     OpOp(PreviewOperationId, PreviewOperationId, ImplicationRelation),
@@ -234,7 +234,7 @@ pub enum Rel {
     ProbPar(PreviewProblemId, PreviewParameterId, ParameterizedSolvability),
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub enum RelKind {
     LfLf,
     OpOp,
@@ -275,7 +275,7 @@ impl Rel {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RawFact {
     Def(Def),
     Rel(Rel),
@@ -374,13 +374,9 @@ impl RawSourceData {
             factoids,
             drawings,
         } = self;
-        for factoid in factoids {
-            data.factoids.entry(source.id.preview()).or_default().push(factoid);
-        }
-        for drawing in drawings {
-            data.drawings.entry(source.id.preview()).or_default().push(drawing);
-        }
         let res = source.id.preview();
+        data.factoids.push((res.clone(), factoids));
+        data.drawings.push((res.clone(), drawings));
         data.sources.push(source);
         res
     }

@@ -7,6 +7,7 @@ use std::hash::Hash;
 
 use log::trace;
 use serde::{Deserialize, Serialize};
+use hops_macros::{tagged, named, scored};
 
 use crate::data::date::Date;
 use crate::data::enums::*;
@@ -16,10 +17,12 @@ use crate::data::preview::*;
 use crate::data::score::Score;
 use crate::input::source::ClassicalSolvability;
 use crate::input::source::Cpx;
+use crate::input::source::DefKind;
 use crate::input::source::EquivalenceRelation;
 use crate::input::source::ImplicationRelation;
 use crate::input::source::InclusionRelationUnderGraphRelation;
 use crate::input::source::ParameterizedSolvability;
+use crate::input::source::RelKind;
 use crate::tie_data_to_previewid;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
@@ -55,20 +58,6 @@ pub trait Named {
     }
 }
 
-#[macro_export]
-macro_rules! named_impl {
-    ($mytype:ident) => {
-        impl Named for $mytype {
-            fn name_core(&self) -> &NameCore {
-                &self.name_core
-            }
-            fn name_core_mut(&mut self) -> &mut NameCore {
-                &mut self.name_core
-            }
-        }
-    };
-}
-
 pub trait Tagged<With> {
     fn tag(&self) -> &Vec<With>;
     fn tag_mut(&mut self) -> &mut Vec<With>;
@@ -76,33 +65,6 @@ pub trait Tagged<With> {
     fn add_tag(&mut self, tag: With) {
         self.tag_mut().push(tag);
     }
-}
-
-#[macro_export]
-macro_rules! tagged_impl {
-    ($mytype:ident, $tagtype:ident) => {
-        impl Tagged<$tagtype> for $mytype {
-            fn tag(&self) -> &Vec<$tagtype> {
-                &self.tags
-            }
-            fn tag_mut(&mut self) -> &mut Vec<$tagtype> {
-                &mut self.tags
-            }
-        }
-    };
-}
-
-macro_rules! score_impl {
-    ($mytype:ident) => {
-        impl Score for $mytype {
-            fn score(&self) -> u32 {
-                self.score
-            }
-            fn set_score(&mut self, new_score: u32) {
-                self.score = new_score;
-            }
-        }
-    };
 }
 
 pub trait DataRetrievable<'a, To> {
@@ -129,48 +91,42 @@ macro_rules! data_gettable {
 
 // trait TaggedRef: Tagged + Named + HasId {} // todo ?
 
+#[named]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
     pub id: TagId,
-    pub name_core: NameCore,
     pub description: String,
     pub sets: Vec<Link>,
 }
-named_impl!(Tag);
 data_gettable!(PreviewTagId, Tag, tags);
 tie_data_to_previewid!(Tag, PreviewTagId);
 
+#[named]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LogicFragment {
     pub id: LogicFragmentId,
-    pub name_core: NameCore,
     pub description: Option<String>,
 }
-named_impl!(LogicFragment);
 data_gettable!(PreviewLogicFragmentId, LogicFragment, logic_fragments);
 tie_data_to_previewid!(LogicFragment, PreviewLogicFragmentId);
 
+#[named]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Operation {
     pub id: OperationId,
-    pub name_core: NameCore,
     pub description: Vec<String>,
 }
-named_impl!(Operation);
 data_gettable!(PreviewOperationId, Operation, operations);
 tie_data_to_previewid!(Operation, PreviewOperationId);
 
+#[named]
+#[scored]
+#[tagged(PreviewTag)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Graph {
     pub id: GraphId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: Vec<String>,
-    pub tags: Vec<PreviewTag>,
 }
-named_impl!(Graph);
-score_impl!(Graph);
-tagged_impl!(Graph, PreviewTag);
 data_gettable!(PreviewGraphId, Graph, graphs);
 tie_data_to_previewid!(Graph, PreviewGraphId);
 
@@ -189,31 +145,25 @@ pub enum GraphClassVariant {
     GraphProperty,
 }
 
+#[named]
+#[scored]
+#[tagged(PreviewTag)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GraphClass {
     pub id: GraphClassId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: GraphClassDefinition,
     pub variant: GraphClassVariant,
-    pub tags: Vec<PreviewTag>,
 }
-named_impl!(GraphClass);
-tagged_impl!(GraphClass, PreviewTag);
-score_impl!(GraphClass);
 data_gettable!(PreviewGraphClassId, GraphClass, graph_classes);
 tie_data_to_previewid!(GraphClass, PreviewGraphClassId);
 
+#[named]
+#[scored]
+#[tagged(PreviewTag)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParametricParameter {
     pub id: ParametricParameterId,
-    pub score: u32,
-    pub name_core: NameCore,
-    pub tags: Vec<PreviewTag>,
 }
-named_impl!(ParametricParameter);
-tagged_impl!(ParametricParameter, PreviewTag);
-score_impl!(ParametricParameter);
 data_gettable!(
     PreviewParametricParameterId,
     ParametricParameter,
@@ -221,17 +171,14 @@ data_gettable!(
 );
 tie_data_to_previewid!(ParametricParameter, PreviewParametricParameterId);
 
+#[named]
+#[scored]
+#[tagged(PreviewTag)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParametricGraphClass {
     pub id: ParametricGraphClassId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub closed_under: PreviewGraphRelation,
-    pub tags: Vec<PreviewTag>,
 }
-named_impl!(ParametricGraphClass);
-tagged_impl!(ParametricGraphClass, PreviewTag);
-score_impl!(ParametricGraphClass);
 data_gettable!(
     PreviewParametricGraphClassId,
     ParametricGraphClass,
@@ -252,17 +199,15 @@ pub enum ParameterDefinition {
     FromParametricParameter(PreviewParametricParameter),
 }
 
+#[named]
+#[scored]
+#[tagged(PreviewTag)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Parameter {
     pub id: ParameterId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: ParameterDefinition,
-    pub tags: Vec<PreviewTag>,
+    pub timeline: Vec<(PreviewSource, Vec<Wrote>)>,
 }
-named_impl!(Parameter);
-tagged_impl!(Parameter, PreviewTag);
-score_impl!(Parameter);
 data_gettable!(PreviewParameterId, Parameter, parameters);
 tie_data_to_previewid!(Parameter, PreviewParameterId);
 
@@ -279,19 +224,16 @@ pub enum GraphClassPropertyDefinition {
     FromParameter(PreviewParameter),
 }
 
+#[named]
+#[scored]
+#[tagged(PreviewTag)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GraphClassProperty {
     pub id: GraphClassPropertyId,
-    pub score: u32,
-    pub name_core: NameCore,
     pub definition: GraphClassPropertyDefinition,
     pub own: Own,
-    pub tags: Vec<PreviewTag>,
 }
-named_impl!(GraphClassProperty);
-tagged_impl!(GraphClassProperty, PreviewTag);
 tie_data_to_previewid!(GraphClassProperty, PreviewGraphClassPropertyId);
-score_impl!(GraphClassProperty);
 data_gettable!(
     PreviewGraphClassPropertyId,
     GraphClassProperty,
@@ -304,22 +246,20 @@ pub enum ProblemDefinition {
     ModelChecking(PreviewLogicFragment),
 }
 
+#[named]
 #[derive(Debug)]
 pub struct Problem {
     pub id: ProblemId,
-    pub name_core: NameCore,
     pub definition: ProblemDefinition,
 }
-named_impl!(Problem);
 
+#[named]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Provider {
     pub id: ProviderId,
-    pub name_core: NameCore,
     pub url: String,
     pub links: Vec<ProviderLink>,
 }
-named_impl!(Provider);
 tie_data_to_previewid!(Provider, PreviewProviderId);
 data_gettable!(PreviewProviderId, Provider, providers);
 
@@ -335,13 +275,12 @@ pub enum GraphRelationDefinition {
     IsomorphicAfterOperations(Vec<PreviewOperation>),
 }
 
+#[named]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GraphRelation {
     pub id: GraphRelationId,
-    pub name_core: NameCore,
     pub displayed_definition: GraphRelationDefinition,
 }
-named_impl!(GraphRelation);
 data_gettable!(PreviewGraphRelationId, GraphRelation, graph_relations);
 tie_data_to_previewid!(GraphRelation, PreviewGraphRelationId);
 
@@ -351,13 +290,12 @@ pub enum GraphClassRelationDefinition {
     GraphRelation(GraphRelationDefinition),
 }
 
+// #[named]
 // #[derive(Debug, Serialize, Deserialize)]
 // pub struct GraphClassRelation {
 //     pub id: GraphClassRelationId,
-//     pub name_core: NameCore,
 //     pub definition: GraphClassRelationDefinition,
 // }
-// named_impl!(GraphClassRelation);
 // data_gettable!(
 //     PreviewGraphClassRelationId,
 //     GraphClassRelation,
@@ -376,29 +314,27 @@ pub enum KnowledgeState {
     Disproved,
 }
 
+#[named]
+#[scored]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Source {
     pub id: SourceId,
-    pub name_core: NameCore,
     pub sourcekey: SourceKey,
     pub wrote: Vec<PreviewWrote>,
     pub time: Date,
     pub drawings: Vec<Drawing>,
-    pub score: u32,
 }
 data_gettable!(PreviewSourceId, Source, sources);
 tie_data_to_previewid!(Source, PreviewSourceId);
-score_impl!(Source);
-named_impl!(Source);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wrote {
     pub text: String,
     pub page: Page,
-    pub facts: Vec<(ShowedId, WroteStatus, Fact)>,
+    pub facts: Vec<(PreviewShowedId, WroteStatus, Fact)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WroteStatus {
     Assumed,            // taken as given by HOPS, mainly due to being out of project's scope
     Conjectured,        // posed as an open problem
@@ -408,7 +344,7 @@ pub enum WroteStatus {
     TodoStatus,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NotedSource {
     SrcText(String),
     Source(PreviewSource),
@@ -416,7 +352,7 @@ pub enum NotedSource {
     SrcTodo,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Definition {
     LogicFragment(PreviewLogicFragment),
     Parameter(PreviewParameter),
@@ -429,7 +365,23 @@ pub enum Definition {
     Property(PreviewGraphClassProperty),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+impl Definition {
+    pub fn kind(&self) -> DefKind {
+        match self {
+            Definition::LogicFragment(..) => DefKind::LogicFragment,
+            Definition::Parameter(..) => DefKind::Parameter,
+            Definition::Graph(..) => DefKind::Graph,
+            Definition::GraphClass(..) => DefKind::GraphClass,
+            Definition::Operation(..) => DefKind::Operation,
+            Definition::Problem(..) => DefKind::Problem,
+            Definition::ParParameter(..) => DefKind::ParametricParameter,
+            Definition::ParGraphClass(..) => DefKind::ParametricGraphClass,
+            Definition::Property(..) => DefKind::Property,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Relation {
     LfLf(PreviewLogicFragment, PreviewLogicFragment, ImplicationRelation),
     OpOp(PreviewOperation, PreviewOperation, ImplicationRelation),
@@ -439,17 +391,41 @@ pub enum Relation {
     PgcPgc(PreviewParametricGraphClass, PreviewParametricGraphClass, ImplicationRelation),
     ParPar(PreviewParameter, PreviewParameter, Cpx),
     PropProp(PreviewGraphClassProperty, PreviewGraphClassProperty, ImplicationRelation),
+    PropPar(PreviewGraphClassProperty, PreviewParameter, ImplicationRelation),
     GcProp(PreviewGraphClass, PreviewGraphClassProperty, EquivalenceRelation),
+    GcPar(PreviewGraphClass, PreviewParameter, ImplicationRelation),
     ParProp(PreviewParameter, PreviewGraphClassProperty, EquivalenceRelation),
     ProbProb(PreviewProblem, PreviewProblem, ImplicationRelation),
     ProbProp(PreviewProblem, PreviewGraphClassProperty, ClassicalSolvability),
     ProbPar(PreviewProblem, PreviewParameter, ParameterizedSolvability),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Fact {
     Definition(Definition),
     Relation(Relation),
+}
+
+impl Relation {
+    pub fn kind(&self) -> RelKind {
+        match self {
+            Relation::ParPar(..) => RelKind::ParPar,
+            Relation::LfLf(..) => RelKind::LfLf,
+            Relation::OpOp(..) => RelKind::OpOp,
+            Relation::GrGr(..) => RelKind::GrGr,
+            Relation::GcGc(..) => RelKind::GcGc,
+            Relation::GrGc(..) => RelKind::GrGc,
+            Relation::PgcPgc(..) => RelKind::PgcPgc,
+            Relation::PropProp(..) => RelKind::PropProp,
+            Relation::GcProp(..) => RelKind::GcProp,
+            Relation::GcPar(..) => RelKind::GcPar,
+            Relation::PropPar(..) => RelKind::PropPar,
+            Relation::ParProp(..) => RelKind::ParProp,
+            Relation::ProbProb(..) => RelKind::ProbProb,
+            Relation::ProbProp(..) => RelKind::ProbProp,
+            Relation::ProbPar(..) => RelKind::ProbPar,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -467,23 +443,21 @@ pub struct Data {
     pub tags: HashMap<PreviewTagId, Tag>,
     pub sources: HashMap<PreviewSourceId, Source>,
     pub sorted_sources: Vec<PreviewSourceId>,
-    pub factoids: HashMap<PreviewSourceId, Fact>,
-    pub drawings: HashMap<PreviewSourceId, Drawing>,
-    pub arc_parameter_parameter: Vec<(PreviewParameterId, PreviewParameterId, Cpx)>,
-    pub arc_lf_lf: Vec<(PreviewLogicFragmentId, PreviewLogicFragmentId, ImplicationRelation)>,
-    pub arc_op_op: Vec<(PreviewOperationId, PreviewOperationId, ImplicationRelation)>,
-    pub arc_graph_graph: Vec<(PreviewGraphId, PreviewGraphId, InclusionRelationUnderGraphRelation)>,
-    pub arc_gc_gc: Vec<(PreviewGraphClassId, PreviewGraphClassId, InclusionRelationUnderGraphRelation)>,
-    pub arc_graph_gc: Vec<(PreviewGraphId, PreviewGraphClassId, InclusionRelationUnderGraphRelation)>,
-    pub arc_pargc_pargc: Vec<(PreviewParametricGraphClassId, PreviewParametricGraphClassId, ImplicationRelation)>,
-    pub arc_gcprop_gcprop: Vec<(PreviewGraphClassPropertyId, PreviewGraphClassPropertyId, ImplicationRelation)>,
-    pub arc_gcprop_parameter: Vec<(PreviewGraphClassPropertyId, PreviewParameterId, ImplicationRelation)>,
-    pub arc_gc_gcprop: Vec<(PreviewGraphClassId, PreviewGraphClassPropertyId, EquivalenceRelation)>,
-    pub arc_gc_par: Vec<(PreviewGraphClassId, PreviewParameterId, ImplicationRelation)>,
-    pub arc_parameter_gcprop: Vec<(PreviewParameterId, PreviewGraphClassPropertyId, EquivalenceRelation)>,
-    pub arc_problem_problem: Vec<(PreviewProblemId, PreviewProblemId, ImplicationRelation)>,
-    pub arc_problem_gcprop: Vec<(PreviewProblemId, PreviewGraphClassPropertyId, ClassicalSolvability)>,
-    pub arc_problem_parameter: Vec<(PreviewProblemId, PreviewParameterId, ParameterizedSolvability)>,
+    pub arc_parameter_parameter: Vec<(PreviewParameter, PreviewParameter, Cpx)>,
+    pub arc_lf_lf: Vec<(PreviewLogicFragment, PreviewLogicFragment, ImplicationRelation)>,
+    pub arc_op_op: Vec<(PreviewOperation, PreviewOperation, ImplicationRelation)>,
+    pub arc_graph_graph: Vec<(PreviewGraph, PreviewGraph, InclusionRelationUnderGraphRelation)>,
+    pub arc_gc_gc: Vec<(PreviewGraphClass, PreviewGraphClass, InclusionRelationUnderGraphRelation)>,
+    pub arc_graph_gc: Vec<(PreviewGraph, PreviewGraphClass, InclusionRelationUnderGraphRelation)>,
+    pub arc_pargc_pargc: Vec<(PreviewParametricGraphClass, PreviewParametricGraphClass, ImplicationRelation)>,
+    pub arc_gcprop_gcprop: Vec<(PreviewGraphClassProperty, PreviewGraphClassProperty, ImplicationRelation)>,
+    pub arc_gc_gcprop: Vec<(PreviewGraphClass, PreviewGraphClassProperty, EquivalenceRelation)>,
+    pub arc_gc_par: Vec<(PreviewGraphClass, PreviewParameter, ImplicationRelation)>,
+    pub arc_gcprop_parameter: Vec<(PreviewGraphClassProperty, PreviewParameter, ImplicationRelation)>,
+    pub arc_parameter_gcprop: Vec<(PreviewParameter, PreviewGraphClassProperty, EquivalenceRelation)>,
+    pub arc_problem_problem: Vec<(PreviewProblem, PreviewProblem, ImplicationRelation)>,
+    pub arc_problem_gcprop: Vec<(PreviewProblem, PreviewGraphClassProperty, ClassicalSolvability)>,
+    pub arc_problem_parameter: Vec<(PreviewProblem, PreviewParameter, ParameterizedSolvability)>,
 }
 
 pub fn convert_to_id_map<D>(arr: Vec<D>) -> HashMap<D::PreviewId, D>
@@ -506,24 +480,22 @@ pub struct DataFields {
     pub graph_relations: Vec<GraphRelation>,
     pub graph_classes: Vec<GraphClass>,
     pub sources: Vec<Source>,
-    pub factoids: HashMap<PreviewSourceId, Fact>,
-    pub drawings: HashMap<PreviewSourceId, Drawing>,
     pub graph_class_properties: Vec<GraphClassProperty>,
-    pub arc_parameter_parameter: Vec<(PreviewParameterId, PreviewParameterId, Cpx)>,
-    pub arc_lf_lf: Vec<(PreviewLogicFragmentId, PreviewLogicFragmentId, ImplicationRelation)>,
-    pub arc_op_op: Vec<(PreviewOperationId, PreviewOperationId, ImplicationRelation)>,
-    pub arc_graph_graph: Vec<(PreviewGraphId, PreviewGraphId, InclusionRelationUnderGraphRelation)>,
-    pub arc_gc_gc: Vec<(PreviewGraphClassId, PreviewGraphClassId, InclusionRelationUnderGraphRelation)>,
-    pub arc_graph_gc: Vec<(PreviewGraphId, PreviewGraphClassId, InclusionRelationUnderGraphRelation)>,
-    pub arc_pargc_pargc: Vec<(PreviewParametricGraphClassId, PreviewParametricGraphClassId, ImplicationRelation)>,
-    pub arc_gcprop_gcprop: Vec<(PreviewGraphClassPropertyId, PreviewGraphClassPropertyId, ImplicationRelation)>,
-    pub arc_gc_gcprop: Vec<(PreviewGraphClassId, PreviewGraphClassPropertyId, EquivalenceRelation)>,
-    pub arc_gc_par: Vec<(PreviewGraphClassId, PreviewParameterId, ImplicationRelation)>,
-    pub arc_gcprop_parameter: Vec<(PreviewGraphClassPropertyId, PreviewParameterId, ImplicationRelation)>,
-    pub arc_parameter_gcprop: Vec<(PreviewParameterId, PreviewGraphClassPropertyId, EquivalenceRelation)>,
-    pub arc_problem_problem: Vec<(PreviewProblemId, PreviewProblemId, ImplicationRelation)>,
-    pub arc_problem_gcprop: Vec<(PreviewProblemId, PreviewGraphClassPropertyId, ClassicalSolvability)>,
-    pub arc_problem_parameter: Vec<(PreviewProblemId, PreviewParameterId, ParameterizedSolvability)>,
+    pub arc_parameter_parameter: Vec<(PreviewParameter, PreviewParameter, Cpx)>,
+    pub arc_lf_lf: Vec<(PreviewLogicFragment, PreviewLogicFragment, ImplicationRelation)>,
+    pub arc_op_op: Vec<(PreviewOperation, PreviewOperation, ImplicationRelation)>,
+    pub arc_graph_graph: Vec<(PreviewGraph, PreviewGraph, InclusionRelationUnderGraphRelation)>,
+    pub arc_gc_gc: Vec<(PreviewGraphClass, PreviewGraphClass, InclusionRelationUnderGraphRelation)>,
+    pub arc_graph_gc: Vec<(PreviewGraph, PreviewGraphClass, InclusionRelationUnderGraphRelation)>,
+    pub arc_pargc_pargc: Vec<(PreviewParametricGraphClass, PreviewParametricGraphClass, ImplicationRelation)>,
+    pub arc_gcprop_gcprop: Vec<(PreviewGraphClassProperty, PreviewGraphClassProperty, ImplicationRelation)>,
+    pub arc_gc_gcprop: Vec<(PreviewGraphClass, PreviewGraphClassProperty, EquivalenceRelation)>,
+    pub arc_gc_par: Vec<(PreviewGraphClass, PreviewParameter, ImplicationRelation)>,
+    pub arc_gcprop_parameter: Vec<(PreviewGraphClassProperty, PreviewParameter, ImplicationRelation)>,
+    pub arc_parameter_gcprop: Vec<(PreviewParameter, PreviewGraphClassProperty, EquivalenceRelation)>,
+    pub arc_problem_problem: Vec<(PreviewProblem, PreviewProblem, ImplicationRelation)>,
+    pub arc_problem_gcprop: Vec<(PreviewProblem, PreviewGraphClassProperty, ClassicalSolvability)>,
+    pub arc_problem_parameter: Vec<(PreviewProblem, PreviewParameter, ParameterizedSolvability)>,
 }
 
 impl Data {
@@ -542,8 +514,6 @@ impl Data {
             tags: convert_to_id_map(fields.tags),
             sorted_sources: fields.sources.iter().map(|x| x.previewid()).collect(),
             sources: convert_to_id_map(fields.sources),
-            factoids: fields.factoids,
-            drawings: fields.drawings,
             graph_class_properties: convert_to_id_map(fields.graph_class_properties),
             arc_parameter_parameter: fields.arc_parameter_parameter,
             arc_lf_lf: fields.arc_lf_lf,

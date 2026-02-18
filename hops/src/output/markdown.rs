@@ -1,6 +1,6 @@
 //! Given the processed data generate markdown pages.
 
-use std::collections::{HashMap, HashSet, LinkedList, VecDeque};
+use std::collections::{HashMap, LinkedList};
 use std::env;
 use std::fmt;
 use std::fs;
@@ -19,10 +19,12 @@ use crate::data::enums::*;
 use crate::data::id::*;
 use crate::data::link::{Link, Linkable};
 use crate::data::preview::*;
+use crate::data::score::Score;
 use crate::general::strings::nice_concat;
 use crate::general::worker::Worker;
 use crate::general::{file, progress};
 use crate::output::color::Color;
+use crate::output::html::*;
 use crate::output::to_markdown::ToMarkdown;
 
 type Result<T> = std::result::Result<T, MarkdownError>;
@@ -48,7 +50,7 @@ impl fmt::Display for MarkdownError {
     }
 }
 
-fn base(id: &String) -> String {
+fn base(id: &str) -> String {
     format!("{{{{< base >}}}}{}", id)
 }
 
@@ -235,17 +237,20 @@ impl GeneratedPage for Parameter {
         // }
         // res += builder.make_table(relation_table).as_str();
         res += "\n";
-        // make_subset_drawing
-        // let sources_timeline = &self.timeline;
-        // if !sources_timeline.is_empty() {
-        //     res += "---\n\n## Results\n\n";
-        //     for source in sources_timeline {
-        //         if let Some(val) = source.to_markdown(builder) {
-        //             res += &val;
-        //         }
-        //     }
-        //     res += "\n";
-        // }
+        if !&self.timeline.is_empty() {
+            res += "---\n\n## Results\n\n";
+            for (source, wrotes) in &self.timeline {
+                if let Some(val) = source.to_markdown() {
+                    res += &val;
+                }
+                for wrote in wrotes {
+                    if let Some(val) = wrote.to_markdown() {
+                        res += &val;
+                    }
+                }
+            }
+            res += "\n";
+        }
         res
     }
 }
@@ -698,68 +703,74 @@ impl<'a> Markdown<'a> {
         }
     }
 
+    fn simple_list_table_scored<T>(&self, name: &str, mut list: Vec<&T>) -> String where T:Named + Score + Linkable {
+        list.sort_by_key(|x| (*x).name_core().name.to_lowercase());
+        let mut table = Table::new(vec![
+            name,
+            &format!(
+                "{}Score",
+                link_html("*", base("docs/legend/#score"))
+            ),
+        ]);
+        for item in &list {
+            let relstring = progress::bar(item.score(), 9);
+            table.add(vec![self.linkto(&item.get_link()), relstring]);
+        }
+        self.make_table(table)
+    }
+
+    fn simple_list_table<T>(&self, name: &str, mut list: Vec<&T>) -> String where T:Named + Linkable {
+        list.sort_by_key(|x| (*x).name_core().name.to_lowercase());
+        let mut table = Table::new(vec![name]);
+        for item in &list {
+            table.add(vec![self.linkto(&item.get_link())]);
+        }
+        self.make_table(table)
+    }
+
     pub fn process_list_key(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let mut content = String::new();
         if let Some(key) = keys.pop_front() {
             match key.as_str() {
                 "parameters" => {
-                    let mut pars = self.data.parameters.values().collect::<Vec<&Parameter>>();
-                    pars.sort_by_key(|x| x.name_core.name.to_lowercase());
-                    let mut table = Table::new(vec![
-                        "Parameter",
-                        &format!(
-                            "<a href=\"{}\">*</a>Score",
-                            base(&("docs/legend/#score").into())
-                        ),
-                    ]);
-                    for set in &pars {
-                        let relstring = progress::bar(set.score, 9);
-                        table.add(vec![self.linkto(&set.get_link()), relstring]);
-                    }
-                    content += self.make_table(table).as_str();
+                    let list = self.data.parameters.values().collect::<Vec<&Parameter>>();
+                    content += &self.simple_list_table_scored("Parameters", list);
                 }
-                // "relations" => {
-                //     content += &relations_list(self);
-                // }
-                "graphs" => {
-                    let mut graphs = self
-                        .data
-                        .graph_classes
-                        .values()
-                        .collect::<Vec<&GraphClass>>();
-                    graphs.sort_by_key(|x| &x.name_core.name);
-                    let mut table = Table::new(vec![
-                        "Graph class",
-                        &format!(
-                            "<a href=\"{}\">*</a>Score",
-                            base(&("docs/legend/#score").into())
-                        ),
-                    ]);
-                    for set in &graphs {
-                        let relstring = progress::bar(set.score, 9);
-                        table.add(vec![self.linkto(&set.get_link()), relstring]);
-                    }
-                    content += self.make_table(table).as_str();
+                "parametric_parameters" => {
+                    let list= self.data.parametric_parameters.values().collect::<Vec<&ParametricParameter>>();
+                    content += &self.simple_list_table_scored("Parametric Parameters", list);
+                }
+                "parametric_graph_class" => {
+                    let list= self.data.parametric_graph_class.values().collect::<Vec<&ParametricGraphClass>>();
+                    content += &self.simple_list_table_scored("Parametric Graph Class", list);
+                }
+                "graph_classes" => {
+                    let list = self.data.graph_classes.values().collect::<Vec<&GraphClass>>();
+                    content += &self.simple_list_table_scored("Graphs Classes", list);
                 }
                 "properties" => {
-                    let mut properties = self
-                        .data
-                        .graph_class_properties
-                        .values()
-                        .collect::<Vec<&GraphClassProperty>>();
-                    properties.sort_by_key(|x| &x.name_core.name);
-                    let mut table = Table::new(vec![
-                        "Property",
-                        &format!(
-                            "<a href=\"{}\">*</a>Score",
-                            base(&("docs/legend/#score").into())
-                        ),
-                    ]);
-                    for set in &properties {
-                        let relstring = progress::bar(set.score, 9);
-                        table.add(vec![self.linkto(&set.get_link()), relstring]);
-                    }
-                    content += self.make_table(table).as_str();
+                    let list = self.data.graph_class_properties.values().collect::<Vec<&GraphClassProperty>>();
+                    content += &self.simple_list_table_scored("Properties", list);
+                }
+                "graphs" => {
+                    let list = self.data.graphs.values().collect::<Vec<&Graph>>();
+                    content += &self.simple_list_table_scored("Graphs", list);
+                }
+                "logic_fragments" => {
+                    let list = self.data.logic_fragments.values().collect::<Vec<&LogicFragment>>();
+                    content += &self.simple_list_table("Logic Fragments", list);
+                }
+                "operations" => {
+                    let list = self.data.operations.values().collect::<Vec<&Operation>>();
+                    content += &self.simple_list_table("Operations", list);
+                }
+                "providers" => {
+                    let list = self.data.providers.values().collect::<Vec<&Provider>>();
+                    content += &self.simple_list_table("Providers", list);
+                }
+                "graph_relations" => {
+                    let list = self.data.graph_relations.values().collect::<Vec<&GraphRelation>>();
+                    content += &self.simple_list_table("Graph Relations", list);
                 }
                 "sources" => {
                     let mut table = Table::new(vec![
@@ -767,12 +778,14 @@ impl<'a> Markdown<'a> {
                         "Year",
                         &format!(
                             "<a href=\"{}\">*</a>Score",
-                            base(&("docs/legend/#score").into())
+                            base("docs/legend/#score")
                         ),
                         "Source",
                     ]);
                     let mut index = 0;
-                    for source in self.data.sources.values() {
+                    let mut sources = self.data.sources.values().collect::<Vec<&Source>>();
+                    sources.sort_by_key(|x|&x.time);
+                    for source in sources {
                         if let SourceKey::Bibtex {
                             entry_key,
                             name,
@@ -862,46 +875,12 @@ impl<'a> Markdown<'a> {
 
     pub fn embed_dot(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let filename: String = keys.pop_front().unwrap();
-        Ok(format!(
-            "<p><div id=\"{}\" class=\"svg-diagram\"></div></p>\
-            <script>\
-            Viz.instance().then(function(viz) {{\
-                fetch('{}')\
-                    .then(response => response.text())\
-                    .then((data) => {{\
-                        var svg = viz.renderSVGElement(data);\
-                        svg.setAttribute(\"width\", \"100%\");\
-                        svg.setAttribute(\"height\", \"300pt\");\
-                        document.getElementById(\"{}\").appendChild(svg);\
-                    }})\
-            }});\
-            </script>\n\n",
-            filename, filename, filename
-        ))
+        Ok(dot_html(filename))
     }
 
     pub fn embed_zoomable_dot(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let filename: String = keys.pop_front().unwrap();
-        Ok(format!(
-            "<p><div id=\"{}\" class=\"svg-diagram zoomable\"></div></p>\
-            <script type=\"module\">\
-            import {{ initializeSvgToolbelt }} from '{}';\
-            Viz.instance().then(function(viz) {{\
-                fetch('{}')\
-                    .then(response => response.text())\
-                    .then((data) => {{\
-                        var svg = viz.renderSVGElement(data);\
-                        document.getElementById(\"{}\").appendChild(svg);\
-                        initializeSvgToolbelt('.zoomable', {{\
-                            zoomStep: 0.3,\
-                            minScale: 1,\
-                            maxScale: 5,\
-                        }});\
-                    }})\
-            }});\
-            </script>\n\n",
-            filename, "/parameters/svg-toolbelt.esm.js", filename, filename
-        ))
+        Ok(zoom_dot_html(filename))
     }
 
     pub fn embed_pdf(&self, keys: &mut LinkedList<String>) -> Result<String> {
@@ -911,19 +890,12 @@ impl<'a> Markdown<'a> {
             .pop_front()
             .and_then(|x| x.parse::<u32>().ok())
             .unwrap_or(default);
-        Ok(format!(
-            "\n<object data=\"{}\" type=\"application/pdf\" class=\"pdf-table-wrapper\" height=\"{}px\">\
-            <embed src=\"{}\">\
-            <p>This browser does not support PDFs. Please download the PDF to view it: <a href=\"{}\">Download PDF</a>.</p>\
-            </embed>\
-            </object>\n\n",
-            name, height, name, name
-        ))
+        Ok(pdf_html(name, default))
     }
 
     pub fn color(&self, keys: &mut LinkedList<String>) -> Result<String> {
         let colorname: String = keys.pop_front().unwrap();
         let color = Color::from_str(&colorname);
-        Ok(format!("<span style=\"color:{}\">■</span>", color.hex()))
+        Ok(colorbox_html(color))
     }
 }

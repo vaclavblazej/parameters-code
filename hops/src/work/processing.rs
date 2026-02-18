@@ -27,11 +27,15 @@ use crate::input::source::Rel;
 use crate::input::source::RelKind;
 use crate::input::source::{RawFact, RawWrote};
 use crate::input::source::{RawSource, RawSourceKey};
-use crate::work::hierarchy::Relation;
 use crate::work::preview_collection::PreviewCollection;
 
-fn process_parameter(parameter: RawParameter, preview_collection: &PreviewCollection) -> Parameter {
-    let preview = parameter.preview();
+fn process_parameter(
+    parameter: RawParameter,
+    preview_collection: &PreviewCollection,
+    factoids: &Vec<(PreviewSourceId, Vec<Wrote>)>,
+    source_map: &HashMap<PreviewSourceId, Source>,
+) -> Parameter {
+    let thisid = parameter.previewid();
     let RawParameter {
         id,
         score,
@@ -39,63 +43,42 @@ fn process_parameter(parameter: RawParameter, preview_collection: &PreviewCollec
         definition: raw_definition,
         tags,
     } = parameter;
-    // let mut timeline_map: HashMap<PreviewSourceId, Vec<PreviewWrote>> = HashMap::new(); // todo
-    // for (source_id, showed) in &preview_collection.factoids {
-    //     let should_save = match &showed.fact {
-    //         ShowedFact::Relation(status, relation) => {
-    //             let relation = preview_collection
-    //                 .preview_relation_map
-    //                 .get(&relation.id)
-    //                 .unwrap();
-    //             relation.superset.id == id.preview() || relation.subset.id == id.preview()
-    //         }
-    //         ShowedFact::Definition(status, defined_set_id) if defined_set_id == &id.preview() => {
-    //             true
-    //         }
-    //         // ShowedFact::Citation( .. ) => false, // todo
-    //         ShowedFact::Definition(..) => false,
-    //     };
-    //     if should_save {
-    //         let mut arr = timeline_map.entry(source_id.clone()).or_default();
-    //         arr.push(showed.clone());
-    //     }
-    // }
-    // let mut timeline: Vec<SourceSubset> = timeline_map.into_iter()
-    //     .map(|(source_id, showed_vec)| {
-    //         let source = sources.get(&source_id).unwrap_or_else(
-    //             ||panic!("A source id {} does not have a processed source. Use create.source() to add new sources.", source_id)
-    //             );
-    //         SourceSubset {
-    //             preview: source.preview(),
-    //             source: source.id.preview(),
-    //             sourcekey: source.sourcekey.clone(),
-    //             showed: showed_vec,
-    //         }
-    //     })
-    // .collect();
-    // timeline.sort_by_key(|subset| subset.preview.time.clone());
-    // timeline.reverse();
-    // let subsets = help.get_subsets(&preview);
-    // let supersets = help.get_supersets(&preview);
-    // let sub_exclusions = help.get_antisubsets(&preview);
-    // let super_exclusions = help.get_antisupersets(&preview);
-    // let mut unknown_map: HashSet<PreviewParameter> = HashSet::new();
-    // for par in &preview_collection.preview_sets {
-    //     unknown_map.insert(par.clone());
-    // }
-    // for s in &subsets {
-    //     unknown_map.remove(s);
-    // }
-    // for s in &supersets {
-    //     unknown_map.remove(s);
-    // }
-    // let unknown = unknown_map.iter().cloned().collect();
-    // let providers = if let Some(content) = set_providers.get(&preview.id) {
-    //     content.clone()
-    // } else {
-    //     vec![]
-    // };
-    // let transfers = HashMap::new(); // todo
+    let mut timeline: Vec<(PreviewSource, Vec<Wrote>)> = Vec::new();
+    for (source_id, wrotes) in factoids {
+        let mut ok_wrote: Vec<Wrote> = Vec::new();
+        for Wrote { text, page, facts } in wrotes {
+            let mut ok_facts: Vec<(PreviewShowedId, WroteStatus, Fact)> = Vec::new();
+            for (showed_id, status, fact) in facts {
+                let should_save = match fact {
+                    Fact::Definition(def) => match def{
+                        Definition::Parameter(preview) => preview.id == thisid,
+                        _ => false,
+                    }
+                    Fact::Relation(rel) => match rel {
+                        Relation::ParPar(pa, pb, _) => pa.id == thisid || pb.id == thisid,
+                        Relation::PropPar(_, preview, _) 
+                        | Relation::GcPar(_, preview, _)
+                        | Relation::ParProp(preview, _, _)
+                        | Relation::ProbPar(_, preview, _) => preview.id == thisid,
+                        _ => false
+                    },
+                };
+                if should_save {
+                    ok_facts.push((showed_id.clone(), status.clone(), fact.clone()));
+                }
+            }
+            if !ok_facts.is_empty() {
+                ok_wrote.push(Wrote{
+                    text: text.clone(),
+                    page: page.clone(),
+                    facts: ok_facts,
+                });
+            }
+        }
+        if !ok_wrote.is_empty() {
+            timeline.push((source_map.get(source_id).unwrap().preview(), ok_wrote));
+        }
+    }
     Parameter {
         id,
         name_core,
@@ -105,6 +88,7 @@ fn process_parameter(parameter: RawParameter, preview_collection: &PreviewCollec
             .iter()
             .map(|x| preview_collection.tags_previews.get(x).unwrap().clone())
             .collect(),
+        timeline,
     }
 }
 
@@ -358,63 +342,31 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         provider_links: raw_provider_links,
         problems: raw_problems,
     } = rawdata;
-    let raw_parameters_map = convert_to_id_map(raw_parameters);
     let sources = convert_to_id_map(
         raw_sources
             .into_iter()
             .map(|source| source.process(bibliography, &preview_collection))
             .collect(),
     );
-    let mut definitions_map: HashMap<DefKind, Vec<Def>> = HashMap::new();
-    let mut relations_map: HashMap<RelKind, Vec<Rel>> = HashMap::new();
-    for (source_id, raw_wrote) in raw_factoids {
-        for wrote in raw_wrote {
-            let RawWrote { text, page, facts } = wrote;
+    let factoids: Vec<(PreviewSourceId, Vec<Wrote>)> = raw_factoids.into_iter().map(|(source_id, wrotes)|{
+        (source_id, wrotes.into_iter().map(|wrote|{
+            Wrote::from(wrote, &sources, &preview_collection)
+        }).collect())
+    }).collect();    let raw_parameters_map = convert_to_id_map(raw_parameters);
+    let mut definitions_map: HashMap<DefKind, Vec<Definition>> = HashMap::new();
+    let mut relations_map: HashMap<RelKind, Vec<Relation>> = HashMap::new();
+    for (source_id, wrotes) in &factoids {
+        for wrote in wrotes {
+            let Wrote { text, page, facts } = wrote;
             for (showed_id, wrote_status, fact) in facts {
                 match fact {
-                    RawFact::Rel(r) => {
-                        relations_map.entry(r.kind()).or_default().push(r);
+                    Fact::Relation(r) => {
+                        relations_map.entry(r.kind()).or_default().push(r.clone());
                     }
-                    RawFact::Def(d) => {
-                        definitions_map.entry(d.kind()).or_default().push(d);
+                    Fact::Definition(d) => {
+                        definitions_map.entry(d.kind()).or_default().push(d.clone());
                     }
                 }
-            }
-        }
-    }
-    let mut arc_parameter_parameter = Vec::new();
-    let mut arc_lf_lf = Vec::new();
-    let mut arc_op_op = Vec::new();
-    let mut arc_graph_graph = Vec::new();
-    let mut arc_gc_gc = Vec::new();
-    let mut arc_graph_gc = Vec::new();
-    let mut arc_pargc_pargc = Vec::new();
-    let mut arc_gcprop_gcprop = Vec::new();
-    let mut arc_gc_gcprop = Vec::new();
-    let mut arc_parameter_gcprop = Vec::new();
-    let mut arc_gc_par = Vec::new();
-    let mut arc_problem_problem = Vec::new();
-    let mut arc_problem_gcprop = Vec::new();
-    let mut arc_problem_parameter = Vec::new();
-    let mut arc_gcprop_parameter = Vec::new();
-    for (k, col) in relations_map {
-        for x in col {
-            match x {
-                Rel::LfLf(f, t, d) => arc_lf_lf.push((f.clone(), t.clone(), d.clone())),
-                Rel::OpOp(f, t, d) => arc_op_op.push((f.clone(), t.clone(), d.clone())),
-                Rel::GrGr(f, t, d) => arc_graph_graph.push((f.clone(), t.clone(), d.clone())),
-                Rel::GcGc(f, t, d) => arc_gc_gc.push((f.clone(), t.clone(), d.clone())),
-                Rel::GrGc(f, t, d) => arc_graph_gc.push((f.clone(), t.clone(), d.clone())),
-                Rel::PgcPgc(f, t, d) => arc_pargc_pargc.push((f.clone(), t.clone(), d.clone())),
-                Rel::ParPar(f, t, d) => arc_parameter_parameter.push((f.clone(), t.clone(), d.clone())),
-                Rel::PropProp(f, t, d) => arc_gcprop_gcprop.push((f.clone(), t.clone(), d.clone())),
-                Rel::GcProp(f, t, d) => arc_gc_gcprop.push((f.clone(), t.clone(), d.clone())),
-                Rel::GcPar(f, t, d) => arc_gc_par.push((f.clone(), t.clone(), d.clone())),
-                Rel::ParProp(f, t, d) => arc_parameter_gcprop.push((f.clone(), t.clone(), d.clone())),
-                Rel::ProbProb(f, t, d) => arc_problem_problem.push((f.clone(), t.clone(), d.clone())),
-                Rel::ProbProp(f, t, d) => arc_problem_gcprop.push((f.clone(), t.clone(), d.clone())),
-                Rel::ProbPar(f, t, d) => arc_problem_parameter.push((f.clone(), t.clone(), d.clone())),
-                Rel::PropPar(f, t, d) => arc_gcprop_parameter.push((f.clone(), t.clone(), d.clone())),
             }
         }
     }
@@ -470,7 +422,7 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
     //     process_relations(&composed_sets, &transfers, &sources, &preview_collection);
     let parameters = raw_parameters_map
         .into_values()
-        .map(|parameter| process_parameter(parameter, &preview_collection))
+        .map(|parameter| process_parameter(parameter, &preview_collection, &factoids, &sources))
         .collect();
     let graph_classes = raw_graph_classes
         .into_iter()
@@ -501,6 +453,42 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         .into_iter()
         .map(|pgc| process_parametric_graph_class(pgc, &preview_collection))
         .collect();
+    let mut arc_parameter_parameter = Vec::new();
+    let mut arc_lf_lf = Vec::new();
+    let mut arc_op_op = Vec::new();
+    let mut arc_graph_graph = Vec::new();
+    let mut arc_gc_gc = Vec::new();
+    let mut arc_graph_gc = Vec::new();
+    let mut arc_pargc_pargc = Vec::new();
+    let mut arc_gcprop_gcprop = Vec::new();
+    let mut arc_gc_gcprop = Vec::new();
+    let mut arc_parameter_gcprop = Vec::new();
+    let mut arc_gc_par = Vec::new();
+    let mut arc_problem_problem = Vec::new();
+    let mut arc_problem_gcprop = Vec::new();
+    let mut arc_problem_parameter = Vec::new();
+    let mut arc_gcprop_parameter = Vec::new();
+    for (k, col) in relations_map {
+        for x in col {
+            match x {
+                Relation::LfLf(f, t, d) => arc_lf_lf.push((f.clone(), t.clone(), d.clone())),
+                Relation::OpOp(f, t, d) => arc_op_op.push((f.clone(), t.clone(), d.clone())),
+                Relation::GrGr(f, t, d) => arc_graph_graph.push((f.clone(), t.clone(), d.clone())),
+                Relation::GcGc(f, t, d) => arc_gc_gc.push((f.clone(), t.clone(), d.clone())),
+                Relation::GrGc(f, t, d) => arc_graph_gc.push((f.clone(), t.clone(), d.clone())),
+                Relation::PgcPgc(f, t, d) => arc_pargc_pargc.push((f.clone(), t.clone(), d.clone())),
+                Relation::ParPar(f, t, d) => arc_parameter_parameter.push((f.clone(), t.clone(), d.clone())),
+                Relation::PropProp(f, t, d) => arc_gcprop_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Relation::GcProp(f, t, d) => arc_gc_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Relation::GcPar(f, t, d) => arc_gc_par.push((f.clone(), t.clone(), d.clone())),
+                Relation::ParProp(f, t, d) => arc_parameter_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Relation::ProbProb(f, t, d) => arc_problem_problem.push((f.clone(), t.clone(), d.clone())),
+                Relation::ProbProp(f, t, d) => arc_problem_gcprop.push((f.clone(), t.clone(), d.clone())),
+                Relation::ProbPar(f, t, d) => arc_problem_parameter.push((f.clone(), t.clone(), d.clone())),
+                Relation::PropPar(f, t, d) => arc_gcprop_parameter.push((f.clone(), t.clone(), d.clone())),
+            }
+        }
+    }
     Data::new(DataFields {
         tags: tag_map.into_values().collect(),
         providers,
@@ -513,8 +501,6 @@ pub fn process_raw_data(rawdata: RawData, bibliography: &Option<Bibliography>) -
         graph_relations,
         graph_classes,
         sources: sources.into_values().collect(),
-        factoids: HashMap::new(), // todo
-        drawings: HashMap::new(), // todo
         graph_class_properties,
         arc_parameter_parameter,
         arc_lf_lf,
