@@ -84,9 +84,7 @@ fn include_dot_file(drawing: anyhow::Result<PathBuf>, final_dir: &Path) -> Strin
 impl GeneratedPage for Parameter {
     fn get_page(&self, builder: &Markdown, paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         if !self.tags.is_empty() {
             let tag_strings: Vec<String> = self
                 .tags
@@ -237,16 +235,12 @@ impl GeneratedPage for Parameter {
         // }
         // res += builder.make_table(relation_table).as_str();
         res += "\n";
-        if !&self.timeline.is_empty() {
+        if !self.timeline.is_empty() {
             res += "---\n\n## Results\n\n";
             for (source, wrotes) in &self.timeline {
-                if let Some(val) = source.to_markdown() {
-                    res += &val;
-                }
+                res += &source.to_markdown();
                 for wrote in wrotes {
-                    if let Some(val) = wrote.to_markdown() {
-                        res += &val;
-                    }
+                    res += &wrote.to_markdown();
                 }
             }
             res += "\n";
@@ -425,9 +419,7 @@ fn format_created_by(data: &Data, created_by: &CreatedBy) -> String {
 impl GeneratedPage for GraphClass {
     fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         if !self.tags.is_empty() {
             let tag_strings: Vec<String> = self
                 .tags
@@ -472,9 +464,7 @@ impl GeneratedPage for GraphClass {
 impl GeneratedPage for GraphClassProperty {
     fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         res
     }
 }
@@ -482,9 +472,7 @@ impl GeneratedPage for GraphClassProperty {
 impl GeneratedPage for Graph {
     fn get_page(&self, _builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         if !self.definition.is_empty() {
             res += &format!("**Definition:** {}\n\n", self.definition.join("\n\n"));
         }
@@ -497,9 +485,7 @@ impl GeneratedPage for Graph {
 impl GeneratedPage for LogicFragment {
     fn get_page(&self, _builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         if let Some(description) = &self.description {
             res += &format!("{}\n\n", description);
         }
@@ -512,9 +498,7 @@ impl GeneratedPage for LogicFragment {
 impl GeneratedPage for Operation {
     fn get_page(&self, _builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         if !self.description.is_empty() {
             res += &format!("**Definition:** {}\n\n", self.description.join("\n\n"));
         }
@@ -527,9 +511,7 @@ impl GeneratedPage for Operation {
 impl GeneratedPage for ParametricParameter {
     fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         if !self.tags.is_empty() {
             let tag_strings: Vec<String> = self
                 .tags
@@ -547,9 +529,7 @@ impl GeneratedPage for ParametricParameter {
 impl GeneratedPage for ParametricGraphClass {
     fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         if !self.tags.is_empty() {
             let tag_strings: Vec<String> = self
                 .tags
@@ -568,9 +548,7 @@ impl GeneratedPage for ParametricGraphClass {
 impl GeneratedPage for Provider {
     fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         res += &format!("URL: [{}]({})\n\n", self.url, self.url);
         if !self.links.is_empty() {
             res += "**Provides:**\n\n";
@@ -588,9 +566,7 @@ impl GeneratedPage for Provider {
 impl GeneratedPage for GraphRelation {
     fn get_page(&self, builder: &Markdown, _paths: &Paths) -> String {
         let mut res = String::new();
-        if let Some(title) = self.name_core.to_markdown() {
-            res += &title;
-        }
+        res += &self.name_core.to_markdown();
         let def_string = match &self.displayed_definition {
             GraphRelationDefinition::Text(text) => text.clone(),
             GraphRelationDefinition::IsomorphicAfterOperations(ops) => {

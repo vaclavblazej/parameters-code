@@ -1011,7 +1011,7 @@ pub fn build_collection() -> RawData {
     let contraction_complexity2008 = source("9JAQC7", "contractionComplexity2008", 2)
         .wrote(Pp(10), "Definition 4.1. The contraction of an edge e removes e and replaces its end vertices (or vertex) with a single vertex. A contraction ordering π is an ordering of all the edges of G, π(1), π(2), . . ., π(|E(G)|). The complexity of π is the maximum degree of a merged vertex during the contraction process. The contraction complexity of G, denoted by cc(G), is the minimum complexity of a contraction ordering.", vec![("4lmvZK", Original, definition(&contraction_complexity))])
         .wrote(Pp(10), "$cc(G) \\ge \\Delta(G) - 1$", vec![("F0p61H", Original, relation(&contraction_complexity, &maximum_degree, UpperBound(Linear)))])
-        .wrote(Pp(11), "Proposition 4.2. ... $cc(G)=tw(G^*)$ ... Lemma 4.4. $(tw(G) - 1)/2 \\le tw(G^*) \\le \\Delta(G)(tw(G) + 1) - 1.$", vec![
+        .wrote(Pp(11), "Proposition 4.2. ... $cc(G)=tw(G^\\*)$ ... Lemma 4.4. $(tw(G) - 1)/2 \\le tw(G^\\*) \\le \\Delta(G)(tw(G) + 1) - 1.$", vec![
             ("YhbKPB", Original, relation(&contraction_complexity, &treewidth, UpperBound(Linear))),
             ("YvvmJE", Original, relation(&degree_treewidth, &contraction_complexity, UpperBound(Polynomial))),
         ])

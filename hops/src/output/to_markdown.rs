@@ -1,24 +1,20 @@
 use std::fmt;
 
-use crate::data::data::{Fact, NameCore, Own, Wrote, WroteStatus};
+use crate::data::data::{Definition, Fact, LogicFragment, NameCore, Own, Parameter, Relation, Wrote, WroteStatus};
 use crate::data::enums::*;
-use crate::data::id::{HasId, PreviewShowedId};
-use crate::data::preview::{HasPreview, PreviewSource, PreviewSourceKey, PreviewTag};
+use crate::data::id::{BaseId, HasId, HasPreviewId, Id, PreviewId, PreviewShowedId};
+use crate::data::preview::{HasPreview, PreviewGraph, PreviewGraphClass, PreviewGraphClassProperty, PreviewLogicFragment, PreviewOperation, PreviewParameter, PreviewParametricGraphClass, PreviewParametricParameter, PreviewProblem, PreviewSource, PreviewSourceKey, PreviewTag};
+use crate::input::source::{ClassicalSolvability, Cpx, EquivalenceRelation, ImplicationRelation, InclusionRelationUnderGraphRelation, ParameterizedSolvability};
 
-pub trait ToMarkdown {
+pub trait MaybeToMarkdown {
     fn to_markdown(&self) -> Option<String>;
 }
 
-impl<T> ToMarkdown for T
-where
-    T: HasId,
-{
-    fn to_markdown(&self) -> Option<String> {
-        Some(format!("[[{}]]", &self.id()))
-    }
+pub trait ToMarkdown {
+    fn to_markdown(&self) -> String;
 }
 
-impl ToMarkdown for Page {
+impl MaybeToMarkdown for Page {
     fn to_markdown(&self) -> Option<String> {
         let mut res = String::new();
         match self {
@@ -30,8 +26,8 @@ impl ToMarkdown for Page {
 }
 
 impl ToMarkdown for CpxTime {
-    fn to_markdown(&self) -> Option<String> {
-        Some(String::from(match self {
+    fn to_markdown(&self) -> String {
+        String::from(match self {
             // formed to continue line "upper bounded by ..."
             CpxTime::Constant => "a constant",
             CpxTime::Linear => "a linear function",
@@ -39,12 +35,12 @@ impl ToMarkdown for CpxTime {
             CpxTime::Exponential => "an exponential function",
             CpxTime::Tower => "a tower function",
             CpxTime::Exists => "a computable function",
-        }))
+        })
     }
 }
 
 impl ToMarkdown for NameCore {
-    fn to_markdown(&self) -> Option<String> {
+    fn to_markdown(&self) -> String {
         let mut res = String::new();
         res += &format!("---\ntitle: \"{}\"\n---", self.name);
         res += &format!("# {}\n\n", self.name);
@@ -54,7 +50,7 @@ impl ToMarkdown for NameCore {
         if !self.aka.is_empty() {
             res += &format!("aka: {}\n\n", self.aka.join(", "));
         }
-        Some(res)
+        res
     }
 }
 
@@ -282,68 +278,225 @@ impl Own {
 // }
 
 impl ToMarkdown for PreviewSource {
-    fn to_markdown(&self) -> Option<String> {
-        match &self.sourcekey {
+    fn to_markdown(&self) -> String {
+        let res = match &self.sourcekey {
             SourceKey::Bibtex { entry_key, name, entry_content } => {
-                Some(name.clone().unwrap_or(entry_key.clone()))
+                name.clone().unwrap_or(entry_key.clone())
             },
-            SourceKey::Online { url } => Some(url.clone()),
-            SourceKey::Other { name, description } => Some(name.clone()),
-        }
+            SourceKey::Online { url } => url.clone(),
+            SourceKey::Other { name, description } => name.clone(),
+        };
+        format!("* {}\n", res)
     }
 }
 
 impl ToMarkdown for Wrote {
-    fn to_markdown(&self) -> Option<String> {
+    fn to_markdown(&self) -> String {
+        let page_str: String = match self.page.to_markdown() {
+            Some(page) => format!("{} : ", page),
+            None => "".into(),
+        };
         let mut res = String::new();
-        if let Some(page) = self.page.to_markdown(){ 
-            res += &format!("{} : ", page);
-        }
-        res += &self.text;
+        let text = if self.text.is_empty() {
+            "empty text".into()
+        } else {
+            self.text.clone()
+        };
+        res += &format!("  * {}{}\n", &page_str, &text);
         for fact in &self.facts {
-            if let Some(facttext) = fact.to_markdown() {
-                res += &facttext;
-            }
+            res += &format!("    * {}\n", &fact.to_markdown());
         }
-        Some(res)
+        res
+    }
+}
+
+impl ToMarkdown for Definition {
+    fn to_markdown(&self) -> String {
+        let mut res = String::new();
+        res += "definition of ";
+        res += &match self {
+            Definition::LogicFragment(p) => p.to_markdown().clone(),
+            Definition::Parameter(p) => p.to_markdown().clone(),
+            Definition::Graph(p) => p.to_markdown().clone(),
+            Definition::GraphClass(p) => p.to_markdown().clone(),
+            Definition::Operation(p) => p.to_markdown().clone(),
+            Definition::Problem(p) => p.to_markdown().clone(),
+            Definition::ParParameter(p) => p.to_markdown().clone(),
+            Definition::ParGraphClass(p) => p.to_markdown().clone(),
+            Definition::Property(p) => p.to_markdown().clone(),
+        };
+        res.to_string()
+    }
+}
+
+impl<T> ToMarkdown for Id<T> {
+    fn to_markdown(&self) -> String {
+        format!("[[{}]]", self)
+    }
+}
+
+impl<T> ToMarkdown for PreviewId<T> {
+    fn to_markdown(&self) -> String {
+        format!("[[{}]]", self)
+    }
+}
+
+impl ToMarkdown for PreviewParameter {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewLogicFragment {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewGraphClass {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewProblem {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewParametricParameter {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewParametricGraphClass {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewGraphClassProperty {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewOperation {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for PreviewGraph {
+    fn to_markdown(&self) -> String {
+        self.previewid().to_markdown()
+    }
+}
+
+impl ToMarkdown for (String, String, ImplicationRelation) {
+    fn to_markdown(&self) -> String {
+        let (a, b, r) = self.clone();
+        match r {
+            ImplicationRelation::Equivalent => format!("{} is equivalent to {}", a, b),
+            ImplicationRelation::Implies => format!("{} implies {}", a, b),
+            ImplicationRelation::Excludes => format!("{} excludes {}", a, b),
+            ImplicationRelation::Unknown => format!("unknown relation of {} to {}", a, b),
+        }
+    }
+}
+
+impl ToMarkdown for (String, String, InclusionRelationUnderGraphRelation) {
+    fn to_markdown(&self) -> String {
+        let (a, b, r) = self.clone();
+        let res = match r.relation {
+            ImplicationRelation::Equivalent => format!("{} is equivalent to {}", a, b),
+            ImplicationRelation::Implies => format!("{} implies {}", a, b),
+            ImplicationRelation::Excludes => format!("{} excludes {}", a, b),
+            ImplicationRelation::Unknown => format!("unknown relation of {} to {}", a, b),
+        };
+        format!("{} under {}", res, r.graph_relation)
+    }
+}
+
+impl ToMarkdown for (String, String, Cpx) {
+    fn to_markdown(&self) -> String {
+        let (a, b, r) = self.clone();
+        match r {
+            Cpx::Bounds(lb, ub) => format!("{} bounds {} between {} and {}", a, b, lb.to_markdown(), ub.to_markdown()),
+            Cpx::UpperBound(ub) => format!("{} upper bounds {} by {}", a, b, ub.to_markdown()),
+            Cpx::LowerBound(lb) => format!("if {} upper bounds {} then the function is at least {}", a, b, lb.to_markdown()),
+            Cpx::StrictUpperBound(ub) => format!("{} upper bounds {} by {}", a, b, ub.to_markdown()),
+            Cpx::Exactly(bound) => format!("{} upper bounds {} by {} (tight)", a, b, bound.to_markdown()),
+            Cpx::Equivalent(abub, baub) => format!("{} upper bounds {} by {} and {} upper bounds {} by {}", a, b, abub.to_markdown(), b, a, baub.to_markdown()),
+            Cpx::Equal => format!("{} equals {}", a, b),
+            Cpx::Exclusion => format!("{} excludes {}", a, b),
+            Cpx::Incomparable => format!("{} is incomparable to {}", a, b),
+            Cpx::Todo => panic!("Cpx::Todo at to_markdown is not allowed"),
+        }
+    }
+}
+
+impl ToMarkdown for (String, String, EquivalenceRelation) {
+    fn to_markdown(&self) -> String {
+        let (a, b, r) = self.clone();
+        match r {
+            EquivalenceRelation::Equivalent => format!("{} is equivalent to {}", a, b),
+        }
+    }
+}
+
+impl ToMarkdown for (String, String, ClassicalSolvability) {
+    fn to_markdown(&self) -> String {
+        let (a, b, r) = self.clone();
+        match r {
+            ClassicalSolvability::Polynomial => format!("{} is polynomial for {}", a, b),
+            ClassicalSolvability::NpHard => format!("{} is NP-hard for {}", a, b),
+        }
+    }
+}
+
+impl ToMarkdown for (String, String, ParameterizedSolvability) {
+    fn to_markdown(&self) -> String {
+        let (a, b, r) = self.clone();
+        match r {
+            ParameterizedSolvability::Polynomial => format!("{} is polynomial-time solvable for {}", a, b),
+            ParameterizedSolvability::Fpt => format!("{} is FPT for {}", a, b),
+            ParameterizedSolvability::Whard => format!("{} is W[1]-hard for {}", a, b),
+            ParameterizedSolvability::ParaNpHard => format!("{} is para-NP-hard for {}", a, b),
+        }
+    }
+}
+
+impl ToMarkdown for Relation {
+    fn to_markdown(&self) -> String {
+        match self.clone() {
+            Relation::LfLf(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::OpOp(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::GrGr(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::GcGc(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::GrGc(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::PgcPgc(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::ParPar(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::PropProp(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::GcProp(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::GcPar(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::ParProp(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::ProbProb(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::ProbProp(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::ProbPar(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+            Relation::PropPar(f, t, d) => (f.to_markdown(), t.to_markdown(), d).to_markdown(),
+        }
     }
 }
 
 impl ToMarkdown for (PreviewShowedId, WroteStatus, Fact) {
-    fn to_markdown(&self) -> Option<String> {
-        let mut res = String::new();
+    fn to_markdown(&self) -> String {
         let (showedid, status, fact) = self;
-        res += match fact {
-            Fact::Definition(definition) => "definition",
-            Fact::Relation(relation) => "relation",
-        };
-        // Fact::Relation(status, relation) => {
-        //     if let Some(val) = relation.long_description() {
-        //         res += &val;
-        //     }
-        // }
-        // Fact::Definition(status, preview_set) => {
-        //     let set = builder.data.get_set_by_id(preview_set); // todo builder was removed
-        //     from parameters
-        //     if let Some(val) = set.preview().to_markdown() {
-        //         res += &val;
-        //     }
-        // }
-        Some(res)
+        match fact {
+            Fact::Definition(definition) => definition.to_markdown(),
+            Fact::Relation(relation) => relation.to_markdown(),
+        }
     }
 }
-
-// impl ToMarkdown for SourceSubset {
-//     fn to_markdown(&self) -> Option<String> {
-//         let mut res = String::new();
-//         res += "*";
-//         if self.preview.time.year.is_some() {
-//             res += &format!(" {}", self.preview.time);
-//         };
-//         res += &format!(" [[{}]]\n", &self.preview.id.to_string());
-//         for showed in &self.showed {
-//             res += &format!("    * {}\n", showed.to_markdown().unwrap());
-//         }
-//         Some(res)
-//     }
-// }

@@ -409,13 +409,13 @@ pub enum Fact {
 impl Relation {
     pub fn kind(&self) -> RelKind {
         match self {
-            Relation::ParPar(..) => RelKind::ParPar,
             Relation::LfLf(..) => RelKind::LfLf,
             Relation::OpOp(..) => RelKind::OpOp,
             Relation::GrGr(..) => RelKind::GrGr,
             Relation::GcGc(..) => RelKind::GcGc,
             Relation::GrGc(..) => RelKind::GrGc,
             Relation::PgcPgc(..) => RelKind::PgcPgc,
+            Relation::ParPar(..) => RelKind::ParPar,
             Relation::PropProp(..) => RelKind::PropProp,
             Relation::GcProp(..) => RelKind::GcProp,
             Relation::GcPar(..) => RelKind::GcPar,
