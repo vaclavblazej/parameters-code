@@ -18,6 +18,7 @@ All forms of collaboration are appreciated.
 * [Graph Parameter Hierarchy Visualizer - Yuto Okada (岡田優斗)](https://yutookada.com/tools/graph-parameters/)
 * [Graph Parameter Hierarchy - Yeonsu Chang (장연수)](https://www.graphparameterhierarchy.com/)
 * [Reductions Network (A Compendium of Reductions) - Christoph Grüne](https://reductions.network/)
+* [Parameter Hierarchy - Manuel Sorge](https://manyu.pro/parameter-hierarchy/)
 
 [Let us know](./contact) if you know of other related projects.
 

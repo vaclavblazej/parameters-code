@@ -399,7 +399,9 @@ pub fn build_collection() -> RawData {
     let linear_nlc_width = parameter("v09DMY", "linear NLC-width", 2, "")
         .tag(&tag_linear)
         .done(&mut create);
-    let crossing_number = parameter("zUv8EU", "crossing number", 4, "").done(&mut create);
+    let crossing_number = parameter("zUv8EU", "crossing number", 6, "For a finite graph $G=(V,E)$, the crossing number $cr(G)$ is the minimum number of edge–edge crossings in any drawing of $G$ in the plane in which vertices are distinct points and each edge is a continuous curve between its endpoints, minimized over all such drawings.")
+        .abbr("cr")
+        .done(&mut create);
     let thickness = parameter("sxTPYj", "thickness", 3, "").done(&mut create);
     let outerthickness = parameter("MIeOwU", "outerthickness", 1, "").done(&mut create);
     let component_size = parameter("t7c4mp", "components size", 3, "Graph's component size is the maximum number of vertices in its connected component.")

@@ -1,8 +1,6 @@
 #!/usr/bin/env sh
 # Compile the source, build website, and run a server for it
 
-cd "$(dirname "$0")"/../../code/ || exit \
-    && mkdir -p /tmp/hops \
-    && cargo build --all-targets --release --target-dir /tmp/hops \
-    && (/tmp/hops/release/par "$@") \
+cd "$(dirname "$0")"/../../hops/ || exit \
+    && cargo run --release \
     && cmd server
