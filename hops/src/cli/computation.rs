@@ -19,6 +19,7 @@ use crate::general::worker::Worker;
 use crate::input::raw::RawData;
 use crate::output::api;
 use crate::output::dot::{DotEdge, DotGraph};
+use crate::output::json_export;
 use crate::output::markdown::{GeneratedPage, Markdown};
 use crate::output::pages::TargetPage;
 use crate::output::pages::{self, Substitute, add_content};
@@ -88,6 +89,7 @@ impl Computation {
         };
         let data_cache: Cache<Data> = Cache::new(&self.paths.tmp_dir.join("data.json"));
         if !self.args.contains(&Args::Preprocess)
+            && !self.args.contains(&Args::Export)
             && let Some(mut res) = data_cache.load()
         {
             info!("deserialized data");
@@ -96,6 +98,12 @@ impl Computation {
         }
         self.time.print("retrieving data collection");
         let mut rawdata = collection_fn();
+        if self.args.contains(&Args::Export) {
+            self.time.print("exporting raw data to JSON");
+            if let Err(err) = json_export::export_raw_data(&rawdata, &self.paths.json_dir) {
+                error!("json export failed: {}", err);
+            }
+        }
         self.time.print("processing data");
         let res = process_raw_data(rawdata, &self.bibliography);
         match data_cache.save(&res) {

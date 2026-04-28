@@ -15,6 +15,7 @@ pub(crate) enum Args {
     Pages,
     Table,
     Api,
+    Export,
     Clear,
     Interactive,
     Debug,
@@ -58,6 +59,9 @@ pub(crate) fn parse_args_and_init_logger() -> HashSet<Args> {
             }
             "api" => {
                 args.insert(Args::Api);
+            }
+            "export" => {
+                args.insert(Args::Export);
             }
             "all" => {
                 args.insert(Args::Clear);

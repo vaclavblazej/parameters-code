@@ -14,6 +14,7 @@ pub trait AbstractId<T> {
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Clone, Hash)]
 pub struct PreviewId<T> {
     pub code: String,
+    #[serde(skip)]
     _marker: PhantomData<T>,
 }
 
@@ -59,6 +60,7 @@ where
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd)]
 pub struct Id<T> {
     code: String,
+    #[serde(skip)]
     _marker: PhantomData<T>,
 }
 
@@ -151,6 +153,7 @@ pub type PreviewRelationId = PreviewId<TypeRelation>;
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd)]
 pub struct RelationId<T> {
     code: String,
+    #[serde(skip)]
     _marker: PhantomData<T>,
 }
 

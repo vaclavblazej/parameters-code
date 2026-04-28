@@ -51,6 +51,7 @@ mod output {
     pub mod diagram;
     pub mod dot;
     pub mod html;
+    pub mod json_export;
     pub mod markdown;
     pub mod pages;
     pub mod table;

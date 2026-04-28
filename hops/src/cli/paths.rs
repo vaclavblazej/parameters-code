@@ -13,6 +13,7 @@ pub(crate) struct Paths {
     pub(crate) html_dir: PathBuf,
     pub(crate) api_dir: PathBuf,
     pub(crate) tmp_dir: PathBuf,
+    pub(crate) json_dir: PathBuf,
 }
 
 impl Paths {
@@ -29,6 +30,7 @@ impl Paths {
         let html_dir = final_dir.join("html");
         let api_dir = final_dir.join("api");
         let tmp_dir = temp_dir.join("tmp");
+        let json_dir = parent.join("data");
         Self {
             parent: parent.to_path_buf(),
             table_tikz_folder,
@@ -40,6 +42,7 @@ impl Paths {
             html_dir,
             api_dir,
             tmp_dir,
+            json_dir,
         }
     }
 }

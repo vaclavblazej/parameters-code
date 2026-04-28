@@ -8,7 +8,7 @@ use crate::data::link::Link;
 use crate::input::build::CollectionBuilder;
 use crate::input::raw::RawData;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RawSourceKey {
     Bibtex { key: String },
     Online { url: String },
@@ -36,14 +36,14 @@ pub struct RawShownRelation<F, T, D> {
     pub data: D, // CpxInfo
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawSource {
     pub id: SourceId,
     pub rawsourcekey: RawSourceKey,
     pub score: u32, // from 0 to 9
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawWrote {
     pub text: String,
     pub page: Page,
@@ -173,7 +173,7 @@ relatable!(PreviewProblemId, PreviewProblemId, ImplicationRelation, ProbProb);
 relatable!(PreviewProblemId, PreviewGraphClassPropertyId, ClassicalSolvability, ProbProp);
 relatable!(PreviewProblemId, PreviewParameterId, ParameterizedSolvability, ProbPar);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Def {
     LogicFragment(PreviewLogicFragmentId),
     Parameter(PreviewParameterId),
@@ -215,7 +215,7 @@ impl Def {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Rel {
     LfLf(PreviewLogicFragmentId, PreviewLogicFragmentId, ImplicationRelation),
     OpOp(PreviewOperationId, PreviewOperationId, ImplicationRelation),
@@ -275,13 +275,13 @@ impl Rel {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RawFact {
     Def(Def),
     Rel(Rel),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RawWroteStatus {
     Assumed,               // taken as given by HOPS, mainly due to being out of project's scope
     Conjectured,           // posed as an open problem
@@ -291,7 +291,7 @@ pub enum RawWroteStatus {
     TodoStatus,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RawNotedSource {
     SrcText(String),         // outside of HOPS
     Source(PreviewSourceId), // in HOPS

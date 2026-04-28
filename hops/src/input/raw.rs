@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 
 use hops_macros::{tagged, named, scored};
+use serde::{Deserialize, Serialize};
 
 use crate::data::data::{NameCore, Named, Tagged};
 use crate::data::enums::*;
@@ -35,7 +36,7 @@ macro_rules! raw_data_addable {
 }
 
 #[named]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawTag {
     pub id: TagId,
     pub description: String,
@@ -44,7 +45,7 @@ tie_raw_to_previewid!(RawTag, PreviewTagId);
 raw_data_addable!(RawTag, tags);
 
 #[named]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawLogicFragment {
     pub id: LogicFragmentId,
     pub description: Option<String>,
@@ -53,7 +54,7 @@ tie_raw_to_previewid!(RawLogicFragment, PreviewLogicFragmentId);
 raw_data_addable!(RawLogicFragment, logic_fragments);
 
 #[named]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawOperation {
     pub id: OperationId,
     pub definition: RawOperationDefinition,
@@ -64,7 +65,7 @@ raw_data_addable!(RawOperation, operations);
 #[named]
 #[scored]
 #[tagged(PreviewTagId)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawGraph {
     pub id: GraphId,
     pub definition: Vec<String>,
@@ -77,7 +78,7 @@ raw_data_addable!(RawGraph, graphs);
 #[named]
 #[scored]
 #[tagged(PreviewTagId)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawGraphClass {
     pub id: GraphClassId,
     pub definition: RawGraphClassDefinition,
@@ -98,7 +99,7 @@ impl Defines<PreviewGraphClassPropertyId> for RawGraphClass {
 #[named]
 #[scored]
 #[tagged(PreviewTagId)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawParametricParameter {
     pub id: ParametricParameterId,
     pub definition: RawParametricParameterDefinition,
@@ -110,7 +111,7 @@ raw_data_addable!(RawParametricParameter, parametric_parameters);
 #[named]
 #[scored]
 #[tagged(PreviewTagId)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawParametricGraphClass {
     pub id: ParametricGraphClassId,
     pub closed_under: PreviewGraphRelationId,
@@ -129,7 +130,7 @@ impl Defines<PreviewGraphClassId> for RawParametricGraphClass {
 #[named]
 #[scored]
 #[tagged(PreviewTagId)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawParameter {
     pub id: ParameterId,
     pub definition: RawParameterDefinition,
@@ -142,7 +143,7 @@ raw_data_addable!(RawParameter, parameters);
 #[named]
 #[scored]
 #[tagged(PreviewTagId)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawGraphClassProperty {
     pub id: GraphClassPropertyId,
     pub definition: RawGraphClassPropertyDefinition,
@@ -152,7 +153,7 @@ tie_raw_to_previewid!(RawGraphClassProperty, PreviewGraphClassPropertyId);
 raw_data_addable!(RawGraphClassProperty, graph_class_properties);
 
 #[named]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawProvider {
     pub id: ProviderId,
     pub url: String,
@@ -160,14 +161,14 @@ pub struct RawProvider {
 tie_raw_to_previewid!(RawProvider, PreviewProviderId);
 raw_data_addable!(RawProvider, providers);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawProviderLink {
     pub provider: PreviewProviderId,
     pub link: Link,
 }
 
 #[named]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawGraphRelation {
     pub id: GraphRelationId,
     pub displayed_definition: RawGraphRelationDefinition,
@@ -175,7 +176,7 @@ pub struct RawGraphRelation {
 raw_data_addable!(RawGraphRelation, graph_relations);
 
 #[named]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawGraphClassRelation {
     pub id: GraphClassRelationId,
     pub definition: RawGraphClassRelationDefinition,
@@ -183,7 +184,7 @@ pub struct RawGraphClassRelation {
 raw_data_addable!(RawGraphClassRelation, graph_class_relations);
 
 #[named]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawProblem {
     pub id: ProblemId,
     pub definition: RawProblemDefinition,
@@ -191,7 +192,7 @@ pub struct RawProblem {
 raw_data_addable!(RawProblem, problems);
 
 /// Raw immutable datapoints
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawData {
     pub graph_class_relations: Vec<RawGraphClassRelation>,
     pub graph_classes: Vec<RawGraphClass>,
