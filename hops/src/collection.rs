@@ -1093,7 +1093,7 @@ pub fn build_collection() -> RawData {
         // .proved("77zJ2z", Pp(42), &boolean_width, &mim_width, UpperBound(Linear), "Theorem 4.2.10. Let $G$ be a graph, then $mimw(G) \\le boolw(G) \\le mimw(G) \\log_2(n)$")
         .todo_rest(&mut create);
     let modularwidth2013 = source("OH3sI3", "modularwidth2013", 3)
-        .wrote(Pp(6), "Theorem 3. Let $G$ be a graph. Then $\\mathrm{mw}(G) \\le \\mathrm{nd}(G)$ and $\\mathrm{mw}(G) \\le 2\\mathrm{tc}(G) + \\mathrm{tc}(G)$. Furthermore, both inequalities are strict, ...", vec![
+        .wrote(Pp(6), "Theorem 3. Let $G$ be a graph. Then $\\mathrm{mw}(G) \\le \\mathrm{nd}(G)$ and $\\mathrm{mw}(G) \\le 2^{\\mathrm{tc}(G)} + \\mathrm{tc}(G)$. Furthermore, both inequalities are strict, ...", vec![
             ("NeMJtU", Original, relation(&neighborhood_diversity, &modular_width, StrictUpperBound(Linear))),
             ("8rtBjc", Original, relation(&twin_cover_num, &modular_width, StrictUpperBound(Exponential))),
         ])
